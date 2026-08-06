@@ -13,9 +13,8 @@
       "package": "com.michsya.mobile",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F7F3EE",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -55,7 +54,16 @@
         }
       ],
       "expo-background-task",
-      "expo-quick-actions"
+      "expo-quick-actions",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F3EE"
+        }
+      ]
     ],
     "extra": {
       "eas": {
