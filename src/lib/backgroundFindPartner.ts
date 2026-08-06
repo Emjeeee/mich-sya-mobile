@@ -1,0 +1,103 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
+
+import { supabase } from './supabase';
+
+export const FIND_PARTNER_TASK_NAME = 'michsya-find-partner-location';
+
+const ACTIVE_FIND_KEY = 'michsya.activeFindPartner';
+const PING_INTERVAL_MS = 15 * 1000;
+const AUTO_STOP_MS = 30 * 60 * 1000;
+
+interface ActiveFindRef {
+  coupleId: string;
+  userId: string;
+  startedAt: number;
+}
+
+async function getActiveFindRef(): Promise<ActiveFindRef | null> {
+  const raw = await AsyncStorage.getItem(ACTIVE_FIND_KEY);
+  return raw ? (JSON.parse(raw) as ActiveFindRef) : null;
+}
+
+// Defined at module scope so it survives headless (app-killed) restarts by the OS --
+// this lets "Cari Pasangan" keep sharing location even if the partner never opens the app.
+// The 30-minute cap is enforced here (not via a JS setTimeout) so it still applies
+// even if the app process itself gets killed while sharing is active.
+TaskManager.defineTask(FIND_PARTNER_TASK_NAME, async ({ data, error }) => {
+  if (error) return;
+
+  const locations = (data as { locations?: Location.LocationObject[] } | undefined)?.locations;
+  const latest = locations?.[locations.length - 1];
+  if (!latest) return;
+
+  const ref = await getActiveFindRef();
+  if (!ref) return;
+
+  if (Date.now() - ref.startedAt > AUTO_STOP_MS) {
+    await stopFindPartnerTracking(ref.coupleId, ref.userId);
+    return;
+  }
+
+  await supabase.from('partner_presence').upsert(
+    {
+      couple_id: ref.coupleId,
+      user_id: ref.userId,
+      lat: latest.coords.latitude,
+      lng: latest.coords.longitude,
+      is_sharing: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'couple_id,user_id' }
+  );
+});
+
+// Returns false if location permission isn't granted -- the caller decides how to
+// surface that (this function itself can't show a permission UI from a background task).
+export async function startFindPartnerTracking(coupleId: string, userId: string): Promise<boolean> {
+  await AsyncStorage.setItem(
+    ACTIVE_FIND_KEY,
+    JSON.stringify({ coupleId, userId, startedAt: Date.now() } satisfies ActiveFindRef)
+  );
+
+  const foreground = await Location.requestForegroundPermissionsAsync();
+  if (foreground.status !== 'granted') return false;
+
+  const background = await Location.requestBackgroundPermissionsAsync();
+  if (background.status !== 'granted') return false;
+
+  const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(
+    FIND_PARTNER_TASK_NAME
+  ).catch(() => false);
+  if (!alreadyStarted) {
+    await Location.startLocationUpdatesAsync(FIND_PARTNER_TASK_NAME, {
+      accuracy: Location.Accuracy.Balanced,
+      timeInterval: PING_INTERVAL_MS,
+      distanceInterval: 10,
+      showsBackgroundLocationIndicator: true,
+      foregroundService: {
+        notificationTitle: 'MichSya sedang membagikan lokasi',
+        notificationBody: 'Pasanganmu bisa lihat lokasimu untuk saling menemukan.',
+      },
+    });
+  }
+  return true;
+}
+
+export async function stopFindPartnerTracking(coupleId: string, userId: string) {
+  await AsyncStorage.removeItem(ACTIVE_FIND_KEY);
+
+  const started = await Location.hasStartedLocationUpdatesAsync(FIND_PARTNER_TASK_NAME).catch(
+    () => false
+  );
+  if (started) {
+    await Location.stopLocationUpdatesAsync(FIND_PARTNER_TASK_NAME);
+  }
+
+  await supabase
+    .from('partner_presence')
+    .update({ is_sharing: false })
+    .eq('couple_id', coupleId)
+    .eq('user_id', userId);
+}

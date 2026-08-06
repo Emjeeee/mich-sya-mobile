@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "MichSya",
+    "slug": "michsya-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.michsya.mobile",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "MichSya menggunakan lokasi untuk mencatat rute perjalanan selama kencan berlangsung, termasuk saat aplikasi berjalan di latar belakang.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MichSya butuh akses galeri untuk menyimpan foto/video kencan kalian.",
+          "cameraPermission": "MichSya butuh akses kamera untuk mengambil foto/video kencan kalian."
+        }
+      ],
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#e11d74"
+        }
+      ],
+      "expo-background-task",
+      "expo-quick-actions"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d9bd84a3-36af-455c-92df-fd95fd4e1a64"
+      }
+    },
+    "owner": "emjeee"
+  }
+}

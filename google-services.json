@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "682326563197",
+    "project_id": "michsya-81a1e",
+    "storage_bucket": "michsya-81a1e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:682326563197:android:00f5299dac2106af299414",
+        "android_client_info": {
+          "package_name": "com.michsya.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5kDC-YhJ4sXw2bJbWB6jOhIiy3aC7OXA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
