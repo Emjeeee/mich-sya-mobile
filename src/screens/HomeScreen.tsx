@@ -6,8 +6,10 @@ import * as QuickActions from 'expo-quick-actions';
 
 import AddJourneyMapModal from '../components/AddJourneyMapModal';
 import AddMemoryModal from '../components/AddMemoryModal';
+import DateRecapModal from '../components/DateRecapModal';
 import EndDateModal from '../components/EndDateModal';
 import FindPartnerModal from '../components/FindPartnerModal';
+import JourneyMapModal from '../components/JourneyMapModal';
 import SwipeToConfirm from '../components/SwipeToConfirm';
 import WishlistListModal from '../components/WishlistListModal';
 import { useCoupleStats } from '../hooks/useCoupleStats';
@@ -15,9 +17,12 @@ import { useDateSession } from '../hooks/useDateSession';
 import { useNextSchedule } from '../hooks/useNextSchedule';
 import { handleNotificationResponse } from '../lib/backgroundNotifications';
 import { formatDistance } from '../lib/geo';
+import { getCurrentCoords } from '../lib/location';
 import { registerForPushNotifications } from '../lib/notifications';
 import { sendPushToPartner } from '../lib/push';
+import { getSignedUrl } from '../lib/storage';
 import { supabase } from '../lib/supabase';
+import type { DateSession } from '../types/database';
 
 function formatElapsed(startedAt: string): string {
   const elapsedMs = Date.now() - new Date(startedAt).getTime();
@@ -41,9 +46,17 @@ export default function HomeScreen() {
   const [showMemoryModal, setShowMemoryModal] = useState(false);
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [showFindPartnerModal, setShowFindPartnerModal] = useState(false);
+  const [showJourneyMapModal, setShowJourneyMapModal] = useState(false);
   const [journeyPrompt, setJourneyPrompt] = useState<{ lat: number; lng: number } | null>(null);
   const [swipeResetKey, setSwipeResetKey] = useState(0);
   const [elapsed, setElapsed] = useState('');
+  const [quickMemoryNotice, setQuickMemoryNotice] = useState<string | null>(null);
+  const [recap, setRecap] = useState<{
+    title: string;
+    durationLabel: string;
+    distanceLabel: string | null;
+    photoUrls: string[];
+  } | null>(null);
   const sessionRef = useRef(session);
   sessionRef.current = session;
 
@@ -97,11 +110,68 @@ export default function HomeScreen() {
   }, [coupleId, startSession]);
 
   const handleEndSubmit = async (input: { title: string; summary: string }) => {
+    const endingSession = sessionRef.current;
+    const durationLabel = elapsed;
     const routeMeters = await endSession(input);
     setShowEndModal(false);
-    if (routeMeters !== null) {
-      Alert.alert('Kencan berakhir!', `Kalian jalan sejauh ${formatDistance(routeMeters)} selama kencan ini.`);
+
+    const distanceLabel = routeMeters !== null ? formatDistance(routeMeters) : null;
+    if (distanceLabel) {
+      Alert.alert('Kencan berakhir!', `Kalian jalan sejauh ${distanceLabel} selama kencan ini.`);
     }
+
+    if (endingSession && coupleId) {
+      await prepareRecap(endingSession, input.title, durationLabel, distanceLabel);
+    }
+  };
+
+  const prepareRecap = async (
+    endingSession: DateSession,
+    title: string,
+    durationLabel: string,
+    distanceLabel: string | null
+  ) => {
+    if (!coupleId) return;
+    const { data: memoriesForDate } = await supabase
+      .from('memories')
+      .select('photo_url')
+      .eq('couple_id', coupleId)
+      .eq('memory_date', endingSession.started_at.slice(0, 10))
+      .not('photo_url', 'is', null)
+      .limit(4);
+
+    const photoUrls = (
+      await Promise.all(
+        (memoriesForDate ?? []).map((m) => getSignedUrl(m.photo_url as string))
+      )
+    ).filter((url): url is string => Boolean(url));
+
+    setRecap({
+      title: title.trim() || endingSession.title || 'Kencan',
+      durationLabel,
+      distanceLabel,
+      photoUrls,
+    });
+  };
+
+  const handleQuickMemory = async () => {
+    if (!coupleId) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const coords = await getCurrentCoords();
+
+    await supabase.from('memories').insert({
+      couple_id: coupleId,
+      title: 'Momen spontan 💕',
+      description: null,
+      photo_url: null,
+      voice_note_url: null,
+      location: coords ? `${coords.lat}, ${coords.lng}` : null,
+      memory_date: new Date().toISOString().slice(0, 10),
+      created_by: userData.user?.id ?? null,
+    });
+
+    setQuickMemoryNotice('Momen tersimpan 💕');
+    setTimeout(() => setQuickMemoryNotice(null), 2000);
   };
 
   if (loading) {
@@ -174,8 +244,19 @@ export default function HomeScreen() {
           >
             <Text style={styles.actionButtonText}>🧭 Cari Pasangan</Text>
           </Pressable>
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => setShowJourneyMapModal(true)}
+          >
+            <Text style={styles.actionButtonText}>🗺 Journey Map</Text>
+          </Pressable>
+          <Pressable style={styles.actionButton} onPress={handleQuickMemory}>
+            <Text style={styles.actionButtonText}>💕 Momen</Text>
+          </Pressable>
         </View>
       )}
+
+      {quickMemoryNotice && <Text style={styles.noticeText}>{quickMemoryNotice}</Text>}
 
       <Pressable style={styles.signOutButton} onPress={() => supabase.auth.signOut()}>
         <Text style={styles.signOutText}>Keluar</Text>
@@ -217,7 +298,23 @@ export default function HomeScreen() {
               onClose={() => setJourneyPrompt(null)}
             />
           )}
+          <JourneyMapModal
+            visible={showJourneyMapModal}
+            coupleId={coupleId}
+            onClose={() => setShowJourneyMapModal(false)}
+          />
         </>
+      )}
+
+      {recap && (
+        <DateRecapModal
+          visible
+          title={recap.title}
+          durationLabel={recap.durationLabel}
+          distanceLabel={recap.distanceLabel}
+          photoUrls={recap.photoUrls}
+          onClose={() => setRecap(null)}
+        />
       )}
     </View>
   );
@@ -261,6 +358,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
     marginTop: 4,
+  },
+  noticeText: {
+    textAlign: 'center',
+    color: '#e11d74',
+    fontWeight: '600',
+    marginBottom: 12,
   },
   actionsRow: {
     flexDirection: 'row',

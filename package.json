@@ -16,6 +16,7 @@
     "expo-notifications": "~57.0.8",
     "expo-quick-actions": "^6.0.2",
     "expo-secure-store": "~57.0.1",
+    "expo-sharing": "~57.0.10",
     "expo-splash-screen": "~57.0.5",
     "expo-status-bar": "~57.0.1",
     "expo-task-manager": "~57.0.7",
@@ -24,7 +25,9 @@
     "react-native-gesture-handler": "~2.32.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-url-polyfill": "^4.0.0",
-    "react-native-volume-manager": "^2.0.8"
+    "react-native-view-shot": "5.1.0",
+    "react-native-volume-manager": "^2.0.8",
+    "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
