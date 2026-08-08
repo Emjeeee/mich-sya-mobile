@@ -6,8 +6,16 @@ import {
 } from '../lib/backgroundLocation';
 import { distanceMeters } from '../lib/geo';
 import { getCurrentCoords } from '../lib/location';
+import { sendPushToPartner } from '../lib/push';
 import { supabase } from '../lib/supabase';
+import { refreshWidget } from '../lib/widget';
 import type { DateSession } from '../types/database';
+
+// Best-effort nudge so the partner's widget/app catches up immediately
+// instead of waiting for the next periodic widget refresh.
+function notifyPartnerOfWidgetChange(coupleId: string, myUserId: string) {
+  sendPushToPartner(coupleId, myUserId, { data: { type: 'widget_refresh' } }).catch(() => {});
+}
 
 interface EndSessionInput {
   title: string;
@@ -119,6 +127,8 @@ export function useDateSession() {
     }
 
     await startBackgroundLocationTracking(newSession.id, coupleId);
+    refreshWidget().catch(() => {});
+    if (userData.user) notifyPartnerOfWidgetChange(coupleId, userData.user.id);
     setStarting(false);
   }, [coupleId]);
 
@@ -169,6 +179,8 @@ export function useDateSession() {
       const routeMeters = await computeRouteDistanceMeters(current.id);
 
       await stopBackgroundLocationTracking();
+      refreshWidget().catch(() => {});
+      if (userData.user) notifyPartnerOfWidgetChange(coupleId, userData.user.id);
       setSession(null);
       setEnding(false);
       return routeMeters;

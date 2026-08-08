@@ -9,6 +9,7 @@ import { flushPendingMemories } from './src/lib/offlineQueue';
 import { checkOnThisDayNow } from './src/lib/onThisDay';
 import { stopRingtone } from './src/lib/ringtone';
 import { supabase } from './src/lib/supabase';
+import { refreshWidget } from './src/lib/widget';
 import SignInScreen from './src/screens/SignInScreen';
 import HomeScreen from './src/screens/HomeScreen';
 
@@ -40,12 +41,14 @@ export default function App() {
     // AppState 'change' doesn't fire on the very first cold launch, so also run once on mount.
     flushPendingMemories();
     checkOnThisDayNow();
+    refreshWidget().catch(() => {});
 
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         stopRingtone();
         flushPendingMemories();
         checkOnThisDayNow();
+        refreshWidget().catch(() => {});
       }
     });
     return () => subscription.remove();

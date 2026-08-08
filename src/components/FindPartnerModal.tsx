@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CompassArrow from './CompassArrow';
 import { useFindPartner } from '../hooks/useFindPartner';
-import { sendPushToPartner } from '../lib/push';
+import { ringPartner } from '../lib/ringPartner';
 
 interface FindPartnerModalProps {
   visible: boolean;
@@ -23,7 +23,6 @@ interface FindPartnerModalProps {
 export default function FindPartnerModal({ visible, coupleId, onClose }: FindPartnerModalProps) {
   const insets = useSafeAreaInsets();
   const {
-    myUserId,
     isSharing,
     myLocation,
     partnerPresence,
@@ -41,11 +40,8 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
   };
 
   const handleRing = async () => {
-    if (!myUserId) return;
     setRinging(true);
-    const sent = await sendPushToPartner(coupleId, myUserId, {
-      data: { type: 'ring' },
-    });
+    const sent = await ringPartner(coupleId);
     setRinging(false);
     if (!sent) {
       Alert.alert('Gagal', 'Tidak bisa membunyikan HP pasangan. Pastikan dia sudah pernah membuka MichSya di HP-nya.');

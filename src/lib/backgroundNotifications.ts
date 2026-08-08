@@ -4,6 +4,7 @@ import * as TaskManager from 'expo-task-manager';
 import { startFindPartnerTracking } from './backgroundFindPartner';
 import { playRingtone, stopRingtone } from './ringtone';
 import { supabase } from './supabase';
+import { refreshWidget } from './widget';
 
 const BACKGROUND_NOTIFICATION_TASK = 'michsya-background-notification-task';
 export const RING_ACTION_CATEGORY = 'ring-alert';
@@ -56,6 +57,10 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
         },
         trigger: null,
       });
+    }
+
+    if (payload.type === 'widget_refresh') {
+      await refreshWidget();
     }
 
     if (payload.type === 'find_start' && typeof payload.coupleId === 'string') {

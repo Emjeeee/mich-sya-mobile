@@ -64,7 +64,23 @@
           "backgroundColor": "#F7F3EE"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "DateStatus",
+              "label": "MichSya",
+              "description": "Status kencan, momen cepat, dan bunyikan HP pasangan.",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {

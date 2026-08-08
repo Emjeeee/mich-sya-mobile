@@ -20,8 +20,10 @@ import { formatDistance } from '../lib/geo';
 import { getCurrentCoords } from '../lib/location';
 import { registerForPushNotifications } from '../lib/notifications';
 import { sendPushToPartner } from '../lib/push';
+import { ringPartner } from '../lib/ringPartner';
 import { getSignedUrl } from '../lib/storage';
 import { supabase } from '../lib/supabase';
+import { refreshWidget } from '../lib/widget';
 import type { DateSession } from '../types/database';
 
 function formatElapsed(startedAt: string): string {
@@ -97,10 +99,7 @@ export default function HomeScreen() {
       if (action.id === 'start_date') {
         if (!sessionRef.current) startSession();
       } else if (action.id === 'ring_partner') {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData.user) {
-          sendPushToPartner(coupleId, userData.user.id, { data: { type: 'ring' } });
-        }
+        ringPartner(coupleId);
       }
     };
 
@@ -177,6 +176,13 @@ export default function HomeScreen() {
         created_by: userData.user?.id ?? null,
       });
       if (insertError) throw insertError;
+
+      refreshWidget().catch(() => {});
+      if (userData.user) {
+        sendPushToPartner(coupleId, userData.user.id, { data: { type: 'widget_refresh' } }).catch(
+          () => {}
+        );
+      }
 
       setQuickMemoryNotice('Momen tersimpan 💕');
       setTimeout(() => setQuickMemoryNotice(null), 2000);

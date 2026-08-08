@@ -4,6 +4,7 @@ import { registerRootComponent } from 'expo';
 import './src/lib/backgroundLocation';
 import './src/lib/backgroundNotifications';
 import './src/lib/onThisDay';
+import './widget-task-handler';
 import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
