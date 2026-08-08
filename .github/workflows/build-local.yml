@@ -1,0 +1,40 @@
+name: Build Android APK (EAS local)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'eas.json build profile'
+        required: false
+        default: 'preview'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Build APK locally (uses EAS-managed credentials, not EAS build queue)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --local --platform android --profile ${{ github.event.inputs.profile }} --non-interactive --output ./michsya.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: michsya-apk
+          path: michsya.apk
