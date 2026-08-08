@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -47,6 +48,8 @@ export default function SignInScreen() {
     });
     if (signInError) {
       setError(signInError.message);
+    } else {
+      Keyboard.dismiss();
     }
     setLoading(false);
   };

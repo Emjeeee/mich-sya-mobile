@@ -156,22 +156,33 @@ export default function HomeScreen() {
 
   const handleQuickMemory = async () => {
     if (!coupleId) return;
-    const { data: userData } = await supabase.auth.getUser();
-    const coords = await getCurrentCoords();
+    try {
+      const { data: userData } = await supabase.auth.getUser();
 
-    await supabase.from('memories').insert({
-      couple_id: coupleId,
-      title: 'Momen spontan 💕',
-      description: null,
-      photo_url: null,
-      voice_note_url: null,
-      location: coords ? `${coords.lat}, ${coords.lng}` : null,
-      memory_date: new Date().toISOString().slice(0, 10),
-      created_by: userData.user?.id ?? null,
-    });
+      // Don't let a slow/stuck GPS fix make the button look like it did nothing --
+      // save the memory even if location isn't available within a couple seconds.
+      const coords = await Promise.race([
+        getCurrentCoords().catch(() => null),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
+      ]);
 
-    setQuickMemoryNotice('Momen tersimpan 💕');
-    setTimeout(() => setQuickMemoryNotice(null), 2000);
+      const { error: insertError } = await supabase.from('memories').insert({
+        couple_id: coupleId,
+        title: 'Momen spontan 💕',
+        description: null,
+        photo_url: null,
+        voice_note_url: null,
+        location: coords ? `${coords.lat}, ${coords.lng}` : null,
+        memory_date: new Date().toISOString().slice(0, 10),
+        created_by: userData.user?.id ?? null,
+      });
+      if (insertError) throw insertError;
+
+      setQuickMemoryNotice('Momen tersimpan 💕');
+      setTimeout(() => setQuickMemoryNotice(null), 2000);
+    } catch {
+      Alert.alert('Gagal', 'Momen tidak berhasil disimpan, coba lagi ya.');
+    }
   };
 
   if (loading) {

@@ -55,5 +55,16 @@ export async function sendPushToPartner(
     }),
   });
 
-  return response.ok;
+  if (!response.ok) return false;
+
+  // Expo returns 200 even when the push itself was rejected (e.g. a stale/
+  // uninstalled-app token) -- the real per-recipient result is in the body.
+  const json = await response.json().catch(() => null);
+  const ticketStatus = json?.data?.status;
+  if (ticketStatus === 'error') {
+    console.warn('Expo push rejected:', json?.data?.message, json?.data?.details);
+    return false;
+  }
+
+  return true;
 }

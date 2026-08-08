@@ -70,4 +70,6 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
   }
 );
 
-Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch((err) => {
+  console.warn('Failed to register background notification task:', err);
+});
