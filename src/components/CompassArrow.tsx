@@ -16,9 +16,25 @@ const STATUS_LABEL: Record<string, string> = {
   jauh: 'Jauh',
 };
 
+// Cheap magnetometers (older/budget devices) produce noisy raw heading readings
+// that make the arrow visibly jitter even when roughly pointing the right way --
+// average the last few readings (circular mean, since heading wraps at 360) to
+// smooth that out. This can't fix genuine sensor bias, just the jitter.
+const HEADING_SAMPLE_SIZE = 5;
+const LOW_ACCURACY_THRESHOLD = 1;
+
+function circularMeanDegrees(samples: number[]): number {
+  const sumSin = samples.reduce((sum, deg) => sum + Math.sin((deg * Math.PI) / 180), 0);
+  const sumCos = samples.reduce((sum, deg) => sum + Math.cos((deg * Math.PI) / 180), 0);
+  const meanRad = Math.atan2(sumSin / samples.length, sumCos / samples.length);
+  return ((meanRad * 180) / Math.PI + 360) % 360;
+}
+
 export default function CompassArrow({ myLocation, partnerLocation }: CompassArrowProps) {
   const [deviceHeading, setDeviceHeading] = useState(0);
+  const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null);
   const rotation = useRef(new Animated.Value(0)).current;
+  const recentHeadings = useRef<number[]>([]);
 
   useEffect(() => {
     let subscription: Location.LocationSubscription | null = null;
@@ -26,7 +42,13 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') return;
       subscription = await Location.watchHeadingAsync((heading) => {
-        setDeviceHeading(heading.trueHeading >= 0 ? heading.trueHeading : heading.magHeading);
+        const raw = heading.trueHeading >= 0 ? heading.trueHeading : heading.magHeading;
+        const samples = recentHeadings.current;
+        samples.push(raw);
+        if (samples.length > HEADING_SAMPLE_SIZE) samples.shift();
+
+        setDeviceHeading(circularMeanDegrees(samples));
+        setHeadingAccuracy(heading.accuracy);
       });
     })();
     return () => subscription?.remove();
@@ -86,6 +108,11 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
       <Text style={styles.distanceText}>{formatDistance(distance!)}</Text>
       {status && <Text style={styles.statusText}>{STATUS_LABEL[status]}</Text>}
       <Text style={styles.helperText}>Panah menunjuk ke arah pasanganmu</Text>
+      {headingAccuracy !== null && headingAccuracy <= LOW_ACCURACY_THRESHOLD && (
+        <Text style={styles.calibrationHint}>
+          Kompas kurang akurat -- goyangkan HP membentuk angka 8 untuk kalibrasi.
+        </Text>
+      )}
     </View>
   );
 }
@@ -162,6 +189,13 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 12,
     color: '#999',
+  },
+  calibrationHint: {
+    fontSize: 12,
+    color: '#c0392b',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 24,
   },
   waitingText: {
     color: '#999',

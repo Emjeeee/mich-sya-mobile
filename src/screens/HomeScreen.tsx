@@ -15,7 +15,6 @@ import WishlistListModal from '../components/WishlistListModal';
 import { useCoupleStats } from '../hooks/useCoupleStats';
 import { useDateSession } from '../hooks/useDateSession';
 import { useNextSchedule } from '../hooks/useNextSchedule';
-import { handleNotificationResponse } from '../lib/backgroundNotifications';
 import { formatDistance } from '../lib/geo';
 import { getCurrentCoords } from '../lib/location';
 import { registerForPushNotifications } from '../lib/notifications';
@@ -23,20 +22,9 @@ import { sendPushToPartner } from '../lib/push';
 import { ringPartner } from '../lib/ringPartner';
 import { getSignedUrl } from '../lib/storage';
 import { supabase } from '../lib/supabase';
+import { formatElapsed } from '../lib/time';
 import { refreshWidget } from '../lib/widget';
 import type { DateSession } from '../types/database';
-
-function formatElapsed(startedAt: string): string {
-  const elapsedMs = Date.now() - new Date(startedAt).getTime();
-  const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return hours > 0
-    ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
-    : `${pad(minutes)}:${pad(seconds)}`;
-}
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -80,7 +68,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      handleNotificationResponse(response);
       const data = response.notification.request.content.data;
       if (data?.type === 'find_start') {
         setShowFindPartnerModal(true);
@@ -273,6 +260,12 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {coupleId && (
+        <Text style={styles.momenHint}>
+          Momen = catat momen spontan sekali tap, tanpa foto/tulisan — otomatis masuk ke Kenangan.
+        </Text>
+      )}
+
       {quickMemoryNotice && <Text style={styles.noticeText}>{quickMemoryNotice}</Text>}
 
       <Pressable style={styles.signOutButton} onPress={() => supabase.auth.signOut()}>
@@ -381,6 +374,13 @@ const styles = StyleSheet.create({
     color: '#e11d74',
     fontWeight: '600',
     marginBottom: 12,
+  },
+  momenHint: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
   },
   actionsRow: {
     flexDirection: 'row',

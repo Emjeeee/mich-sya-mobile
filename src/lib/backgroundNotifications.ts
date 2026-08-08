@@ -1,29 +1,55 @@
+import notifee, { AndroidCategory, AndroidImportance, EventType } from '@notifee/react-native';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 
 import { startFindPartnerTracking } from './backgroundFindPartner';
+import { notifyRingSignal } from './ringSignal';
 import { playRingtone, stopRingtone } from './ringtone';
 import { supabase } from './supabase';
 import { refreshWidget } from './widget';
 
 const BACKGROUND_NOTIFICATION_TASK = 'michsya-background-notification-task';
-export const RING_ACTION_CATEGORY = 'ring-alert';
+const RING_CHANNEL_ID = 'ring-alert';
+export const RING_NOTIFICATION_ID = 'ring-alert';
 const STOP_RING_ACTION = 'stop-ring';
 
-Notifications.setNotificationCategoryAsync(RING_ACTION_CATEGORY, [
-  {
-    identifier: STOP_RING_ACTION,
-    buttonTitle: 'Stop',
-    options: { isDestructive: true, opensAppToForeground: true },
-  },
-]);
+async function showRingNotification() {
+  await notifee.createChannel({
+    id: RING_CHANNEL_ID,
+    name: 'Bunyikan HP',
+    importance: AndroidImportance.HIGH,
+    sound: 'default',
+  });
 
-export function handleNotificationResponse(response: Notifications.NotificationResponse) {
-  const data = response.notification.request.content.data as Record<string, unknown> | undefined;
-  if (response.actionIdentifier === STOP_RING_ACTION || data?.type === 'ring') {
-    stopRingtone();
-  }
+  await notifee.displayNotification({
+    id: RING_NOTIFICATION_ID,
+    title: 'HP kamu lagi dibunyiin pasangan 🔊',
+    body: 'Ketuk untuk mematikan.',
+    data: { type: 'ring' },
+    android: {
+      channelId: RING_CHANNEL_ID,
+      category: AndroidCategory.CALL,
+      importance: AndroidImportance.HIGH,
+      ongoing: true,
+      autoCancel: false,
+      fullScreenAction: { id: 'default' },
+      pressAction: { id: 'default' },
+      actions: [{ title: 'Stop', pressAction: { id: STOP_RING_ACTION } }],
+    },
+  });
 }
+
+// Registered at module scope (not inside a component) per notifee's requirement --
+// this is what lets the Stop action work even while the app is backgrounded/killed.
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  if (
+    type === EventType.ACTION_PRESS &&
+    detail.pressAction?.id === STOP_RING_ACTION
+  ) {
+    stopRingtone();
+    await notifee.cancelNotification(RING_NOTIFICATION_ID);
+  }
+});
 
 // Handles a data-only "ring" push regardless of whether the app is foreground,
 // background, or fully terminated. Must be defined at module scope so it survives
@@ -32,11 +58,7 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
   BACKGROUND_NOTIFICATION_TASK,
   async ({ data, error }) => {
     if (error || !data) return;
-
-    if ('actionIdentifier' in data) {
-      handleNotificationResponse(data);
-      return;
-    }
+    if ('actionIdentifier' in data) return;
 
     let payload: Record<string, unknown> = {};
     const rawDataString = (data.data as { dataString?: string } | undefined)?.dataString;
@@ -48,15 +70,10 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
 
     if (payload.type === 'ring') {
       await playRingtone();
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'HP kamu lagi dibunyiin pasangan 🔊',
-          body: 'Ketuk Stop untuk menghentikan.',
-          categoryIdentifier: RING_ACTION_CATEGORY,
-          data: { type: 'ring' },
-        },
-        trigger: null,
-      });
+      // Covers the app-alive case (foreground or backgrounded but not killed) --
+      // see ringSignal.ts for why the notifee full-screen intent alone isn't enough.
+      notifyRingSignal();
+      await showRingNotification();
     }
 
     if (payload.type === 'widget_refresh') {

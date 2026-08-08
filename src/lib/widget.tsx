@@ -1,6 +1,7 @@
 import { FlexWidget, requestWidgetUpdate, TextWidget } from 'react-native-android-widget';
 
 import { supabase } from './supabase';
+import { formatElapsed } from './time';
 import type { DateSession, Schedule } from '../types/database';
 
 export const WIDGET_NAME = 'DateStatus';
@@ -40,12 +41,14 @@ export async function fetchWidgetState(): Promise<WidgetState> {
   };
 }
 
-function statusLabel(session: DateSession | null, nextSchedule: Schedule | null): string {
+interface ContentBlock {
+  headline: string;
+  caption: string;
+}
+
+function contentBlock(session: DateSession | null, nextSchedule: Schedule | null): ContentBlock {
   if (session) {
-    const started = new Date(session.started_at);
-    const hh = String(started.getHours()).padStart(2, '0');
-    const mm = String(started.getMinutes()).padStart(2, '0');
-    return `⏱ Kencan berjalan sejak ${hh}:${mm}`;
+    return { headline: formatElapsed(session.started_at), caption: '⏱ Kencan berjalan' };
   }
   if (nextSchedule) {
     const daysUntil = Math.round(
@@ -53,24 +56,29 @@ function statusLabel(session: DateSession | null, nextSchedule: Schedule | null)
         (24 * 60 * 60 * 1000)
     );
     const when = daysUntil <= 0 ? 'Hari ini' : `${daysUntil} hari lagi`;
-    return `${when}: ${nextSchedule.title}`;
+    return { headline: when, caption: nextSchedule.title };
   }
-  return 'Belum ada kencan aktif';
+  return { headline: 'Belum ada kencan', caption: 'Yuk rencanain kencan berikutnya 💌' };
 }
 
 const actionButtonStyle = {
   flex: 1,
-  backgroundColor: '#fdeef4' as const,
-  borderRadius: 10,
-  paddingVertical: 8,
+  backgroundColor: 'rgba(255, 255, 255, 0.20)' as const,
+  borderRadius: 14,
+  paddingVertical: 10,
   justifyContent: 'center' as const,
   alignItems: 'center' as const,
 };
 
+const actionIconStyle = {
+  fontSize: 18,
+};
+
 const actionTextStyle = {
-  fontSize: 12,
-  fontWeight: '600' as const,
-  color: '#e11d74' as const,
+  fontSize: 11,
+  fontWeight: '700' as const,
+  color: '#ffffff' as const,
+  marginTop: 2,
 };
 
 export function DateWidget({
@@ -80,6 +88,8 @@ export function DateWidget({
   session: DateSession | null;
   nextSchedule: Schedule | null;
 }) {
+  const { headline, caption } = contentBlock(session, nextSchedule);
+
   return (
     <FlexWidget
       clickAction="OPEN_APP"
@@ -87,27 +97,44 @@ export function DateWidget({
         height: 'match_parent',
         width: 'match_parent',
         flexDirection: 'column',
-        justifyContent: 'center',
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
-        padding: 12,
+        justifyContent: 'space-between',
+        backgroundGradient: { from: '#ff5f9e', to: '#c81157', orientation: 'TL_BR' },
+        borderRadius: 20,
+        padding: 16,
       }}
     >
       <TextWidget
-        text={statusLabel(session, nextSchedule)}
-        maxLines={1}
-        truncate="END"
-        style={{ fontSize: 13, fontWeight: '600', color: '#e11d74' }}
+        text="🤍 MichSya"
+        style={{ fontSize: 12, fontWeight: '700', color: 'rgba(255, 255, 255, 0.75)' }}
       />
-      <FlexWidget style={{ flexDirection: 'row', marginTop: 10, flexGap: 8 }}>
+
+      <FlexWidget style={{ flexDirection: 'column', marginVertical: 6 }}>
+        <TextWidget
+          text={headline}
+          maxLines={1}
+          truncate="END"
+          style={{ fontSize: 30, fontWeight: '700', color: '#ffffff' }}
+        />
+        <TextWidget
+          text={caption}
+          maxLines={1}
+          truncate="END"
+          style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255, 255, 255, 0.85)', marginTop: 2 }}
+        />
+      </FlexWidget>
+
+      <FlexWidget style={{ flexDirection: 'row', flexGap: 8 }}>
         <FlexWidget clickAction="start_end_date" style={actionButtonStyle}>
+          <TextWidget text={session ? '⏹' : '▶'} style={actionIconStyle} />
           <TextWidget text={session ? 'Akhiri' : 'Mulai'} style={actionTextStyle} />
         </FlexWidget>
         <FlexWidget clickAction="quick_memory" style={actionButtonStyle}>
-          <TextWidget text="💕 Momen" style={actionTextStyle} />
+          <TextWidget text="💕" style={actionIconStyle} />
+          <TextWidget text="Momen" style={actionTextStyle} />
         </FlexWidget>
         <FlexWidget clickAction="ring_partner" style={actionButtonStyle}>
-          <TextWidget text="🔊 Bunyikan" style={actionTextStyle} />
+          <TextWidget text="🔊" style={actionIconStyle} />
+          <TextWidget text="Bunyikan" style={actionTextStyle} />
         </FlexWidget>
       </FlexWidget>
     </FlexWidget>

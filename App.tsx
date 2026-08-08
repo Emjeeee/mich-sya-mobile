@@ -1,3 +1,4 @@
+import notifee, { EventType } from '@notifee/react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,15 +8,17 @@ import type { Session } from '@supabase/supabase-js';
 
 import { flushPendingMemories } from './src/lib/offlineQueue';
 import { checkOnThisDayNow } from './src/lib/onThisDay';
-import { stopRingtone } from './src/lib/ringtone';
+import { subscribeRingSignal } from './src/lib/ringSignal';
 import { supabase } from './src/lib/supabase';
 import { refreshWidget } from './src/lib/widget';
+import RingAlertScreen from './src/screens/RingAlertScreen';
 import SignInScreen from './src/screens/SignInScreen';
 import HomeScreen from './src/screens/HomeScreen';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [ringActive, setRingActive] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -45,7 +48,6 @@ export default function App() {
 
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        stopRingtone();
         flushPendingMemories();
         checkOnThisDayNow();
         refreshWidget().catch(() => {});
@@ -53,6 +55,40 @@ export default function App() {
     });
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    // Cold start (app was killed): the notifee full-screen intent already
+    // launched this activity for a 'ring' notification -- pick that up here.
+    notifee.getInitialNotification().then((initial) => {
+      if (initial?.notification.data?.type === 'ring') setRingActive(true);
+    });
+
+    // App already alive (foreground or backgrounded): the background
+    // notification task notifies this directly since Android suppresses the
+    // full-screen intent while the app isn't in the foreground on an unlocked
+    // device -- see src/lib/ringSignal.ts.
+    const unsubscribeRingSignal = subscribeRingSignal(() => setRingActive(true));
+
+    const unsubscribeForeground = notifee.onForegroundEvent(({ type, detail }) => {
+      if (type === EventType.DELIVERED && detail.notification?.data?.type === 'ring') {
+        setRingActive(true);
+      }
+    });
+
+    return () => {
+      unsubscribeRingSignal();
+      unsubscribeForeground();
+    };
+  }, []);
+
+  if (ringActive) {
+    return (
+      <SafeAreaProvider>
+        <RingAlertScreen onDismiss={() => setRingActive(false)} />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    );
+  }
 
   if (initializing) {
     return (
