@@ -49,7 +49,6 @@ class RingForegroundService : Service() {
       .setContentTitle("MichSya")
       .setContentText("Memproses notifikasi...")
       .setSmallIcon(applicationInfo.icon)
-      .setSilent(true)
       .setOngoing(true)
       .build()
   }

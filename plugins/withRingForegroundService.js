@@ -1,9 +1,18 @@
 const fs = require('fs');
 const path = require('path');
-const { withAndroidManifest, withDangerousMod, AndroidConfig } = require('expo/config-plugins');
+const {
+  withAndroidManifest,
+  withAppBuildGradle,
+  withDangerousMod,
+  AndroidConfig,
+} = require('expo/config-plugins');
 
 const PACKAGE_PATH = 'com/michsya/mobile';
 const EXPO_FCM_SERVICE = 'expo.modules.notifications.service.ExpoFirebaseMessagingService';
+// Matches the version expo-notifications itself depends on (android/build.gradle) --
+// that dependency is `implementation`, not `api`, so it isn't visible to our
+// app module's Kotlin sources without redeclaring it here.
+const FIREBASE_MESSAGING_VERSION = '25.0.1';
 
 // Copies our custom Kotlin sources (kept in android-native/, since this
 // project has no committed android/ folder -- prebuild regenerates it every
@@ -75,8 +84,21 @@ function withRingManifestChanges(config) {
   });
 }
 
+function withFirebaseMessagingDependency(config) {
+  return withAppBuildGradle(config, (config) => {
+    if (!config.modResults.contents.includes('com.google.firebase:firebase-messaging')) {
+      config.modResults.contents = config.modResults.contents.replace(
+        /dependencies\s*{/,
+        `dependencies {\n    implementation 'com.google.firebase:firebase-messaging:${FIREBASE_MESSAGING_VERSION}'`
+      );
+    }
+    return config;
+  });
+}
+
 module.exports = function withRingForegroundService(config) {
   config = withCopyRingNativeSources(config);
   config = withRingManifestChanges(config);
+  config = withFirebaseMessagingDependency(config);
   return config;
 };
