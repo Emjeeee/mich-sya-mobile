@@ -14,22 +14,39 @@ async function resolveCoupleId(): Promise<string | null> {
 // whether the partner has no internet but is nearby (Bluetooth) or no
 // internet but has cellular signal (SMS). Resolves `true` if any path went
 // out -- none of the three can confirm actual delivery synchronously.
+//
+// Every path is wrapped so a failure in one (e.g. a raw fetch() throwing
+// "Network request failed" with no connection) can never stop the others
+// from being tried -- that exact bug was caught by a real airplane-mode
+// test: an unguarded throw from the push path was aborting this function
+// before BLE/SMS were even evaluated.
 export async function ringPartner(coupleId?: string | null): Promise<boolean> {
-  const blePromise = broadcastBleRing();
+  const blePromise = broadcastBleRing().catch(() => false);
 
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return blePromise;
+  let userId: string | null = null;
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    userId = userData.user?.id ?? null;
+  } catch {
+    userId = null;
+  }
+  if (!userId) return blePromise;
 
-  const resolvedCoupleId = coupleId ?? (await resolveCoupleId());
+  let resolvedCoupleId: string | null = null;
+  try {
+    resolvedCoupleId = coupleId ?? (await resolveCoupleId());
+  } catch {
+    resolvedCoupleId = null;
+  }
   if (!resolvedCoupleId) return blePromise;
 
-  const smsPromise = getPartnerPhoneNumber(resolvedCoupleId, userData.user.id).then((phoneNumber) =>
-    broadcastSmsRing(phoneNumber)
-  );
+  const smsPromise = getPartnerPhoneNumber(resolvedCoupleId, userId)
+    .then((phoneNumber) => broadcastSmsRing(phoneNumber))
+    .catch(() => false);
 
-  const pushSent = await sendPushToPartner(resolvedCoupleId, userData.user.id, {
+  const pushSent = await sendPushToPartner(resolvedCoupleId, userId, {
     data: { type: 'ring' },
-  });
+  }).catch(() => false);
 
   const [bleSent, smsSent] = await Promise.all([blePromise, smsPromise]);
   return pushSent || bleSent || smsSent;

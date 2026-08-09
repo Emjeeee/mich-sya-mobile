@@ -68,48 +68,58 @@ export async function sendPushToPartner(
   myUserId: string,
   payload: PushPayload
 ): Promise<boolean> {
-  const token = await getPartnerPushToken(coupleId, myUserId);
-  if (!token) return false;
+  // ringPartner() fires this alongside the BLE/SMS fallbacks specifically
+  // for the no-internet case -- an unguarded fetch() throws
+  // (UnknownHostException/"Network request failed") with no connection,
+  // which previously aborted ringPartner() entirely before it could even
+  // check whether BLE/SMS went out. Must degrade to `false`, not throw.
+  try {
+    const token = await getPartnerPushToken(coupleId, myUserId);
+    if (!token) return false;
 
-  // Data-only pushes (no title/body -- ring, widget_refresh, find_start's
-  // internal re-delivery) must NOT set `sound` or `channelId`: both are
-  // display-notification concepts, and their mere presence appears to make
-  // Expo's gateway construct an FCM "notification" message (with blank
-  // title/body) instead of a pure data message. A background/killed app
-  // NEVER gets onMessageReceived called for a notification-shaped FCM
-  // message -- Android displays it via the system tray directly (exactly
-  // the empty/silent notification bar previously observed), bypassing every
-  // bit of our own handling entirely, native or JS.
-  const isDataOnly = !payload.title && !payload.body;
+    // Data-only pushes (no title/body -- ring, widget_refresh, find_start's
+    // internal re-delivery) must NOT set `sound` or `channelId`: both are
+    // display-notification concepts, and their mere presence appears to make
+    // Expo's gateway construct an FCM "notification" message (with blank
+    // title/body) instead of a pure data message. A background/killed app
+    // NEVER gets onMessageReceived called for a notification-shaped FCM
+    // message -- Android displays it via the system tray directly (exactly
+    // the empty/silent notification bar previously observed), bypassing every
+    // bit of our own handling entirely, native or JS.
+    const isDataOnly = !payload.title && !payload.body;
 
-  const response = await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      accept: 'application/json',
-    },
-    body: JSON.stringify({
-      to: token,
-      title: payload.title,
-      body: payload.body,
-      data: payload.data,
-      ...(isDataOnly
-        ? {}
-        : { sound: payload.sound ?? 'default', channelId: 'default' }),
-      priority: payload.priority ?? 'high',
-    }),
-  });
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({
+        to: token,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        ...(isDataOnly
+          ? {}
+          : { sound: payload.sound ?? 'default', channelId: 'default' }),
+        priority: payload.priority ?? 'high',
+      }),
+    });
 
-  if (!response.ok) return false;
+    if (!response.ok) return false;
 
-  // Expo returns 200 even when the push itself was rejected (e.g. a stale/
-  // uninstalled-app token) -- the real per-recipient result is in the body.
-  const json = await response.json().catch(() => null);
-  const ticketStatus = json?.data?.status;
-  if (ticketStatus === 'error') {
-    console.warn('Expo push rejected:', json?.data?.message, json?.data?.details);
+    // Expo returns 200 even when the push itself was rejected (e.g. a stale/
+    // uninstalled-app token) -- the real per-recipient result is in the body.
+    const json = await response.json().catch(() => null);
+    const ticketStatus = json?.data?.status;
+    if (ticketStatus === 'error') {
+      console.warn('Expo push rejected:', json?.data?.message, json?.data?.details);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('sendPushToPartner failed (likely offline):', err);
     return false;
   }
-
-  return true;
 }
