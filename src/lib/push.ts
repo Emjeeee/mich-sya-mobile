@@ -38,6 +38,14 @@ export async function sendPushToPartner(
   const token = await getPartnerPushToken(coupleId, myUserId);
   if (!token) return false;
 
+  // Data-only pushes (no title/body -- ring, widget_refresh) must NOT set a
+  // `sound`: Expo/Android's own notification layer auto-displays a blank
+  // fallback notification using the device's normal (silent-mode-respecting)
+  // sound whenever `sound` is present, completely bypassing our own
+  // playRingtone()/notifee handling in the background task and showing up as
+  // an empty notification bar.
+  const isDataOnly = !payload.title && !payload.body;
+
   const response = await fetch('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
     headers: {
@@ -49,7 +57,7 @@ export async function sendPushToPartner(
       title: payload.title,
       body: payload.body,
       data: payload.data,
-      sound: payload.sound ?? 'default',
+      ...(isDataOnly ? {} : { sound: payload.sound ?? 'default' }),
       priority: payload.priority ?? 'high',
       channelId: 'default',
     }),

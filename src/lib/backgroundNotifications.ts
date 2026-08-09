@@ -57,6 +57,7 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
 TaskManager.defineTask<Notifications.NotificationTaskPayload>(
   BACKGROUND_NOTIFICATION_TASK,
   async ({ data, error }) => {
+    console.log('[michsya] background notification task invoked', { hasError: Boolean(error) });
     if (error || !data) return;
     if ('actionIdentifier' in data) return;
 
@@ -69,11 +70,24 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
     }
 
     if (payload.type === 'ring') {
-      await playRingtone();
+      console.log('[michsya] background task: ring payload received');
+      // Isolated try/catches so a failure in one doesn't block the other --
+      // both are independently useful even if one throws in a headless context.
+      try {
+        await playRingtone();
+        console.log('[michsya] playRingtone() completed');
+      } catch (err) {
+        console.warn('[michsya] playRingtone() failed:', err);
+      }
       // Covers the app-alive case (foreground or backgrounded but not killed) --
       // see ringSignal.ts for why the notifee full-screen intent alone isn't enough.
       notifyRingSignal();
-      await showRingNotification();
+      try {
+        await showRingNotification();
+        console.log('[michsya] showRingNotification() completed');
+      } catch (err) {
+        console.warn('[michsya] showRingNotification() failed:', err);
+      }
     }
 
     if (payload.type === 'widget_refresh') {
