@@ -68,10 +68,11 @@ function contentBlock(session: DateSession | null, nextSchedule: Schedule | null
 
 const actionButtonStyle = {
   flex: 1,
-  minWidth: 64,
+  minWidth: 72,
   backgroundColor: 'rgba(255, 255, 255, 0.20)' as const,
   borderRadius: 14,
-  paddingVertical: 8,
+  paddingVertical: 12,
+  paddingHorizontal: 12,
   justifyContent: 'center' as const,
   alignItems: 'center' as const,
 };
@@ -80,7 +81,7 @@ const actionTextStyle = {
   fontSize: 11,
   fontWeight: '700' as const,
   color: '#ffffff' as const,
-  marginTop: 2,
+  marginTop: 4,
 };
 
 function ActionButton({
