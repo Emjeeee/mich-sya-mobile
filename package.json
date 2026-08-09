@@ -7,6 +7,7 @@
     "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.112.0",
+    "ble-ring": "file:./modules/ble-ring",
     "expo": "~57.0.10",
     "expo-audio": "~57.0.3",
     "expo-background-task": "~57.0.7",

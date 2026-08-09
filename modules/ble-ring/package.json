@@ -1,0 +1,7 @@
+{
+  "name": "ble-ring",
+  "version": "1.0.0",
+  "description": "Local Expo Module: ring the partner's phone over Bluetooth LE, no internet required.",
+  "main": "index.ts",
+  "types": "index.ts"
+}

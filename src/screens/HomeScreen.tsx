@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import * as QuickActions from 'expo-quick-actions';
@@ -10,6 +10,7 @@ import DateRecapModal from '../components/DateRecapModal';
 import EndDateModal from '../components/EndDateModal';
 import FindPartnerModal from '../components/FindPartnerModal';
 import JourneyMapModal from '../components/JourneyMapModal';
+import PhoneNumberModal from '../components/PhoneNumberModal';
 import SwipeToConfirm from '../components/SwipeToConfirm';
 import WishlistListModal from '../components/WishlistListModal';
 import { useCoupleStats } from '../hooks/useCoupleStats';
@@ -26,6 +27,29 @@ import { formatElapsed } from '../lib/time';
 import { refreshWidget } from '../lib/widget';
 import type { DateSession } from '../types/database';
 
+const ICON_CAMERA = require('../../assets/icons/camera.png');
+const ICON_TARGET = require('../../assets/icons/target.png');
+const ICON_COMPASS = require('../../assets/icons/compass.png');
+const ICON_MAP = require('../../assets/icons/map.png');
+const ICON_HEART = require('../../assets/icons/heart.png');
+
+function ActionButton({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: number;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.actionButton} onPress={onPress}>
+      <Image source={icon} style={styles.actionButtonIcon} />
+      <Text style={styles.actionButtonText}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { coupleId, session, loading, starting, ending, error, startSession, endSession } =
@@ -37,6 +61,7 @@ export default function HomeScreen() {
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [showFindPartnerModal, setShowFindPartnerModal] = useState(false);
   const [showJourneyMapModal, setShowJourneyMapModal] = useState(false);
+  const [showPhoneNumberModal, setShowPhoneNumberModal] = useState(false);
   const [journeyPrompt, setJourneyPrompt] = useState<{ lat: number; lng: number } | null>(null);
   const [swipeResetKey, setSwipeResetKey] = useState(0);
   const [elapsed, setElapsed] = useState('');
@@ -230,33 +255,11 @@ export default function HomeScreen() {
 
       {coupleId && (
         <View style={styles.actionsRow}>
-          <Pressable
-            style={styles.actionButton}
-            onPress={() => setShowMemoryModal(true)}
-          >
-            <Text style={styles.actionButtonText}>📷 Kenangan</Text>
-          </Pressable>
-          <Pressable
-            style={styles.actionButton}
-            onPress={() => setShowWishlistModal(true)}
-          >
-            <Text style={styles.actionButtonText}>✨ Wishlist</Text>
-          </Pressable>
-          <Pressable
-            style={styles.actionButton}
-            onPress={() => setShowFindPartnerModal(true)}
-          >
-            <Text style={styles.actionButtonText}>🧭 Cari Pasangan</Text>
-          </Pressable>
-          <Pressable
-            style={styles.actionButton}
-            onPress={() => setShowJourneyMapModal(true)}
-          >
-            <Text style={styles.actionButtonText}>🗺 Journey Map</Text>
-          </Pressable>
-          <Pressable style={styles.actionButton} onPress={handleQuickMemory}>
-            <Text style={styles.actionButtonText}>💕 Momen</Text>
-          </Pressable>
+          <ActionButton icon={ICON_CAMERA} label="Kenangan" onPress={() => setShowMemoryModal(true)} />
+          <ActionButton icon={ICON_TARGET} label="Wishlist" onPress={() => setShowWishlistModal(true)} />
+          <ActionButton icon={ICON_COMPASS} label="Cari Pasangan" onPress={() => setShowFindPartnerModal(true)} />
+          <ActionButton icon={ICON_MAP} label="Journey Map" onPress={() => setShowJourneyMapModal(true)} />
+          <ActionButton icon={ICON_HEART} label="Momen" onPress={handleQuickMemory} />
         </View>
       )}
 
@@ -267,6 +270,12 @@ export default function HomeScreen() {
       )}
 
       {quickMemoryNotice && <Text style={styles.noticeText}>{quickMemoryNotice}</Text>}
+
+      {coupleId && (
+        <Pressable onPress={() => setShowPhoneNumberModal(true)}>
+          <Text style={styles.phoneNumberLink}>📱 Atur nomor HP (cadangan SMS untuk Bunyikan)</Text>
+        </Pressable>
+      )}
 
       <Pressable style={styles.signOutButton} onPress={() => supabase.auth.signOut()}>
         <Text style={styles.signOutText}>Keluar</Text>
@@ -312,6 +321,11 @@ export default function HomeScreen() {
             visible={showJourneyMapModal}
             coupleId={coupleId}
             onClose={() => setShowJourneyMapModal(false)}
+          />
+          <PhoneNumberModal
+            visible={showPhoneNumberModal}
+            coupleId={coupleId}
+            onClose={() => setShowPhoneNumberModal(false)}
           />
         </>
       )}
@@ -382,6 +396,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 16,
   },
+  phoneNumberLink: {
+    fontSize: 12,
+    color: '#e11d74',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
   actionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -390,14 +410,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   actionButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#fdeef4',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 72,
+  },
+  actionButtonIcon: {
+    width: 24,
+    height: 24,
   },
   actionButtonText: {
     color: '#e11d74',
     fontWeight: '600',
+    fontSize: 12,
   },
   signOutButton: {
     alignSelf: 'center',

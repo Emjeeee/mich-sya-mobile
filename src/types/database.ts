@@ -119,6 +119,7 @@ export interface DevicePushToken {
   id: string;
   user_id: string;
   couple_id: string;
-  expo_push_token: string;
+  expo_push_token: string | null;
+  phone_number: string | null;
   updated_at: string;
 }

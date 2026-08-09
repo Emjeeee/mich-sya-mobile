@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as QuickActions from 'expo-quick-actions';
 import type { Session } from '@supabase/supabase-js';
 
+import { startBleRingListener } from './src/lib/bleRing';
 import { flushPendingMemories } from './src/lib/offlineQueue';
 import { checkOnThisDayNow } from './src/lib/onThisDay';
 import { subscribeRingSignal } from './src/lib/ringSignal';
@@ -38,6 +39,12 @@ export default function App() {
       { id: 'start_date', title: 'Mulai Kencan', icon: 'favorite' },
       { id: 'ring_partner', title: 'Bunyikan HP Pasangan', icon: 'audio' },
     ]);
+  }, []);
+
+  useEffect(() => {
+    // Arms the always-on Bluetooth ring listener so "Bunyikan HP pasangan"
+    // works even without internet -- see src/lib/bleRing.ts.
+    startBleRingListener();
   }, []);
 
   useEffect(() => {

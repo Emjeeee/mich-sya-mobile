@@ -1,8 +1,13 @@
-import { FlexWidget, requestWidgetUpdate, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, ImageWidget, requestWidgetUpdate, TextWidget } from 'react-native-android-widget';
 
 import { supabase } from './supabase';
 import { formatElapsed } from './time';
 import type { DateSession, Schedule } from '../types/database';
+
+const ICON_PLAY = require('../../assets/icons/play.png');
+const ICON_STOP = require('../../assets/icons/stop.png');
+const ICON_HEART = require('../../assets/icons/heart.png');
+const ICON_BELL = require('../../assets/icons/bell.png');
 
 export const WIDGET_NAME = 'DateStatus';
 
@@ -63,15 +68,12 @@ function contentBlock(session: DateSession | null, nextSchedule: Schedule | null
 
 const actionButtonStyle = {
   flex: 1,
+  minWidth: 64,
   backgroundColor: 'rgba(255, 255, 255, 0.20)' as const,
   borderRadius: 14,
-  paddingVertical: 10,
+  paddingVertical: 8,
   justifyContent: 'center' as const,
   alignItems: 'center' as const,
-};
-
-const actionIconStyle = {
-  fontSize: 18,
 };
 
 const actionTextStyle = {
@@ -80,6 +82,23 @@ const actionTextStyle = {
   color: '#ffffff' as const,
   marginTop: 2,
 };
+
+function ActionButton({
+  clickAction,
+  icon,
+  label,
+}: {
+  clickAction: string;
+  icon: number;
+  label: string;
+}) {
+  return (
+    <FlexWidget clickAction={clickAction} style={actionButtonStyle}>
+      <ImageWidget image={icon} imageWidth={20} imageHeight={20} />
+      <TextWidget text={label} maxLines={1} truncate="END" style={actionTextStyle} />
+    </FlexWidget>
+  );
+}
 
 export function DateWidget({
   session,
@@ -100,42 +119,39 @@ export function DateWidget({
         justifyContent: 'space-between',
         backgroundGradient: { from: '#ff5f9e', to: '#c81157', orientation: 'TL_BR' },
         borderRadius: 20,
-        padding: 16,
+        padding: 14,
       }}
     >
       <TextWidget
         text="🤍 MichSya"
+        maxLines={1}
+        truncate="END"
         style={{ fontSize: 12, fontWeight: '700', color: 'rgba(255, 255, 255, 0.75)' }}
       />
 
-      <FlexWidget style={{ flexDirection: 'column', marginVertical: 6 }}>
+      <FlexWidget style={{ flexDirection: 'column', marginVertical: 4 }}>
         <TextWidget
           text={headline}
           maxLines={1}
           truncate="END"
-          style={{ fontSize: 30, fontWeight: '700', color: '#ffffff' }}
+          style={{ fontSize: 26, fontWeight: '700', color: '#ffffff' }}
         />
         <TextWidget
           text={caption}
           maxLines={1}
           truncate="END"
-          style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255, 255, 255, 0.85)', marginTop: 2 }}
+          style={{ fontSize: 12, fontWeight: '600', color: 'rgba(255, 255, 255, 0.85)', marginTop: 2 }}
         />
       </FlexWidget>
 
-      <FlexWidget style={{ flexDirection: 'row', flexGap: 8 }}>
-        <FlexWidget clickAction="start_end_date" style={actionButtonStyle}>
-          <TextWidget text={session ? '⏹' : '▶'} style={actionIconStyle} />
-          <TextWidget text={session ? 'Akhiri' : 'Mulai'} style={actionTextStyle} />
-        </FlexWidget>
-        <FlexWidget clickAction="quick_memory" style={actionButtonStyle}>
-          <TextWidget text="💕" style={actionIconStyle} />
-          <TextWidget text="Momen" style={actionTextStyle} />
-        </FlexWidget>
-        <FlexWidget clickAction="ring_partner" style={actionButtonStyle}>
-          <TextWidget text="🔊" style={actionIconStyle} />
-          <TextWidget text="Bunyikan" style={actionTextStyle} />
-        </FlexWidget>
+      <FlexWidget style={{ flexDirection: 'row', flexGap: 6 }}>
+        <ActionButton
+          clickAction="start_end_date"
+          icon={session ? ICON_STOP : ICON_PLAY}
+          label={session ? 'Akhiri' : 'Mulai'}
+        />
+        <ActionButton clickAction="quick_memory" icon={ICON_HEART} label="Momen" />
+        <ActionButton clickAction="ring_partner" icon={ICON_BELL} label="Bunyikan" />
       </FlexWidget>
     </FlexWidget>
   );
