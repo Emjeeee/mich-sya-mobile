@@ -123,3 +123,45 @@ export interface DevicePushToken {
   phone_number: string | null;
   updated_at: string;
 }
+
+// Arcade games -- game_sessions/game_scores already exist in the shared
+// Supabase project (same backend the web app's Arcade Room uses).
+export type GameType =
+  | 'tictactoe'
+  | 'connectfour'
+  | 'rps'
+  | 'hangman'
+  | 'dice'
+  | 'trivia'
+  | 'wouldyourather'
+  | 'truthordare'
+  | 'numberguess'
+  | 'tapbattle';
+export type GameStatus = 'active' | 'finished';
+export type GameWinner = 'x' | 'o' | 'draw' | 'p1' | 'p2';
+
+export interface GameSessionRow {
+  id: string;
+  couple_id: string;
+  game_type: GameType;
+  state: unknown; // shape is per-game -- tic-tac-toe: Cell[9], connect four: Cell[42], dice: {scores}, etc.
+  turn: string | null;
+  player_x: string | null;
+  player_o: string | null;
+  winner: GameWinner | null;
+  status: GameStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GameScoreRow {
+  id: string;
+  couple_id: string;
+  game_key: string;
+  user_id: string | null;
+  winner_user_id: string | null;
+  score: number | null;
+  metadata: unknown;
+  created_at: string;
+}

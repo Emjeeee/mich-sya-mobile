@@ -1,4 +1,6 @@
 import notifee, { EventType } from '@notifee/react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -12,9 +14,14 @@ import { checkOnThisDayNow } from './src/lib/onThisDay';
 import { subscribeRingSignal } from './src/lib/ringSignal';
 import { supabase } from './src/lib/supabase';
 import { refreshWidget } from './src/lib/widget';
+import type { RootStackParamList } from './src/navigation/types';
+import ArcadeScreen from './src/screens/ArcadeScreen';
+import GameScreen from './src/screens/GameScreen';
 import RingAlertScreen from './src/screens/RingAlertScreen';
 import SignInScreen from './src/screens/SignInScreen';
 import HomeScreen from './src/screens/HomeScreen';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -107,7 +114,19 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      {session ? <HomeScreen /> : <SignInScreen />}
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {session ? (
+            <>
+              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="Arcade" component={ArcadeScreen} />
+              <Stack.Screen name="Game" component={GameScreen} />
+            </>
+          ) : (
+            <Stack.Screen name="SignIn" component={SignInScreen} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
       <StatusBar style="auto" />
     </SafeAreaProvider>
   );

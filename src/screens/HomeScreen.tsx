@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
@@ -12,6 +13,7 @@ import FindPartnerModal from '../components/FindPartnerModal';
 import JourneyMapModal from '../components/JourneyMapModal';
 import PhoneNumberModal from '../components/PhoneNumberModal';
 import SwipeToConfirm from '../components/SwipeToConfirm';
+import { Pixel } from '../components/ui/pixel-icons';
 import WishlistListModal from '../components/WishlistListModal';
 import { useCoupleStats } from '../hooks/useCoupleStats';
 import { useDateSession } from '../hooks/useDateSession';
@@ -25,7 +27,10 @@ import { getSignedUrl } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { formatElapsed } from '../lib/time';
 import { refreshWidget } from '../lib/widget';
+import type { RootStackParamList } from '../navigation/types';
 import type { DateSession } from '../types/database';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const ICON_CAMERA = require('../../assets/icons/camera.png');
 const ICON_TARGET = require('../../assets/icons/target.png');
@@ -38,19 +43,19 @@ function ActionButton({
   label,
   onPress,
 }: {
-  icon: number;
+  icon: number | ReactNode;
   label: string;
   onPress: () => void;
 }) {
   return (
     <Pressable style={styles.actionButton} onPress={onPress}>
-      <Image source={icon} style={styles.actionButtonIcon} />
+      {typeof icon === 'number' ? <Image source={icon} style={styles.actionButtonIcon} /> : icon}
       <Text style={styles.actionButtonText}>{label}</Text>
     </Pressable>
   );
 }
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { coupleId, session, loading, starting, ending, error, startSession, endSession } =
     useDateSession();
@@ -260,6 +265,11 @@ export default function HomeScreen() {
           <ActionButton icon={ICON_COMPASS} label="Cari Pasangan" onPress={() => setShowFindPartnerModal(true)} />
           <ActionButton icon={ICON_MAP} label="Journey Map" onPress={() => setShowJourneyMapModal(true)} />
           <ActionButton icon={ICON_HEART} label="Momen" onPress={handleQuickMemory} />
+          <ActionButton
+            icon={<Pixel name="gamepad" size={24} />}
+            label="Arcade"
+            onPress={() => navigation.navigate('Arcade', { coupleId })}
+          />
         </View>
       )}
 
