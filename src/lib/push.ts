@@ -38,12 +38,15 @@ export async function sendPushToPartner(
   const token = await getPartnerPushToken(coupleId, myUserId);
   if (!token) return false;
 
-  // Data-only pushes (no title/body -- ring, widget_refresh) must NOT set a
-  // `sound`: Expo/Android's own notification layer auto-displays a blank
-  // fallback notification using the device's normal (silent-mode-respecting)
-  // sound whenever `sound` is present, completely bypassing our own
-  // playRingtone()/notifee handling in the background task and showing up as
-  // an empty notification bar.
+  // Data-only pushes (no title/body -- ring, widget_refresh, find_start's
+  // internal re-delivery) must NOT set `sound` or `channelId`: both are
+  // display-notification concepts, and their mere presence appears to make
+  // Expo's gateway construct an FCM "notification" message (with blank
+  // title/body) instead of a pure data message. A background/killed app
+  // NEVER gets onMessageReceived called for a notification-shaped FCM
+  // message -- Android displays it via the system tray directly (exactly
+  // the empty/silent notification bar previously observed), bypassing every
+  // bit of our own handling entirely, native or JS.
   const isDataOnly = !payload.title && !payload.body;
 
   const response = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -57,9 +60,10 @@ export async function sendPushToPartner(
       title: payload.title,
       body: payload.body,
       data: payload.data,
-      ...(isDataOnly ? {} : { sound: payload.sound ?? 'default' }),
+      ...(isDataOnly
+        ? {}
+        : { sound: payload.sound ?? 'default', channelId: 'default' }),
       priority: payload.priority ?? 'high',
-      channelId: 'default',
     }),
   });
 
