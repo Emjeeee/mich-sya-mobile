@@ -15,6 +15,18 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { supabase } from '../lib/supabase';
 
+// Supabase surfaces raw native exception text for network failures (e.g.
+// "fetch failed: java.net.UnknownHostException: ...") instead of a normal
+// auth error message -- translate the common case into something readable.
+// Signing in always needs a real connection (it's a server round-trip), so
+// this can't be worked around, just explained clearly.
+function friendlyAuthError(message: string): string {
+  if (/UnknownHostException|Network request failed|fetch failed/i.test(message)) {
+    return 'Tidak ada koneksi internet. Sambungkan dulu untuk masuk.';
+  }
+  return message;
+}
+
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,14 +54,18 @@ export default function SignInScreen() {
   const handleSignIn = async () => {
     setLoading(true);
     setError(null);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    if (signInError) {
-      setError(signInError.message);
-    } else {
-      Keyboard.dismiss();
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (signInError) {
+        setError(friendlyAuthError(signInError.message));
+      } else {
+        Keyboard.dismiss();
+      }
+    } catch (err) {
+      setError(friendlyAuthError(err instanceof Error ? err.message : String(err)));
     }
     setLoading(false);
   };
