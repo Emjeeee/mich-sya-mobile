@@ -23,8 +23,12 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
-  const refetch = useCallback(async () => {
-    if (!coupleId) return;
+  // Returns the freshly fetched row (not just the stale-until-next-render
+  // state) -- some games (e.g. Would You Rather) need to read-then-write
+  // against the latest value to avoid a race where both players pick within
+  // the same poll window and one write silently clobbers the other's.
+  const refetch = useCallback(async (): Promise<GameSessionRow | null> => {
+    if (!coupleId) return null;
     const { data } = await supabase
       .from('game_sessions')
       .select('*')
@@ -33,8 +37,10 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    setSession((data as GameSessionRow) ?? null);
+    const row = (data as GameSessionRow) ?? null;
+    setSession(row);
     setIsLoading(false);
+    return row;
   }, [coupleId, gameType]);
 
   useEffect(() => {
@@ -88,5 +94,5 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
     [refetch]
   );
 
-  return { data: session, isLoading, startGame, joinGame, updateSession, userId, coupleId };
+  return { data: session, isLoading, startGame, joinGame, updateSession, refetch, userId, coupleId };
 }

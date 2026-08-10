@@ -1,10 +1,24 @@
 import { ComingSoonGame } from '../../components/games/ComingSoonGame';
 import { ConnectFourLocal } from '../../components/games/ConnectFourLocal';
 import { ConnectFourOnline } from '../../components/games/ConnectFourOnline';
+import { DiceBattleLocal } from '../../components/games/DiceBattleLocal';
+import { DiceBattleOnline } from '../../components/games/DiceBattleOnline';
+import { HangmanLocal } from '../../components/games/HangmanLocal';
+import { HangmanOnline } from '../../components/games/HangmanOnline';
+import { NumberGuessGame } from '../../components/games/NumberGuessGame';
+import { NumberGuessOnline } from '../../components/games/NumberGuessOnline';
 import { RockPaperScissorsLocal } from '../../components/games/RockPaperScissorsLocal';
 import { RockPaperScissorsOnline } from '../../components/games/RockPaperScissorsOnline';
+import { TapBattleGame } from '../../components/games/TapBattleGame';
+import { TapBattleOnline } from '../../components/games/TapBattleOnline';
 import { TicTacToeLocal } from '../../components/games/TicTacToeLocal';
 import { TicTacToeOnline } from '../../components/games/TicTacToeOnline';
+import { TriviaDuelLocal } from '../../components/games/TriviaDuelLocal';
+import { TriviaDuelOnline } from '../../components/games/TriviaDuelOnline';
+import { TruthOrDareGame } from '../../components/games/TruthOrDareGame';
+import { TruthOrDareOnline } from '../../components/games/TruthOrDareOnline';
+import { WouldYouRatherGame } from '../../components/games/WouldYouRatherGame';
+import { WouldYouRatherOnline } from '../../components/games/WouldYouRatherOnline';
 import type { GameDef } from './types';
 
 // Mirrors the web app's src/lib/games/registry.ts (same 21 games, same
@@ -49,8 +63,8 @@ export const GAMES: GameDef[] = [
     icon: 'gallows',
     hasOnline: true,
     scoreMode: 'wins',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: HangmanLocal,
+    OnlineComponent: HangmanOnline,
   },
   {
     key: 'dice',
@@ -59,8 +73,8 @@ export const GAMES: GameDef[] = [
     icon: 'dice',
     hasOnline: true,
     scoreMode: 'wins',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: DiceBattleLocal,
+    OnlineComponent: DiceBattleOnline,
   },
   {
     key: 'trivia',
@@ -69,8 +83,8 @@ export const GAMES: GameDef[] = [
     icon: 'brain',
     hasOnline: true,
     scoreMode: 'wins',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: TriviaDuelLocal,
+    OnlineComponent: TriviaDuelOnline,
   },
   {
     key: 'memory',
@@ -150,8 +164,8 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'asc',
     scoreUnit: ' tebakan',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: NumberGuessGame,
+    OnlineComponent: NumberGuessOnline,
   },
   {
     key: 'wordscramble',
@@ -196,8 +210,8 @@ export const GAMES: GameDef[] = [
     icon: 'spinner',
     hasOnline: true,
     scoreMode: 'none',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: TruthOrDareGame,
+    OnlineComponent: TruthOrDareOnline,
   },
   {
     key: 'wouldyourather',
@@ -206,8 +220,8 @@ export const GAMES: GameDef[] = [
     icon: 'fork',
     hasOnline: true,
     scoreMode: 'none',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: WouldYouRatherGame,
+    OnlineComponent: WouldYouRatherOnline,
   },
   {
     key: 'tapbattle',
@@ -216,8 +230,8 @@ export const GAMES: GameDef[] = [
     icon: 'tap',
     hasOnline: true,
     scoreMode: 'wins',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: TapBattleGame,
+    OnlineComponent: TapBattleOnline,
   },
   {
     key: 'colormatch',

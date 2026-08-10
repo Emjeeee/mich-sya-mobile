@@ -1,8 +1,9 @@
+import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
 interface GameButtonProps {
   onPress: () => void;
-  children: string;
+  children: ReactNode;
   variant?: 'primary' | 'secondary';
   disabled?: boolean;
   loading?: boolean;
