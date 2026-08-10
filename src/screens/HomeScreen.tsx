@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   },
   hintLine: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     marginTop: 4,
   },
   noticeText: {
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   },
   momenHint: {
     fontSize: 12,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
     marginBottom: 12,
     paddingHorizontal: 16,

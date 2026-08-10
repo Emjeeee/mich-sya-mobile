@@ -103,7 +103,7 @@ export function WordScrambleGame({ coupleId }: { coupleId?: string | null }) {
               value={guess}
               onChangeText={setGuess}
               placeholder="Jawabanmu..."
-              placeholderTextColor="#999"
+              placeholderTextColor="#767676"
               autoCapitalize="characters"
             />
             <GameButton onPress={handleGuess}>Cek</GameButton>
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
   score: {
     fontSize: 18,

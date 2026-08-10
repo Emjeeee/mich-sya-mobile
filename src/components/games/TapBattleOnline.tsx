@@ -199,7 +199,7 @@ export function TapBattleOnline({ coupleId }: { coupleId?: string | null }) {
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   text: {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   timer: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   tapButton: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   tapLabel: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
     marginTop: 4,
   },
   center: {

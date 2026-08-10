@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { friendlyError } from '../lib/friendlyError';
 import { uploadCouplePhoto } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
@@ -105,7 +106,7 @@ export default function AddJourneyMapModal({
 
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menyimpan ke journey map.');
+      setError(friendlyError(err instanceof Error ? err.message : 'Gagal menyimpan ke journey map.'));
     } finally {
       setSaving(false);
     }
@@ -125,7 +126,7 @@ export default function AddJourneyMapModal({
             <TextInput
               style={styles.input}
               placeholder="Nama tempat"
-              placeholderTextColor="#999"
+              placeholderTextColor="#767676"
               value={placeName}
               onChangeText={setPlaceName}
             />
@@ -133,7 +134,7 @@ export default function AddJourneyMapModal({
             <TextInput
               style={[styles.input, styles.multiline]}
               placeholder="Cerita di sini gimana... (opsional)"
-              placeholderTextColor="#999"
+              placeholderTextColor="#767676"
               value={description}
               onChangeText={setDescription}
               multiline
@@ -193,7 +194,7 @@ const styles = StyleSheet.create({
   },
   locationHint: {
     fontSize: 12,
-    color: '#999',
+    color: '#767676',
     marginBottom: 12,
   },
   input: {

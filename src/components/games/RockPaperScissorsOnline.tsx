@@ -15,13 +15,14 @@ interface RpsState {
 const INITIAL_STATE: RpsState = { p1Move: null, p2Move: null };
 
 export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null }) {
-  const { data: session, isLoading, userId, startGame, joinGame, updateSession } = useOnlineGameSession(
+  const { data: session, isLoading, userId, startGame, joinGame, updateSession, refetch } = useOnlineGameSession(
     coupleId,
     'rps',
     INITIAL_STATE
   );
   const { recordScore } = useGameScores(coupleId, 'rps');
   const [starting, setStarting] = useState(false);
+  const [picking, setPicking] = useState(false);
 
   if (isLoading) {
     return (
@@ -82,25 +83,38 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
   const bothPicked = state.p1Move && state.p2Move;
 
   async function pick(move: Move) {
-    if (!session || myMove) return;
-    const nextState: RpsState = isPlayerX ? { ...state, p1Move: move } : { ...state, p2Move: move };
+    if (!session || myMove || picking) return;
+    setPicking(true);
+    // Re-fetch right before writing rather than merging onto the possibly-
+    // up-to-2.5s-stale polled `state` -- both players can pick within the
+    // same poll window, and writing on stale state could silently wipe out
+    // a pick the partner's client already landed (same fix as
+    // WouldYouRatherOnline.tsx).
+    const fresh = await refetch();
+    if (!fresh) {
+      setPicking(false);
+      return;
+    }
+    const freshState = fresh.state as RpsState;
+    const nextState: RpsState = isPlayerX ? { ...freshState, p1Move: move } : { ...freshState, p2Move: move };
 
     if (nextState.p1Move && nextState.p2Move) {
       const outcome = roundWinner(nextState.p1Move, nextState.p2Move);
       const winner = outcome === 'draw' ? 'draw' : outcome === 'a' ? 'x' : 'o';
-      await updateSession({ id: session.id, state: nextState, turn: null, winner, status: 'finished' });
+      await updateSession({ id: fresh.id, state: nextState, turn: null, winner, status: 'finished' });
       const winnerUserId =
         outcome === 'draw'
           ? null
           : (outcome === 'a') === isPlayerX
             ? userId
-            : session.player_x === userId
-              ? session.player_o
-              : session.player_x;
+            : fresh.player_x === userId
+              ? fresh.player_o
+              : fresh.player_x;
       await recordScore({ winnerUserId });
     } else {
-      await updateSession({ id: session.id, state: nextState, turn: session.turn, winner: null, status: 'active' });
+      await updateSession({ id: fresh.id, state: nextState, turn: fresh.turn, winner: null, status: 'active' });
     }
+    setPicking(false);
   }
 
   if (bothPicked) {
@@ -132,7 +146,7 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
           <Text style={styles.promptText}>Pilih gerakanmu</Text>
           <View style={styles.moveRow}>
             {MOVES.map((m) => (
-              <Pressable key={m.key} onPress={() => pick(m.key)} style={styles.moveButton}>
+              <Pressable key={m.key} onPress={() => pick(m.key)} disabled={picking} style={styles.moveButton}>
                 <Text style={styles.moveEmoji}>{m.emoji}</Text>
               </Pressable>
             ))}
@@ -146,7 +160,7 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   text: {

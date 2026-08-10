@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     marginTop: 2,
   },
   list: {
@@ -115,6 +115,6 @@ const styles = StyleSheet.create({
   },
   cardDescription: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
 });

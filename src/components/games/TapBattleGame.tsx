@@ -86,7 +86,7 @@ export function TapBattleGame() {
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   countdown: {
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   timer: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   tapRow: {
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   },
   tapLabel: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
     marginTop: 4,
   },
   center: {

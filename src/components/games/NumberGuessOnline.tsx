@@ -57,7 +57,7 @@ export function NumberGuessOnline({ coupleId }: { coupleId?: string | null }) {
             value={secretInput}
             onChangeText={setSecretInput}
             placeholder="1-100"
-            placeholderTextColor="#999"
+            placeholderTextColor="#767676"
           />
           <GameButton onPress={handleStart} disabled={!secretInput.trim()} loading={starting}>
             Mulai
@@ -143,7 +143,7 @@ export function NumberGuessOnline({ coupleId }: { coupleId?: string | null }) {
               value={guess}
               onChangeText={setGuess}
               placeholder="1-100"
-              placeholderTextColor="#999"
+              placeholderTextColor="#767676"
             />
             <GameButton onPress={handleGuess}>Tebak</GameButton>
           </View>
@@ -167,7 +167,7 @@ export function NumberGuessOnline({ coupleId }: { coupleId?: string | null }) {
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   text: {
@@ -211,6 +211,6 @@ const styles = StyleSheet.create({
   },
   historyHint: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
 });

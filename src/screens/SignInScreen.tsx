@@ -13,19 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { friendlyError } from '../lib/friendlyError';
 import { supabase } from '../lib/supabase';
-
-// Supabase surfaces raw native exception text for network failures (e.g.
-// "fetch failed: java.net.UnknownHostException: ...") instead of a normal
-// auth error message -- translate the common case into something readable.
-// Signing in always needs a real connection (it's a server round-trip), so
-// this can't be worked around, just explained clearly.
-function friendlyAuthError(message: string): string {
-  if (/UnknownHostException|Network request failed|fetch failed/i.test(message)) {
-    return 'Tidak ada koneksi internet. Sambungkan dulu untuk masuk.';
-  }
-  return message;
-}
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -60,12 +49,12 @@ export default function SignInScreen() {
         password,
       });
       if (signInError) {
-        setError(friendlyAuthError(signInError.message));
+        setError(friendlyError(signInError.message));
       } else {
         Keyboard.dismiss();
       }
     } catch (err) {
-      setError(friendlyAuthError(err instanceof Error ? err.message : String(err)));
+      setError(friendlyError(err instanceof Error ? err.message : String(err)));
     }
     setLoading(false);
   };
@@ -86,7 +75,7 @@ export default function SignInScreen() {
         <TextInput
           style={styles.input}
           placeholder="Email"
-          placeholderTextColor="#999"
+          placeholderTextColor="#767676"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
@@ -100,7 +89,7 @@ export default function SignInScreen() {
           <TextInput
             style={styles.passwordInput}
             placeholder="Kata sandi"
-            placeholderTextColor="#999"
+            placeholderTextColor="#767676"
             secureTextEntry={false}
             autoCapitalize="none"
             autoCorrect={false}

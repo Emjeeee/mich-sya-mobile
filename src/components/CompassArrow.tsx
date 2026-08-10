@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: '#999',
+    color: '#767676',
   },
   calibrationHint: {
     fontSize: 12,
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   waitingText: {
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
     paddingHorizontal: 24,
     marginTop: 12,

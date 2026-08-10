@@ -57,7 +57,7 @@ export function NumberGuessGame({ coupleId }: { coupleId?: string | null }) {
             value={guess}
             onChangeText={setGuess}
             placeholder="1-100"
-            placeholderTextColor="#999"
+            placeholderTextColor="#767676"
           />
           <GameButton onPress={handleGuess}>Tebak</GameButton>
         </View>
@@ -80,7 +80,7 @@ export function NumberGuessGame({ coupleId }: { coupleId?: string | null }) {
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   center: {
@@ -119,6 +119,6 @@ const styles = StyleSheet.create({
   },
   historyHint: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
 });

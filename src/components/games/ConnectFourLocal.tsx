@@ -45,7 +45,7 @@ export function ConnectFourLocal() {
 const styles = StyleSheet.create({
   text: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
 });

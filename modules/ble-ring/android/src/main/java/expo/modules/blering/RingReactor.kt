@@ -22,6 +22,7 @@ import android.util.Log
 object RingReactor {
   private const val TAG = "RingReactor"
   private var mediaPlayer: MediaPlayer? = null
+  private var vibrator: Vibrator? = null
 
   fun trigger(context: Context) {
     playRingtone(context)
@@ -36,6 +37,11 @@ object RingReactor {
       it.release()
     }
     mediaPlayer = null
+    // vibrate()'s waveform loops indefinitely (repeat index 0) until
+    // explicitly cancelled -- without this the phone kept vibrating forever
+    // after "Stop" was tapped, since only the ringtone was ever stopped here.
+    vibrator?.cancel()
+    vibrator = null
     context.getSystemService(NotificationManager::class.java).cancel(RingBleConstants.RING_NOTIFICATION_ID)
   }
 
@@ -59,19 +65,21 @@ object RingReactor {
 
   private fun vibrate(context: Context) {
     val pattern = longArrayOf(0, 400, 200, 400, 200, 400)
+    val v: Vibrator
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      val vibrator = (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
-      vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0))
+      v = (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+      v.vibrate(VibrationEffect.createWaveform(pattern, 0))
     } else {
       @Suppress("DEPRECATION")
-      val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+      v = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0))
+        v.vibrate(VibrationEffect.createWaveform(pattern, 0))
       } else {
         @Suppress("DEPRECATION")
-        vibrator.vibrate(pattern, 0)
+        v.vibrate(pattern, 0)
       }
     }
+    vibrator = v
   }
 
   private fun showRingAlertActivity(context: Context) {

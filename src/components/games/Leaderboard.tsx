@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   empty: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#999',
+    color: '#767676',
   },
   winsRow: {
     flexDirection: 'row',
@@ -100,14 +100,14 @@ const styles = StyleSheet.create({
     color: '#e11d74',
   },
   drawValue: {
-    color: '#999',
+    color: '#767676',
   },
   accentValue: {
     color: '#3b82f6',
   },
   winsLabel: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
   },
   list: {
     gap: 6,
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   listLabel: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
   listValue: {
     fontSize: 13,

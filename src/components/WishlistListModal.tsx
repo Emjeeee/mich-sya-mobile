@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     textAlign: 'center',
-    color: '#999',
+    color: '#767676',
     marginTop: 40,
   },
   listContent: {
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   rowTitleDone: {
     textDecorationLine: 'line-through',
-    color: '#999',
+    color: '#767676',
   },
   rowDescription: {
     fontSize: 13,

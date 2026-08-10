@@ -135,7 +135,7 @@ export function DiceBattleOnline({ coupleId }: { coupleId?: string | null }) {
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   text: {
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   },
   scoreLabel: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
   },
   diceFace: {
     fontSize: 40,

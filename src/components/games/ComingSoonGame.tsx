@@ -16,7 +16,7 @@ export function ComingSoonGame() {
 const styles = StyleSheet.create({
   text: {
     fontSize: 14,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
 });

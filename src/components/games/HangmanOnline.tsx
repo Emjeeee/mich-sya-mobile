@@ -56,7 +56,7 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
             value={wordInput}
             onChangeText={setWordInput}
             placeholder="Ketik kata rahasia"
-            placeholderTextColor="#999"
+            placeholderTextColor="#767676"
             autoCapitalize="characters"
           />
           <GameButton onPress={handleStart} disabled={!wordInput.trim()} loading={starting}>
@@ -170,12 +170,12 @@ const LETTER_SIZE = 32;
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   hint: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   text: {

@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   },
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
   score: {
     fontSize: 18,

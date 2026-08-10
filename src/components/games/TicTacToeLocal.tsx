@@ -66,11 +66,11 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
   drawText: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
   },
   activeX: {
     fontWeight: '700',
@@ -91,6 +91,6 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
 });

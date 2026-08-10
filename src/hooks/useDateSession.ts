@@ -5,6 +5,7 @@ import {
   stopBackgroundLocationTracking,
 } from '../lib/backgroundLocation';
 import { distanceMeters } from '../lib/geo';
+import { friendlyError } from '../lib/friendlyError';
 import { getCurrentCoords } from '../lib/location';
 import { sendPushToPartner } from '../lib/push';
 import { supabase } from '../lib/supabase';
@@ -57,7 +58,7 @@ export function useDateSession() {
         .limit(1);
 
       if (coupleError || !coupleRows?.[0]) {
-        setError(coupleError?.message ?? 'Tidak ditemukan data couple.');
+        setError(friendlyError(coupleError?.message ?? 'Tidak ditemukan data couple.'));
         setLoading(false);
         return;
       }
@@ -74,7 +75,7 @@ export function useDateSession() {
         .limit(1);
 
       if (sessionError) {
-        setError(sessionError.message);
+        setError(friendlyError(sessionError.message));
       } else {
         const active = (activeSessions?.[0] as DateSession) ?? null;
         setSession(active);
@@ -108,7 +109,7 @@ export function useDateSession() {
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      setError(friendlyError(insertError.message));
       setStarting(false);
       return;
     }
@@ -154,7 +155,7 @@ export function useDateSession() {
         .eq('id', current.id);
 
       if (updateError) {
-        setError(updateError.message);
+        setError(friendlyError(updateError.message));
         setEnding(false);
         return null;
       }
@@ -173,7 +174,7 @@ export function useDateSession() {
       });
 
       if (scheduleError) {
-        setError(scheduleError.message);
+        setError(friendlyError(scheduleError.message));
       }
 
       const routeMeters = await computeRouteDistanceMeters(current.id);

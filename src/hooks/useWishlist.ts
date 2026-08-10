@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { friendlyError } from '../lib/friendlyError';
 import { supabase } from '../lib/supabase';
 import type { WishlistItem } from '../types/database';
 
@@ -18,7 +19,7 @@ export function useWishlist(coupleId: string | null) {
       .order('created_at', { ascending: false });
 
     if (fetchError) {
-      setError(fetchError.message);
+      setError(friendlyError(fetchError.message));
     } else {
       setItems((data as WishlistItem[]) ?? []);
       setError(null);
@@ -37,7 +38,7 @@ export function useWishlist(coupleId: string | null) {
         .update({ is_done: !item.is_done })
         .eq('id', item.id);
       if (updateError) {
-        setError(updateError.message);
+        setError(friendlyError(updateError.message));
         return;
       }
       setItems((prev) =>
@@ -61,7 +62,7 @@ export function useWishlist(coupleId: string | null) {
     });
 
     if (insertError) {
-      setError(insertError.message);
+      setError(friendlyError(insertError.message));
       return false;
     }
     return true;

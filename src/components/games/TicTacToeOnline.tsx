@@ -136,7 +136,7 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   text: {

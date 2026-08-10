@@ -70,12 +70,12 @@ const LETTER_SIZE = 32;
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   hint: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   wordDisplay: {

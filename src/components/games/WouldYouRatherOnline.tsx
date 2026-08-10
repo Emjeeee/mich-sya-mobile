@@ -200,7 +200,7 @@ export function WouldYouRatherOnline({ coupleId }: { coupleId?: string | null })
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   text: {
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   counter: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   optionsGrid: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   pickedByText: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   choiceButton: {

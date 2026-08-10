@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { friendlyError } from '../lib/friendlyError';
 import { getMyPhoneNumber, savePhoneNumber } from '../lib/push';
 import { supabase } from '../lib/supabase';
 
@@ -22,17 +23,21 @@ interface PhoneNumberModalProps {
 }
 
 // Indonesian local format ("08...") -> international format ("+628...") --
-// SMS sending needs the international form. Only rewrites the leading "0",
-// so it doesn't fight the user while they keep typing digits after it.
+// SMS sending needs the international form. Also strips spaces/dashes
+// (people paste numbers like "0812-3456-7890") and adds the missing "+" if
+// the country code was typed without one ("62812..." -> "+62812...").
 function normalizePhoneInput(text: string): string {
-  if (text.startsWith('0')) return `+62${text.slice(1)}`;
-  return text;
+  const stripped = text.replace(/[\s-]/g, '');
+  if (stripped.startsWith('0')) return `+62${stripped.slice(1)}`;
+  if (stripped.startsWith('62') && !stripped.startsWith('+')) return `+${stripped}`;
+  return stripped;
 }
 
 export default function PhoneNumberModal({ visible, coupleId, onClose }: PhoneNumberModalProps) {
   const insets = useSafeAreaInsets();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -45,12 +50,18 @@ export default function PhoneNumberModal({ visible, coupleId, onClose }: PhoneNu
   }, [visible]);
 
   const handleSave = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
     setSaving(true);
-    await savePhoneNumber(coupleId, userData.user.id, phoneNumber.trim());
-    setSaving(false);
-    onClose();
+    setError(null);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      await savePhoneNumber(coupleId, userData.user.id, phoneNumber.trim());
+      onClose();
+    } catch (err) {
+      setError(friendlyError(err instanceof Error ? err.message : String(err)));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -69,11 +80,13 @@ export default function PhoneNumberModal({ visible, coupleId, onClose }: PhoneNu
           <TextInput
             style={styles.input}
             placeholder="+62812xxxxxxx"
-            placeholderTextColor="#999"
+            placeholderTextColor="#767676"
             keyboardType="phone-pad"
             value={phoneNumber}
             onChangeText={(text) => setPhoneNumber(normalizePhoneInput(text))}
           />
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <View style={styles.row}>
             <Pressable style={[styles.button, styles.cancelButton]} onPress={onClose}>
@@ -120,6 +133,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: '#000',
+  },
+  error: {
+    color: '#c0392b',
+    fontSize: 13,
+    marginTop: 8,
   },
   row: {
     flexDirection: 'row',

@@ -45,7 +45,7 @@ export default function EndDateModal({
           <TextInput
             style={styles.input}
             placeholder="Judul kencan (opsional)"
-            placeholderTextColor="#999"
+            placeholderTextColor="#767676"
             value={title}
             onChangeText={setTitle}
           />
@@ -53,7 +53,7 @@ export default function EndDateModal({
           <TextInput
             style={[styles.input, styles.multiline]}
             placeholder="Kemana saja, ngapain saja?"
-            placeholderTextColor="#999"
+            placeholderTextColor="#767676"
             value={summary}
             onChangeText={setSummary}
             multiline

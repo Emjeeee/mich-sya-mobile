@@ -197,6 +197,18 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
               .onEnd(() => {
                 if (dragIndexRef.current !== i) return;
                 endDrag(i);
+              })
+              .onFinalize(() => {
+                // Guaranteed to run even if the gesture is cancelled instead
+                // of ending normally (e.g. the enclosing ScrollView steals
+                // the touch mid-drag) -- onEnd alone left dragIndexRef stuck
+                // non-null in that case, permanently hiding this piece and
+                // blocking every future drag via the onStart guard above.
+                if (dragIndexRef.current !== i) return;
+                dragIndexRef.current = null;
+                setDragIndex(null);
+                setHoverCell(null);
+                dragPos.setValue({ x: -1000, y: -1000 });
               });
 
             return (
@@ -244,7 +256,7 @@ const styles = StyleSheet.create({
   },
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     flexShrink: 1,
   },
   score: {

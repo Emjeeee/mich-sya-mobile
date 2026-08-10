@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { RecordingPresets, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from 'expo-audio';
 import * as ImagePicker from 'expo-image-picker';
 import {
   ActivityIndicator,
@@ -95,8 +100,17 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
     }
 
     setError(null);
-    await recorder.prepareToRecordAsync();
-    recorder.record();
+    try {
+      const permission = await requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        setError('Izin akses mikrofon diperlukan.');
+        return;
+      }
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+    } catch {
+      setError('Gagal mulai merekam suara.');
+    }
   };
 
   const handleSave = async () => {
@@ -192,7 +206,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
             <TextInput
               style={styles.input}
               placeholder="Judul (opsional)"
-              placeholderTextColor="#999"
+              placeholderTextColor="#767676"
               value={title}
               onChangeText={setTitle}
             />
@@ -200,7 +214,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
             <TextInput
               style={[styles.input, styles.multiline]}
               placeholder="Ceritain hari ini gimana... (opsional kalau udah rekam suara)"
-              placeholderTextColor="#999"
+              placeholderTextColor="#767676"
               value={story}
               onChangeText={setStory}
               multiline
@@ -276,7 +290,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: '#999',
+    color: '#767676',
     marginBottom: 8,
   },
   previewRow: {

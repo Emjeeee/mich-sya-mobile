@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
   center: {
     alignItems: 'center',
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
   },
   moveRow: {
     flexDirection: 'row',

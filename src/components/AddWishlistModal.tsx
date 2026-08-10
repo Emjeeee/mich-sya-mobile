@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { friendlyError } from '../lib/friendlyError';
 import { uploadCouplePhoto } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
@@ -95,7 +96,7 @@ export default function AddWishlistModal({ visible, coupleId, onClose }: AddWish
 
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menyimpan wishlist.');
+      setError(friendlyError(err instanceof Error ? err.message : 'Gagal menyimpan wishlist.'));
     } finally {
       setSaving(false);
     }
@@ -114,7 +115,7 @@ export default function AddWishlistModal({ visible, coupleId, onClose }: AddWish
             <TextInput
               style={styles.input}
               placeholder="Mau ngapain / kemana?"
-              placeholderTextColor="#999"
+              placeholderTextColor="#767676"
               value={title}
               onChangeText={setTitle}
             />
@@ -122,7 +123,7 @@ export default function AddWishlistModal({ visible, coupleId, onClose }: AddWish
             <TextInput
               style={[styles.input, styles.multiline]}
               placeholder="Detail (opsional)"
-              placeholderTextColor="#999"
+              placeholderTextColor="#767676"
               value={description}
               onChangeText={setDescription}
               multiline

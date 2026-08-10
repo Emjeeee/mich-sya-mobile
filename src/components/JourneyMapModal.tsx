@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyText: {
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
 });

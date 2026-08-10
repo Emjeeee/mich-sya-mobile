@@ -1,7 +1,6 @@
 package expo.modules.blering
 
 import android.app.Activity
-import android.app.NotificationManager
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -36,8 +35,21 @@ class NativeRingAlertActivity : Activity() {
     }
   }
 
+  // The system back gesture/button would otherwise finish this Activity
+  // without ever calling RingReactor.stop() -- leaving the ringtone and
+  // (until reboot) the indefinitely-looping vibration running with no UI
+  // left to stop them. Treat back the same as tapping the Stop button.
+  @Suppress("MissingSuperCall", "OVERRIDE_DEPRECATION")
+  override fun onBackPressed() {
+    RingReactor.stop(applicationContext)
+    finish()
+  }
+
   override fun onDestroy() {
-    getSystemService(NotificationManager::class.java).cancel(RingBleConstants.RING_NOTIFICATION_ID)
+    // Safety net for any other dismissal path (task swiped away from
+    // Recents, etc.) -- stop() is idempotent, so calling it again after the
+    // button/back-press already did is harmless.
+    RingReactor.stop(applicationContext)
     super.onDestroy()
   }
 }

@@ -57,7 +57,7 @@ export function DiceBattleLocal() {
 const styles = StyleSheet.create({
   muted: {
     fontSize: 13,
-    color: '#999',
+    color: '#767676',
     textAlign: 'center',
   },
   row: {
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   scoreLabel: {
     fontSize: 11,
-    color: '#999',
+    color: '#767676',
   },
   diceFace: {
     fontSize: 40,

@@ -16,8 +16,15 @@ class SmsRingReceiver : BroadcastReceiver() {
     if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
 
     try {
+      // getMessagesFromIntent() returns one SmsMessage per PDU part of a
+      // multi-part SMS -- SMS_TRIGGER_MESSAGE contains an emoji, which forces
+      // UCS-2 encoding (a ~67-char/segment cap vs. GSM-7's 160), so the
+      // marker at the tail of the message is split across two parts and
+      // never appears whole in any single part's messageBody. Concatenating
+      // all parts in order before matching is the standard fix.
       val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-      val matched = messages.any { it.messageBody?.contains(RingBleConstants.SMS_TRIGGER_MARKER) == true }
+      val fullBody = messages.joinToString("") { it.messageBody ?: "" }
+      val matched = fullBody.contains(RingBleConstants.SMS_TRIGGER_MARKER)
       if (matched) {
         Log.d(TAG, "Ring SMS detected, triggering alert")
         RingReactor.trigger(context.applicationContext)
