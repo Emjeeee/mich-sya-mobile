@@ -9,11 +9,19 @@ interface BleRingModuleType {
    */
   broadcastRing(): Promise<boolean>;
   /**
-   * Starts the persistent foreground service that scans for the ring
+   * Same connectionless BLE advertisement as broadcastRing, but tagged as a
+   * torch event carrying the blink pattern (see src/lib/torchPattern.ts) --
+   * BleRingScanService reads it back out of the advertisement's service
+   * data to know which flavor of event fired without needing pairing.
+   */
+  broadcastTorch(kind: string, onMs: number | null, offMs: number | null): Promise<boolean>;
+  /**
+   * Starts the persistent foreground service that scans for the ring/torch
    * signal in the background, even with the app fully closed. Reacts
-   * entirely natively (sound/vibration/full-screen alert) -- deliberately
-   * not dependent on the JS engine being alive, since that's exactly what
-   * makes the internet-based ring path unreliable when the app is killed.
+   * entirely natively (sound/vibration/full-screen alert for ring; camera
+   * torch for torch) -- deliberately not dependent on the JS engine being
+   * alive, since that's exactly what makes the internet-based push path
+   * unreliable when the app is killed.
    */
   startScanning(): Promise<boolean>;
   stopScanning(): Promise<void>;
@@ -24,12 +32,26 @@ interface BleRingModuleType {
    * internet/data -- SMS goes over the carrier network independent of data.
    */
   sendRingSms(phoneNumber: string): Promise<boolean>;
+  /** Same idea as sendRingSms, with the blink pattern encoded as a suffix. */
+  sendTorchSms(phoneNumber: string, kind: string, onMs: number | null, offMs: number | null): Promise<boolean>;
+  /**
+   * Starts the native torch blink loop directly (no BLE/SMS payload to
+   * decode) -- used by the push-triggered path, since there's no headless-
+   * safe way to blink the torch from JS itself.
+   */
+  triggerTorch(kind: string, onMs: number | null, offMs: number | null): Promise<boolean>;
 }
 
 export const BleRingModule = requireNativeModule<BleRingModuleType>('BleRing');
 
 export const broadcastRing = () => BleRingModule.broadcastRing();
+export const broadcastTorch = (kind: string, onMs: number | null, offMs: number | null) =>
+  BleRingModule.broadcastTorch(kind, onMs, offMs);
 export const startScanning = () => BleRingModule.startScanning();
 export const stopScanning = () => BleRingModule.stopScanning();
 export const isScanning = () => BleRingModule.isScanning();
 export const sendRingSms = (phoneNumber: string) => BleRingModule.sendRingSms(phoneNumber);
+export const sendTorchSms = (phoneNumber: string, kind: string, onMs: number | null, offMs: number | null) =>
+  BleRingModule.sendTorchSms(phoneNumber, kind, onMs, offMs);
+export const triggerTorch = (kind: string, onMs: number | null, offMs: number | null) =>
+  BleRingModule.triggerTorch(kind, onMs, offMs);

@@ -8,6 +8,7 @@ const ICON_PLAY = require('../../assets/icons/play.png');
 const ICON_STOP = require('../../assets/icons/stop.png');
 const ICON_HEART = require('../../assets/icons/heart.png');
 const ICON_BELL = require('../../assets/icons/bell.png');
+const ICON_FLASH = require('../../assets/icons/flash.png');
 
 export const WIDGET_NAME = 'DateStatus';
 
@@ -68,11 +69,11 @@ function contentBlock(session: DateSession | null, nextSchedule: Schedule | null
 
 const actionButtonStyle = {
   flex: 1,
-  minWidth: 72,
+  minWidth: 56,
   backgroundColor: 'rgba(255, 255, 255, 0.20)' as const,
   borderRadius: 14,
   paddingVertical: 12,
-  paddingHorizontal: 12,
+  paddingHorizontal: 8,
   justifyContent: 'center' as const,
   alignItems: 'center' as const,
 };
@@ -145,7 +146,7 @@ export function DateWidget({
         />
       </FlexWidget>
 
-      <FlexWidget style={{ flexDirection: 'row', flexGap: 6 }}>
+      <FlexWidget style={{ flexDirection: 'row', flexGap: 4 }}>
         <ActionButton
           clickAction="start_end_date"
           icon={session ? ICON_STOP : ICON_PLAY}
@@ -153,6 +154,7 @@ export function DateWidget({
         />
         <ActionButton clickAction="quick_memory" icon={ICON_HEART} label="Momen" />
         <ActionButton clickAction="ring_partner" icon={ICON_BELL} label="Bunyikan" />
+        <ActionButton clickAction="torch_partner" icon={ICON_FLASH} label="Senter" />
       </FlexWidget>
     </FlexWidget>
   );

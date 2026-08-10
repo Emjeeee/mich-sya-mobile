@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 // Fallback for the case where a phone has full cellular signal but no
 // internet/data connection -- SMS still goes through the carrier network
@@ -24,10 +25,30 @@ class SmsRingReceiver : BroadcastReceiver() {
       // all parts in order before matching is the standard fix.
       val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
       val fullBody = messages.joinToString("") { it.messageBody ?: "" }
-      val matched = fullBody.contains(RingBleConstants.SMS_TRIGGER_MARKER)
-      if (matched) {
+
+      if (fullBody.contains(RingBleConstants.SMS_TRIGGER_MARKER)) {
         Log.d(TAG, "Ring SMS detected, triggering alert")
         RingReactor.trigger(context.applicationContext)
+        return
+      }
+
+      val torchIndex = fullBody.indexOf(RingBleConstants.SMS_TORCH_TRIGGER_MARKER)
+      if (torchIndex >= 0) {
+        // Suffix after the marker is ":<kind>" for presets or
+        // ":custom:<onMs>:<offMs>" -- see BleRingModule.sendTorchSms.
+        val suffix = fullBody.substring(torchIndex + RingBleConstants.SMS_TORCH_TRIGGER_MARKER.length)
+        val parts = suffix.trimStart(':').split(":")
+        val kind = parts.getOrNull(0)?.takeIf { it.isNotBlank() } ?: "slow"
+        val onMs = parts.getOrNull(1)?.toLongOrNull()
+        val offMs = parts.getOrNull(2)?.toLongOrNull()
+
+        Log.d(TAG, "Torch SMS detected ($kind), triggering torch")
+        val serviceIntent = Intent(context.applicationContext, TorchBlinkService::class.java).apply {
+          putExtra("kind", kind)
+          if (onMs != null) putExtra("onMs", onMs)
+          if (offMs != null) putExtra("offMs", offMs)
+        }
+        ContextCompat.startForegroundService(context.applicationContext, serviceIntent)
       }
     } catch (e: Exception) {
       Log.w(TAG, "Failed to process incoming SMS", e)

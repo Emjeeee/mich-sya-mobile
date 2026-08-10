@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
@@ -6,6 +7,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +15,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CompassArrow from './CompassArrow';
 import { useFindPartner } from '../hooks/useFindPartner';
 import { ringPartner } from '../lib/ringPartner';
+import { torchPartner } from '../lib/torchPartner';
+import {
+  DEFAULT_TORCH_PATTERN,
+  TORCH_PATTERN_STORAGE_KEY,
+  TORCH_PRESET_LABELS,
+  type TorchPattern,
+  type TorchPatternKind,
+} from '../lib/torchPattern';
+
+const TORCH_PRESET_ORDER: TorchPatternKind[] = ['steady', 'slow', 'fast', 'sos', 'custom'];
 
 interface FindPartnerModalProps {
   visible: boolean;
@@ -32,6 +44,10 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
     stopFinding,
   } = useFindPartner(coupleId);
   const [ringing, setRinging] = useState(false);
+  const [torchKind, setTorchKind] = useState<TorchPatternKind>(DEFAULT_TORCH_PATTERN.kind);
+  const [customOnMs, setCustomOnMs] = useState('250');
+  const [customOffMs, setCustomOffMs] = useState('250');
+  const [torching, setTorching] = useState(false);
 
   const handleClose = () => {
     // Sharing now runs in the background independent of this screen -- closing it
@@ -46,6 +62,26 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
     if (!sent) {
       Alert.alert('Gagal', 'Tidak bisa membunyikan HP pasangan. Pastikan dia sudah pernah membuka MichSya di HP-nya.');
     }
+  };
+
+  const handleTorch = async () => {
+    const pattern: TorchPattern =
+      torchKind === 'custom'
+        ? {
+            kind: 'custom',
+            onMs: Number(customOnMs) || DEFAULT_TORCH_PATTERN.onMs || 250,
+            offMs: Number(customOffMs) || DEFAULT_TORCH_PATTERN.offMs || 250,
+          }
+        : { kind: torchKind };
+
+    setTorching(true);
+    const sent = await torchPartner(coupleId, pattern);
+    setTorching(false);
+    if (!sent) {
+      Alert.alert('Gagal', 'Tidak bisa nyalain senter HP pasangan. Pastikan dia sudah pernah membuka MichSya di HP-nya.');
+      return;
+    }
+    AsyncStorage.setItem(TORCH_PATTERN_STORAGE_KEY, JSON.stringify(pattern)).catch(() => {});
   };
 
   return (
@@ -90,6 +126,51 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
               <ActivityIndicator color="#e11d74" />
             ) : (
               <Text style={styles.ringButtonText}>🔊 Bunyikan HP pasangan</Text>
+            )}
+          </Pressable>
+
+          <View style={styles.torchChipRow}>
+            {TORCH_PRESET_ORDER.map((kind) => (
+              <Pressable
+                key={kind}
+                onPress={() => setTorchKind(kind)}
+                style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
+              >
+                <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
+                  {kind === 'custom' ? 'Custom' : TORCH_PRESET_LABELS[kind]}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {torchKind === 'custom' && (
+            <View style={styles.customRow}>
+              <View style={styles.customField}>
+                <Text style={styles.customLabel}>Nyala (ms)</Text>
+                <TextInput
+                  style={styles.customInput}
+                  keyboardType="number-pad"
+                  value={customOnMs}
+                  onChangeText={setCustomOnMs}
+                />
+              </View>
+              <View style={styles.customField}>
+                <Text style={styles.customLabel}>Mati (ms)</Text>
+                <TextInput
+                  style={styles.customInput}
+                  keyboardType="number-pad"
+                  value={customOffMs}
+                  onChangeText={setCustomOffMs}
+                />
+              </View>
+            </View>
+          )}
+
+          <Pressable style={[styles.button, styles.ringButton]} onPress={handleTorch} disabled={torching}>
+            {torching ? (
+              <ActivityIndicator color="#e11d74" />
+            ) : (
+              <Text style={styles.ringButtonText}>🔦 Nyalain senter pasangan</Text>
             )}
           </Pressable>
         </View>
@@ -160,6 +241,49 @@ const styles = StyleSheet.create({
   ringButtonText: {
     color: '#e11d74',
     fontWeight: '600',
+  },
+  torchChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  torchChip: {
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#fdeef4',
+  },
+  torchChipActive: {
+    backgroundColor: '#e11d74',
+  },
+  torchChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+  },
+  torchChipTextActive: {
+    color: '#fff',
+  },
+  customRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  customField: {
+    flex: 1,
+    gap: 4,
+  },
+  customLabel: {
+    fontSize: 12,
+    color: '#767676',
+  },
+  customInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#000',
   },
   hint: {
     marginTop: 'auto',

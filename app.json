@@ -28,6 +28,8 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
+        "android.permission.FOREGROUND_SERVICE_CAMERA",
+        "android.permission.CAMERA",
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_SCAN",

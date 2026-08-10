@@ -25,7 +25,12 @@ class BleRingModule : Module() {
     Name("BleRing")
 
     AsyncFunction("broadcastRing") { promise: Promise ->
-      broadcastRing(promise)
+      // Event type 0 = ring, no further payload needed.
+      broadcastEvent(byteArrayOf(0), promise)
+    }
+
+    AsyncFunction("broadcastTorch") { kind: String, onMs: Int?, offMs: Int?, promise: Promise ->
+      broadcastEvent(torchPayload(kind, onMs, offMs), promise)
     }
 
     AsyncFunction("startScanning") { promise: Promise ->
@@ -43,11 +48,57 @@ class BleRingModule : Module() {
     }
 
     AsyncFunction("sendRingSms") { phoneNumber: String, promise: Promise ->
-      sendRingSms(phoneNumber, promise)
+      sendSms(phoneNumber, RingBleConstants.SMS_TRIGGER_MESSAGE, promise)
+    }
+
+    AsyncFunction("sendTorchSms") { phoneNumber: String, kind: String, onMs: Int?, offMs: Int?, promise: Promise ->
+      val suffix = if (kind == "custom") ":custom:${onMs ?: 250}:${offMs ?: 250}" else ":$kind"
+      sendSms(phoneNumber, RingBleConstants.SMS_TORCH_MESSAGE_PREFIX + suffix, promise)
+    }
+
+    // Push-triggered torch has no BLE/SMS payload to decode -- this just
+    // starts the same TorchBlinkService the BLE/SMS receivers start
+    // directly, so all three channels share one blink engine.
+    AsyncFunction("triggerTorch") { kind: String, onMs: Int?, offMs: Int?, promise: Promise ->
+      try {
+        val intent = Intent(context, TorchBlinkService::class.java).apply {
+          putExtra("kind", kind)
+          if (onMs != null) putExtra("onMs", onMs.toLong())
+          if (offMs != null) putExtra("offMs", offMs.toLong())
+        }
+        ContextCompat.startForegroundService(context, intent)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
     }
   }
 
-  private fun sendRingSms(phoneNumber: String, promise: Promise) {
+  private fun patternKindByte(kind: String): Byte = when (kind) {
+    "steady" -> 0
+    "slow" -> 1
+    "fast" -> 2
+    "sos" -> 3
+    "custom" -> 4
+    else -> 1
+  }
+
+  // eventType(1) + patternKind(1) + onMsLo/onMsHi + offMsLo/offMsHi -- the
+  // last 4 bytes only matter for "custom", zero-filled otherwise.
+  private fun torchPayload(kind: String, onMs: Int?, offMs: Int?): ByteArray {
+    val on = onMs ?: 0
+    val off = offMs ?: 0
+    return byteArrayOf(
+      1,
+      patternKindByte(kind),
+      (on and 0xFF).toByte(),
+      ((on shr 8) and 0xFF).toByte(),
+      (off and 0xFF).toByte(),
+      ((off shr 8) and 0xFF).toByte()
+    )
+  }
+
+  private fun sendSms(phoneNumber: String, message: String, promise: Promise) {
     try {
       val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         context.getSystemService(SmsManager::class.java)
@@ -55,7 +106,7 @@ class BleRingModule : Module() {
         @Suppress("DEPRECATION")
         SmsManager.getDefault()
       }
-      smsManager.sendTextMessage(phoneNumber, null, RingBleConstants.SMS_TRIGGER_MESSAGE, null, null)
+      smsManager.sendTextMessage(phoneNumber, null, message, null, null)
       promise.resolve(true)
     } catch (e: Exception) {
       // Missing SEND_SMS permission, no SIM/radio, invalid number, etc.
@@ -63,7 +114,7 @@ class BleRingModule : Module() {
     }
   }
 
-  private fun broadcastRing(promise: Promise) {
+  private fun broadcastEvent(payload: ByteArray, promise: Promise) {
     val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
     if (adapter == null || !adapter.isEnabled) {
       promise.resolve(false)
@@ -85,6 +136,7 @@ class BleRingModule : Module() {
     val data = AdvertiseData.Builder()
       .setIncludeDeviceName(false)
       .addServiceUuid(ParcelUuid(RingBleConstants.SERVICE_UUID))
+      .addServiceData(ParcelUuid(RingBleConstants.SERVICE_UUID), payload)
       .build()
 
     var resolved = false

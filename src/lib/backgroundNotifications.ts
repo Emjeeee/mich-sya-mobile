@@ -1,6 +1,7 @@
 import notifee, { AndroidCategory, AndroidImportance, EventType } from '@notifee/react-native';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
+import { triggerTorch } from 'ble-ring';
 
 import { startFindPartnerTracking } from './backgroundFindPartner';
 import { notifyRingSignal } from './ringSignal';
@@ -87,6 +88,24 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
         console.log('[michsya] showRingNotification() completed');
       } catch (err) {
         console.warn('[michsya] showRingNotification() failed:', err);
+      }
+    }
+
+    if (payload.type === 'torch') {
+      console.log('[michsya] background task: torch payload received');
+      // No JS-side notification/reaction needed here unlike ring -- the
+      // native TorchBlinkService owns its own notification (incl. the Stop
+      // action) and there's no headless-safe way to blink the torch from JS
+      // anyway, so this just starts the same native service the BLE/SMS
+      // paths start directly.
+      try {
+        await triggerTorch(
+          typeof payload.kind === 'string' ? payload.kind : 'slow',
+          typeof payload.onMs === 'number' ? payload.onMs : null,
+          typeof payload.offMs === 'number' ? payload.offMs : null
+        );
+      } catch (err) {
+        console.warn('[michsya] triggerTorch() failed:', err);
       }
     }
 

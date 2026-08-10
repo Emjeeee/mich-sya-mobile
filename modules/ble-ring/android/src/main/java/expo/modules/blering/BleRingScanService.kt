@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.ParcelUuid
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 // Runs continuously in the background (started at app launch and on boot)
 // scanning for a nearby phone's ring advertisement. See RingReactor for the
@@ -60,8 +61,34 @@ class BleRingScanService : Service() {
       // of the same burst so we don't re-trigger the alert on every scan tick.
       if (now - lastTriggeredAt < RETRIGGER_COOLDOWN_MS) return
       lastTriggeredAt = now
-      Log.d(TAG, "Ring advertisement detected, triggering alert")
-      RingReactor.trigger(applicationContext)
+
+      // Service data layout (see BleRingModule.torchPayload): byte 0 is the
+      // event type (0=ring, 1=torch); no data at all (older advertiser, or
+      // ring's minimal 1-byte payload) also means ring.
+      val payload = result?.scanRecord?.getServiceData(ParcelUuid(RingBleConstants.SERVICE_UUID))
+      if (payload == null || payload.isEmpty() || payload[0].toInt() == 0) {
+        Log.d(TAG, "Ring advertisement detected, triggering alert")
+        RingReactor.trigger(applicationContext)
+        return
+      }
+
+      val kind = when (payload.getOrElse(1) { 1 }.toInt()) {
+        0 -> "steady"
+        2 -> "fast"
+        3 -> "sos"
+        4 -> "custom"
+        else -> "slow"
+      }
+      val onMs = if (payload.size >= 4) (payload[2].toInt() and 0xFF) or ((payload[3].toInt() and 0xFF) shl 8) else null
+      val offMs = if (payload.size >= 6) (payload[4].toInt() and 0xFF) or ((payload[5].toInt() and 0xFF) shl 8) else null
+
+      Log.d(TAG, "Torch advertisement detected ($kind), triggering torch")
+      val intent = Intent(applicationContext, TorchBlinkService::class.java).apply {
+        putExtra("kind", kind)
+        if (onMs != null) putExtra("onMs", onMs.toLong())
+        if (offMs != null) putExtra("offMs", offMs.toLong())
+      }
+      ContextCompat.startForegroundService(applicationContext, intent)
     }
 
     override fun onScanFailed(errorCode: Int) {

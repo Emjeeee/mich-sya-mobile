@@ -5,6 +5,11 @@
       android:exported="false"
       android:foregroundServiceType="connectedDevice" />
 
+    <service
+      android:name=".TorchBlinkService"
+      android:exported="false"
+      android:foregroundServiceType="camera" />
+
     <activity
       android:name=".NativeRingAlertActivity"
       android:exported="false"

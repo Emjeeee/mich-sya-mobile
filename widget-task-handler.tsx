@@ -1,9 +1,12 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWidgetTaskHandler, type WidgetTaskHandlerProps } from 'react-native-android-widget';
 
 import { startBackgroundLocationTracking, stopBackgroundLocationTracking } from './src/lib/backgroundLocation';
 import { getCurrentCoords } from './src/lib/location';
 import { ringPartner } from './src/lib/ringPartner';
 import { supabase } from './src/lib/supabase';
+import { torchPartner } from './src/lib/torchPartner';
+import { DEFAULT_TORCH_PATTERN, TORCH_PATTERN_STORAGE_KEY, type TorchPattern } from './src/lib/torchPattern';
 import { DateWidget, fetchWidgetState, WIDGET_NAME } from './src/lib/widget';
 import type { DateSession } from './src/types/database';
 
@@ -87,6 +90,19 @@ async function handleQuickMemory() {
   });
 }
 
+async function handleTorch() {
+  const raw = await AsyncStorage.getItem(TORCH_PATTERN_STORAGE_KEY).catch(() => null);
+  let pattern: TorchPattern = DEFAULT_TORCH_PATTERN;
+  if (raw) {
+    try {
+      pattern = JSON.parse(raw) as TorchPattern;
+    } catch {
+      pattern = DEFAULT_TORCH_PATTERN;
+    }
+  }
+  await torchPartner(null, pattern);
+}
+
 async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   if (props.widgetInfo.widgetName !== WIDGET_NAME) return;
 
@@ -103,6 +119,8 @@ async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
         await handleQuickMemory();
       } else if (props.clickAction === 'ring_partner') {
         await ringPartner();
+      } else if (props.clickAction === 'torch_partner') {
+        await handleTorch();
       }
       await renderCurrentState(props.renderWidget);
       break;

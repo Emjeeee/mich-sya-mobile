@@ -1,9 +1,12 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import {
   broadcastRing as nativeBroadcastRing,
+  broadcastTorch as nativeBroadcastTorch,
   sendRingSms as nativeSendRingSms,
+  sendTorchSms as nativeSendTorchSms,
   startScanning as nativeStartScanning,
 } from 'ble-ring';
+import type { TorchPattern } from './torchPattern';
 
 const BLE_PERMISSIONS = [
   PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
@@ -16,6 +19,11 @@ const BLE_PERMISSIONS = [
 // together with the BLE permissions since both exist for the same reason:
 // letting "Bunyikan HP pasangan" work without internet.
 const SMS_PERMISSIONS = [PermissionsAndroid.PERMISSIONS.SEND_SMS, PermissionsAndroid.PERMISSIONS.RECEIVE_SMS];
+
+// Needed so this device can react to a torch trigger (BLE/SMS/push) later --
+// dangerous on every Android version since API 23, unlike BLE's API 31+
+// cutoff, so it's always included below regardless of Platform.Version.
+const CAMERA_PERMISSIONS = [PermissionsAndroid.PERMISSIONS.CAMERA];
 
 // Android 12+ (API 31) requires the Bluetooth permissions to be
 // runtime-requested "dangerous" permissions; below that, BLE scan/advertise
@@ -45,7 +53,9 @@ export async function requestOfflineRingPermissions(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   try {
-    const toRequest = Platform.Version >= 31 ? [...BLE_PERMISSIONS, ...SMS_PERMISSIONS] : SMS_PERMISSIONS;
+    const toRequest = Platform.Version >= 31
+      ? [...BLE_PERMISSIONS, ...SMS_PERMISSIONS, ...CAMERA_PERMISSIONS]
+      : [...SMS_PERMISSIONS, ...CAMERA_PERMISSIONS];
     await PermissionsAndroid.requestMultiple(toRequest);
   } catch {
     // Best-effort -- a denial just means that specific fallback won't work.
@@ -93,6 +103,28 @@ export async function broadcastSmsRing(phoneNumber: string | null): Promise<bool
   try {
     if (!(await hasSmsPermission(PermissionsAndroid.PERMISSIONS.SEND_SMS))) return false;
     return await nativeSendRingSms(phoneNumber);
+  } catch {
+    return false;
+  }
+}
+
+// Torch equivalents of broadcastBleRing/broadcastSmsRing above -- same
+// check-only (never request) permission handling, since these are also
+// called from the headless widget click handler.
+export async function broadcastBleTorch(pattern: TorchPattern): Promise<boolean> {
+  try {
+    if (!(await hasBlePermissions())) return false;
+    return await nativeBroadcastTorch(pattern.kind, pattern.onMs ?? null, pattern.offMs ?? null);
+  } catch {
+    return false;
+  }
+}
+
+export async function broadcastSmsTorch(phoneNumber: string | null, pattern: TorchPattern): Promise<boolean> {
+  if (!phoneNumber) return false;
+  try {
+    if (!(await hasSmsPermission(PermissionsAndroid.PERMISSIONS.SEND_SMS))) return false;
+    return await nativeSendTorchSms(phoneNumber, pattern.kind, pattern.onMs ?? null, pattern.offMs ?? null);
   } catch {
     return false;
   }
