@@ -64,6 +64,14 @@
       android:textSize="15sp"
       android:textStyle="bold" />
 
+    <!-- SeekBar positions its thumb by CENTER at the current progress, not
+         by left edge like SwipeToConfirm's Animated.View. At progress=0
+         that puts the thumb's center at the track's very start, so without
+         enough padding here half the 56dp-wide thumb draws past the edge
+         and gets clipped (looked like a cropped crescent instead of a full
+         circle). paddingStart/End of ~half the thumb width (28dp) plus the
+         same 4dp inset SwipeToConfirm itself uses reserves enough room for
+         the whole thumb to render at both ends without clipping. -->
     <SeekBar
       android:id="@+id/battery_alert_dismiss_seekbar"
       android:layout_width="match_parent"
@@ -73,8 +81,8 @@
       android:progressDrawable="@android:color/transparent"
       android:splitTrack="false"
       android:thumb="@drawable/battery_alert_thumb"
-      android:paddingStart="4dp"
-      android:paddingEnd="4dp" />
+      android:paddingStart="32dp"
+      android:paddingEnd="32dp" />
 
   </FrameLayout>
 
