@@ -29,7 +29,6 @@ object BatteryAlertReactor {
     playSound(context, thresholdPercent)
     vibrate(context)
     showNotification(context, currentPercent)
-    showAlertActivity(context, currentPercent)
   }
 
   fun stop(context: Context) {
@@ -93,16 +92,6 @@ object BatteryAlertReactor {
     vibrator = v
   }
 
-  private fun showAlertActivity(context: Context, currentPercent: Int) {
-    val intent = Intent(context, NativeBatteryAlertActivity::class.java).apply {
-      flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-        Intent.FLAG_ACTIVITY_SINGLE_TOP
-      putExtra("percent", currentPercent)
-    }
-    context.startActivity(intent)
-  }
-
   private fun showNotification(context: Context, currentPercent: Int) {
     val manager = context.getSystemService(NotificationManager::class.java)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -115,10 +104,25 @@ object BatteryAlertReactor {
       )
     }
 
-    val contentIntent = PendingIntent.getActivity(
+    // A raw context.startActivity() call from this background context (a
+    // dynamically-registered receiver, not a foreground component) gets
+    // silently blocked by Android's background-activity-start restriction
+    // (confirmed via logcat: "Background activity start ...
+    // isBgStartWhitelisted: false") -- the OS-sanctioned way to still show
+    // a full-screen Activity from here is Notification.setFullScreenIntent,
+    // which IS exempted from that restriction (and degrades gracefully to a
+    // heads-up banner instead of interrupting when the device is already
+    // unlocked/in active use).
+    val activityIntent = Intent(context, NativeBatteryAlertActivity::class.java).apply {
+      flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+        Intent.FLAG_ACTIVITY_SINGLE_TOP
+      putExtra("percent", currentPercent)
+    }
+    val fullScreenPendingIntent = PendingIntent.getActivity(
       context,
       0,
-      Intent(context, NativeBatteryAlertActivity::class.java).putExtra("percent", currentPercent),
+      activityIntent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
@@ -141,7 +145,8 @@ object BatteryAlertReactor {
       .setContentTitle("Baterai HP kamu tinggal $currentPercent% 🔋")
       .setContentText("Yuk di-charge sebelum mati.")
       .setSmallIcon(context.applicationInfo.icon)
-      .setContentIntent(contentIntent)
+      .setContentIntent(fullScreenPendingIntent)
+      .setFullScreenIntent(fullScreenPendingIntent, true)
       .setAutoCancel(false)
       .setOngoing(true)
       .addAction(stopAction)

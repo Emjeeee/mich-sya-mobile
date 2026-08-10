@@ -27,7 +27,6 @@ object RingReactor {
   fun trigger(context: Context) {
     playRingtone(context)
     vibrate(context)
-    showRingAlertActivity(context)
     showRingNotification(context)
   }
 
@@ -83,15 +82,6 @@ object RingReactor {
     vibrator = v
   }
 
-  private fun showRingAlertActivity(context: Context) {
-    val intent = Intent(context, NativeRingAlertActivity::class.java).apply {
-      flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-        Intent.FLAG_ACTIVITY_SINGLE_TOP
-    }
-    context.startActivity(intent)
-  }
-
   private fun showRingNotification(context: Context) {
     val silent = RingPreferences.isSilent(context)
     val channelId = if (silent) RingBleConstants.RING_NOTIFICATION_CHANNEL_ID_SILENT else RingBleConstants.RING_NOTIFICATION_CHANNEL_ID
@@ -110,6 +100,15 @@ object RingReactor {
       manager.createNotificationChannel(channel)
     }
 
+    // A raw context.startActivity() call from this background context (the
+    // BLE scan service / SMS receiver, not a foreground component) gets
+    // silently blocked by Android's background-activity-start restriction
+    // (confirmed via logcat on the equivalent battery-alert code path:
+    // "Background activity start ... isBgStartWhitelisted: false") --
+    // Notification.setFullScreenIntent is the OS-sanctioned way to still
+    // show a full-screen Activity from here, exempted from that
+    // restriction, and it degrades gracefully to a heads-up banner instead
+    // of interrupting when the device is already unlocked/in active use.
     val contentIntent = PendingIntent.getActivity(
       context,
       0,
@@ -122,6 +121,7 @@ object RingReactor {
       .setContentText("Terdeteksi tanpa internet. Ketuk untuk mematikan.")
       .setSmallIcon(context.applicationInfo.icon)
       .setContentIntent(contentIntent)
+      .setFullScreenIntent(contentIntent, true)
       .setAutoCancel(true)
       .setOngoing(true)
       .build()
