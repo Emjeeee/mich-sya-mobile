@@ -27,7 +27,7 @@
       android:turnScreenOn="true" />
 
     <!-- BatteryMonitorReceiver is intentionally NOT registered here for
-         ACTION_BATTERY_CHANGED -- that's a sticky broadcast Android only
+         ACTION_BATTERY_CHANGED: that's a sticky broadcast Android only
          delivers to dynamically-registered receivers (see
          BleRingScanService.onCreate()). Manifest registration is only for
          the app-defined stop action, which has no such restriction. -->
