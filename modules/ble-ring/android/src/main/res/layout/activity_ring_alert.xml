@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/ring_alert_root"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
   android:orientation="vertical"
@@ -36,14 +37,43 @@
     android:gravity="center"
     android:layout_marginBottom="48dp" />
 
-  <Button
-    android:id="@+id/ring_alert_stop_button"
+  <!-- Swipe-to-dismiss, same pattern/drawables as the battery alert
+       (activity_battery_alert.xml); see NativeBatteryAlertActivity.kt for
+       why a plain SeekBar needs the layered track+label+thumb setup and the
+       extra thumb padding. No color-cycling background here though, per
+       explicit request: just this static pink. -->
+  <FrameLayout
+    android:id="@+id/ring_alert_swipe_container"
     android:layout_width="match_parent"
-    android:layout_height="64dp"
-    android:text="Hentikan"
-    android:textColor="#e11d74"
-    android:textStyle="bold"
-    android:textSize="16sp"
-    android:backgroundTint="#ffffff" />
+    android:layout_height="64dp">
+
+    <View
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:background="@drawable/battery_alert_track_bg" />
+
+    <TextView
+      android:id="@+id/ring_alert_swipe_label"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="center"
+      android:text="Geser untuk hentikan"
+      android:textColor="#e11d74"
+      android:textSize="15sp"
+      android:textStyle="bold" />
+
+    <SeekBar
+      android:id="@+id/ring_alert_dismiss_seekbar"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:max="100"
+      android:progress="0"
+      android:progressDrawable="@android:color/transparent"
+      android:splitTrack="false"
+      android:thumb="@drawable/battery_alert_thumb"
+      android:paddingStart="32dp"
+      android:paddingEnd="32dp" />
+
+  </FrameLayout>
 
 </LinearLayout>
