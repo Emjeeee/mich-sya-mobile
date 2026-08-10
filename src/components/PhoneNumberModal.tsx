@@ -21,6 +21,14 @@ interface PhoneNumberModalProps {
   onClose: () => void;
 }
 
+// Indonesian local format ("08...") -> international format ("+628...") --
+// SMS sending needs the international form. Only rewrites the leading "0",
+// so it doesn't fight the user while they keep typing digits after it.
+function normalizePhoneInput(text: string): string {
+  if (text.startsWith('0')) return `+62${text.slice(1)}`;
+  return text;
+}
+
 export default function PhoneNumberModal({ visible, coupleId, onClose }: PhoneNumberModalProps) {
   const insets = useSafeAreaInsets();
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -48,7 +56,7 @@ export default function PhoneNumberModal({ visible, coupleId, onClose }: PhoneNu
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'android' ? 'height' : 'padding'}
         style={styles.backdrop}
       >
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
@@ -64,7 +72,7 @@ export default function PhoneNumberModal({ visible, coupleId, onClose }: PhoneNu
             placeholderTextColor="#999"
             keyboardType="phone-pad"
             value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            onChangeText={(text) => setPhoneNumber(normalizePhoneInput(text))}
           />
 
           <View style={styles.row}>
