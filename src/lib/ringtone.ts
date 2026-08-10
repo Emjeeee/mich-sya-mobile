@@ -2,7 +2,7 @@ import { isSilentRing } from 'ble-ring';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { VolumeManager } from 'react-native-volume-manager';
 
-const RING_SOUND = require('../../assets/sounds/ring.wav');
+const RING_SOUND = require('../../assets/sounds/marimba.wav');
 const VOLUME_RAMP_STEPS = 10;
 const VOLUME_RAMP_DURATION_MS = 3000;
 const AUTO_STOP_MS = 60 * 1000;
