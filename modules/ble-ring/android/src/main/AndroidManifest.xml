@@ -40,20 +40,30 @@
       </intent-filter>
     </receiver>
 
+    <!-- BOOT_COMPLETED/MY_PACKAGE_REPLACED are sent by system_server, a
+         different UID from this app. API 31+ blocks that delivery unless
+         this receiver is explicitly exported, regardless of the action
+         being a protected system broadcast. Confirmed missing in practice:
+         see SmsRingReceiver below for the matching real-world proof. -->
     <receiver
       android:name=".BootReceiver"
       android:enabled="true"
-      android:exported="false">
+      android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />
         <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
       </intent-filter>
     </receiver>
 
+    <!-- Same cross-UID delivery restriction as BootReceiver above, caught
+         via a live self-SMS test: com.android.phone (uid 1001) broadcasting
+         SMS_RECEIVED to this app (a different UID) was silently denied by
+         BroadcastQueue with exported=false, so the SMS ring/torch fallback
+         had never actually been reachable. -->
     <receiver
       android:name=".SmsRingReceiver"
       android:enabled="true"
-      android:exported="false">
+      android:exported="true">
       <intent-filter>
         <action android:name="android.provider.Telephony.SMS_RECEIVED" />
       </intent-filter>
