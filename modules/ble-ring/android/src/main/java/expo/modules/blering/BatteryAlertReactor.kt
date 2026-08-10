@@ -67,7 +67,7 @@ object BatteryAlertReactor {
           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
           .build()
       )
-      val afd = context.resources.openRawResourceFd(R.raw.ring)
+      val afd = context.resources.openRawResourceFd(R.raw.marimba)
       player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
       afd.close()
       player.isLooping = true
