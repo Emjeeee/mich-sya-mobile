@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:gravity="center"
+  android:background="#e11d74"
+  android:padding="32dp">
+
+  <TextView
+    android:id="@+id/battery_alert_icon"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="🔋"
+    android:textSize="64sp"
+    android:layout_marginBottom="16dp" />
+
+  <TextView
+    android:id="@+id/battery_alert_title"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Baterai HP kamu lemah"
+    android:textColor="#ffffff"
+    android:textSize="22sp"
+    android:textStyle="bold"
+    android:gravity="center"
+    android:layout_marginBottom="8dp" />
+
+  <TextView
+    android:id="@+id/battery_alert_subtitle"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Yuk di-charge sebelum mati"
+    android:textColor="#F0FFFFFF"
+    android:textSize="15sp"
+    android:gravity="center"
+    android:layout_marginBottom="48dp" />
+
+  <TextView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Geser buat matiin"
+    android:textColor="#F0FFFFFF"
+    android:textSize="13sp"
+    android:layout_marginBottom="8dp" />
+
+  <SeekBar
+    android:id="@+id/battery_alert_dismiss_seekbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:max="100"
+    android:progress="0"
+    android:progressTint="#ffffff"
+    android:thumbTint="#ffffff" />
+
+</LinearLayout>

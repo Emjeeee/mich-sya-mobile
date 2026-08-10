@@ -11,6 +11,7 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import android.os.ParcelUuid
@@ -22,12 +23,32 @@ import androidx.core.content.ContextCompat
 // actual (deliberately native, JS-independent) reaction.
 class BleRingScanService : Service() {
   private var lastTriggeredAt = 0L
+  private val batteryMonitor = BatteryMonitorReceiver()
+  private var batteryMonitorRegistered = false
 
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onCreate() {
     super.onCreate()
     isRunning = true
+
+    // ACTION_BATTERY_CHANGED is a sticky broadcast that Android's own docs
+    // say can ONLY be received via a dynamically-registered receiver, never
+    // a manifest-declared one -- unlike BOOT_COMPLETED/SMS_RECEIVED above,
+    // which do work via the manifest. This service is already the
+    // long-lived, boot-started foreground service the ring feature depends
+    // on, so it doubles as the "always alive" host the battery monitor
+    // needs too, rather than inventing a second persistence mechanism.
+    // Registered before the risky startForeground() below so a missing
+    // Bluetooth permission doesn't also take battery monitoring down with
+    // it (even though both still share this service's lifecycle overall).
+    try {
+      registerReceiver(batteryMonitor, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+      batteryMonitorRegistered = true
+    } catch (e: Exception) {
+      Log.w(TAG, "Could not register battery monitor", e)
+    }
+
     try {
       startForeground(RingBleConstants.SCAN_NOTIFICATION_ID, buildScanningNotification())
     } catch (e: Exception) {
@@ -48,6 +69,13 @@ class BleRingScanService : Service() {
   override fun onDestroy() {
     isRunning = false
     stopScan()
+    if (batteryMonitorRegistered) {
+      try {
+        unregisterReceiver(batteryMonitor)
+      } catch (e: Exception) {
+        // Already unregistered or never successfully registered -- fine.
+      }
+    }
     super.onDestroy()
   }
 

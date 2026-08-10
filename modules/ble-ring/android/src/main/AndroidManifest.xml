@@ -18,6 +18,28 @@
       android:showWhenLocked="true"
       android:turnScreenOn="true" />
 
+    <activity
+      android:name=".NativeBatteryAlertActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:launchMode="singleInstance"
+      android:showWhenLocked="true"
+      android:turnScreenOn="true" />
+
+    <!-- BatteryMonitorReceiver is intentionally NOT registered here for
+         ACTION_BATTERY_CHANGED -- that's a sticky broadcast Android only
+         delivers to dynamically-registered receivers (see
+         BleRingScanService.onCreate()). Manifest registration is only for
+         the app-defined stop action, which has no such restriction. -->
+    <receiver
+      android:name=".BatteryMonitorReceiver"
+      android:enabled="true"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="expo.modules.blering.ACTION_STOP_BATTERY_ALERT" />
+      </intent-filter>
+    </receiver>
+
     <receiver
       android:name=".BootReceiver"
       android:enabled="true"
