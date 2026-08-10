@@ -1,14 +1,20 @@
+import { ColorMatchGame } from '../../components/games/ColorMatchGame';
 import { ComingSoonGame } from '../../components/games/ComingSoonGame';
 import { ConnectFourLocal } from '../../components/games/ConnectFourLocal';
 import { ConnectFourOnline } from '../../components/games/ConnectFourOnline';
 import { DiceBattleLocal } from '../../components/games/DiceBattleLocal';
 import { DiceBattleOnline } from '../../components/games/DiceBattleOnline';
+import { EmojiQuizGame } from '../../components/games/EmojiQuizGame';
 import { HangmanLocal } from '../../components/games/HangmanLocal';
 import { HangmanOnline } from '../../components/games/HangmanOnline';
+import { MemoryMatchGame } from '../../components/games/MemoryMatchGame';
 import { NumberGuessGame } from '../../components/games/NumberGuessGame';
 import { NumberGuessOnline } from '../../components/games/NumberGuessOnline';
+import { ReactionDuelGame } from '../../components/games/ReactionDuelGame';
 import { RockPaperScissorsLocal } from '../../components/games/RockPaperScissorsLocal';
 import { RockPaperScissorsOnline } from '../../components/games/RockPaperScissorsOnline';
+import { SimonSaysGame } from '../../components/games/SimonSaysGame';
+import { SlidingPuzzleGame } from '../../components/games/SlidingPuzzleGame';
 import { TapBattleGame } from '../../components/games/TapBattleGame';
 import { TapBattleOnline } from '../../components/games/TapBattleOnline';
 import { TicTacToeLocal } from '../../components/games/TicTacToeLocal';
@@ -17,6 +23,8 @@ import { TriviaDuelLocal } from '../../components/games/TriviaDuelLocal';
 import { TriviaDuelOnline } from '../../components/games/TriviaDuelOnline';
 import { TruthOrDareGame } from '../../components/games/TruthOrDareGame';
 import { TruthOrDareOnline } from '../../components/games/TruthOrDareOnline';
+import { WhackAMoleGame } from '../../components/games/WhackAMoleGame';
+import { WordScrambleGame } from '../../components/games/WordScrambleGame';
 import { WouldYouRatherGame } from '../../components/games/WouldYouRatherGame';
 import { WouldYouRatherOnline } from '../../components/games/WouldYouRatherOnline';
 import type { GameDef } from './types';
@@ -95,8 +103,7 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'asc',
     scoreUnit: ' langkah',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: MemoryMatchGame,
   },
   {
     key: '2048',
@@ -130,8 +137,7 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'desc',
     scoreUnit: ' ronde',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: SimonSaysGame,
   },
   {
     key: 'whackamole',
@@ -142,8 +148,7 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'desc',
     scoreUnit: ' poin',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: WhackAMoleGame,
   },
   {
     key: 'reactionduel',
@@ -152,8 +157,7 @@ export const GAMES: GameDef[] = [
     icon: 'bolt',
     hasOnline: false,
     scoreMode: 'none',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: ReactionDuelGame,
   },
   {
     key: 'numberguess',
@@ -176,8 +180,7 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'desc',
     scoreUnit: ' kata',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: WordScrambleGame,
   },
   {
     key: 'emojiquiz',
@@ -188,8 +191,7 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'desc',
     scoreUnit: ' benar',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: EmojiQuizGame,
   },
   {
     key: 'slidingpuzzle',
@@ -200,8 +202,7 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'asc',
     scoreUnit: ' langkah',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: SlidingPuzzleGame,
   },
   {
     key: 'truthordare',
@@ -242,8 +243,7 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'desc',
     scoreUnit: ' poin',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: ColorMatchGame,
   },
   {
     key: 'blockblast',
