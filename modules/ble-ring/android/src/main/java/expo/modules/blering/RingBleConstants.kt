@@ -10,6 +10,10 @@ object RingBleConstants {
   const val SCAN_NOTIFICATION_CHANNEL_ID = "michsya-ble-scan"
   const val SCAN_NOTIFICATION_ID = 9188
   const val RING_NOTIFICATION_CHANNEL_ID = "michsya-ble-ring"
+  // Separate channel (not just a runtime toggle) because Android channel
+  // settings -- sound in particular -- are fixed at creation time and can't
+  // be changed on an existing channel; see RingPreferences/RingReactor.
+  const val RING_NOTIFICATION_CHANNEL_ID_SILENT = "michsya-ble-ring-silent"
   const val RING_NOTIFICATION_ID = 9189
 
   // A fixed marker unique enough not to collide with a normal text, checked

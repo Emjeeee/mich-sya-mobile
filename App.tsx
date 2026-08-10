@@ -13,6 +13,7 @@ import { startBleRingListener } from './src/lib/bleRing';
 import { flushPendingMemories } from './src/lib/offlineQueue';
 import { checkOnThisDayNow } from './src/lib/onThisDay';
 import { subscribeRingSignal } from './src/lib/ringSignal';
+import { syncSilentRingPreference } from './src/lib/silentRing';
 import { supabase } from './src/lib/supabase';
 import { refreshWidget } from './src/lib/widget';
 import type { RootStackParamList } from './src/navigation/types';
@@ -41,6 +42,10 @@ export default function App() {
 
     return () => subscription.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    syncSilentRingPreference(session?.user?.email);
+  }, [session]);
 
   useEffect(() => {
     QuickActions.setItems([

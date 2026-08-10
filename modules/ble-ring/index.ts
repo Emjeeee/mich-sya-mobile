@@ -40,6 +40,13 @@ interface BleRingModuleType {
    * safe way to blink the torch from JS itself.
    */
   triggerTorch(kind: string, onMs: number | null, offMs: number | null): Promise<boolean>;
+  /**
+   * Per-device "silent ring" preference -- when true, all 3 trigger
+   * channels react on this device with vibration only, no sound. See
+   * src/lib/silentRing.ts for where this gets set.
+   */
+  setSilentRing(silent: boolean): Promise<boolean>;
+  isSilentRing(): Promise<boolean>;
 }
 
 export const BleRingModule = requireNativeModule<BleRingModuleType>('BleRing');
@@ -55,3 +62,5 @@ export const sendTorchSms = (phoneNumber: string, kind: string, onMs: number | n
   BleRingModule.sendTorchSms(phoneNumber, kind, onMs, offMs);
 export const triggerTorch = (kind: string, onMs: number | null, offMs: number | null) =>
   BleRingModule.triggerTorch(kind, onMs, offMs);
+export const setSilentRing = (silent: boolean) => BleRingModule.setSilentRing(silent);
+export const isSilentRing = () => BleRingModule.isSilentRing();

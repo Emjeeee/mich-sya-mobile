@@ -1,3 +1,4 @@
+import { isSilentRing } from 'ble-ring';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { VolumeManager } from 'react-native-volume-manager';
 
@@ -26,6 +27,7 @@ async function rampVolumeToMax() {
 
 export async function playRingtone() {
   if (player) return; // already ringing
+  if (await isSilentRing().catch(() => false)) return; // vibration/notification still happen elsewhere
 
   await setAudioModeAsync({
     playsInSilentMode: true,

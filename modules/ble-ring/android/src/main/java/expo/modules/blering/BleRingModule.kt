@@ -33,6 +33,21 @@ class BleRingModule : Module() {
       broadcastEvent(torchPayload(kind, onMs, offMs), promise)
     }
 
+    // Per-device "silent ring" preference -- see RingPreferences for why
+    // this exists (tied to a specific account, set from the JS side on
+    // sign-in) and RingReactor for how the native BLE/SMS path reads it
+    // directly; these two functions are only needed so the JS push-channel
+    // path (ringtone.ts / backgroundNotifications.ts) can read/write the
+    // same value.
+    AsyncFunction("setSilentRing") { silent: Boolean, promise: Promise ->
+      RingPreferences.setSilent(context, silent)
+      promise.resolve(true)
+    }
+
+    AsyncFunction("isSilentRing") { promise: Promise ->
+      promise.resolve(RingPreferences.isSilent(context))
+    }
+
     AsyncFunction("startScanning") { promise: Promise ->
       ContextCompat.startForegroundService(context, Intent(context, BleRingScanService::class.java))
       promise.resolve(true)

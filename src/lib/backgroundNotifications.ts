@@ -1,7 +1,7 @@
 import notifee, { AndroidCategory, AndroidImportance, EventType } from '@notifee/react-native';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
-import { triggerTorch } from 'ble-ring';
+import { isSilentRing, triggerTorch } from 'ble-ring';
 
 import { startFindPartnerTracking } from './backgroundFindPartner';
 import { notifyRingSignal } from './ringSignal';
@@ -11,15 +11,23 @@ import { refreshWidget } from './widget';
 
 const BACKGROUND_NOTIFICATION_TASK = 'michsya-background-notification-task';
 const RING_CHANNEL_ID = 'ring-alert';
+// Separate channel (not just a runtime toggle) since a notifee/Android
+// channel's sound is fixed at creation time -- see silentRing.ts.
+const RING_CHANNEL_ID_SILENT = 'ring-alert-silent';
 export const RING_NOTIFICATION_ID = 'ring-alert';
 const STOP_RING_ACTION = 'stop-ring';
 
 async function showRingNotification() {
+  // notifee's default (omitting `sound`) is already "no sound" -- only add
+  // it for the non-silent channel, matching the native RingReactor.kt path.
+  const silent = await isSilentRing().catch(() => false);
+  const channelId = silent ? RING_CHANNEL_ID_SILENT : RING_CHANNEL_ID;
+
   await notifee.createChannel({
-    id: RING_CHANNEL_ID,
-    name: 'Bunyikan HP',
+    id: channelId,
+    name: silent ? 'Bunyikan HP (senyap)' : 'Bunyikan HP',
     importance: AndroidImportance.HIGH,
-    sound: 'default',
+    ...(silent ? {} : { sound: 'default' }),
   });
 
   await notifee.displayNotification({
@@ -28,7 +36,7 @@ async function showRingNotification() {
     body: 'Ketuk untuk mematikan.',
     data: { type: 'ring' },
     android: {
-      channelId: RING_CHANNEL_ID,
+      channelId,
       category: AndroidCategory.CALL,
       importance: AndroidImportance.HIGH,
       ongoing: true,

@@ -47,6 +47,7 @@ object RingReactor {
 
   private fun playRingtone(context: Context) {
     if (mediaPlayer != null) return
+    if (RingPreferences.isSilent(context)) return // vibrate()/notification/activity still happen
     try {
       val player = MediaPlayer.create(context, R.raw.ring)
       player.isLooping = true
@@ -92,15 +93,21 @@ object RingReactor {
   }
 
   private fun showRingNotification(context: Context) {
+    val silent = RingPreferences.isSilent(context)
+    val channelId = if (silent) RingBleConstants.RING_NOTIFICATION_CHANNEL_ID_SILENT else RingBleConstants.RING_NOTIFICATION_CHANNEL_ID
     val manager = context.getSystemService(NotificationManager::class.java)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      manager.createNotificationChannel(
-        NotificationChannel(
-          RingBleConstants.RING_NOTIFICATION_CHANNEL_ID,
-          "Bunyikan HP",
-          NotificationManager.IMPORTANCE_HIGH
-        )
+      val channel = NotificationChannel(
+        channelId,
+        if (silent) "Bunyikan HP (senyap)" else "Bunyikan HP",
+        NotificationManager.IMPORTANCE_HIGH
       )
+      // A freshly created channel defaults to the system notification sound
+      // unless explicitly silenced -- vibration is left at its default
+      // (still enabled for HIGH importance) since only sound should be
+      // suppressed here.
+      if (silent) channel.setSound(null, null)
+      manager.createNotificationChannel(channel)
     }
 
     val contentIntent = PendingIntent.getActivity(
@@ -110,7 +117,7 @@ object RingReactor {
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
-    val notification = Notification.Builder(context, RingBleConstants.RING_NOTIFICATION_CHANNEL_ID)
+    val notification = Notification.Builder(context, channelId)
       .setContentTitle("HP kamu lagi dibunyiin pasangan 🔊")
       .setContentText("Terdeteksi tanpa internet. Ketuk untuk mematikan.")
       .setSmallIcon(context.applicationInfo.icon)
