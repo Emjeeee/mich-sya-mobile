@@ -132,18 +132,36 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
           <SilentRingToggle />
 
-          <View style={styles.torchChipRow}>
-            {TORCH_PRESET_ORDER.map((kind) => (
-              <Pressable
-                key={kind}
-                onPress={() => setTorchKind(kind)}
-                style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
-              >
-                <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
-                  {kind === 'custom' ? 'Custom' : TORCH_PRESET_LABELS[kind]}
-                </Text>
-              </Pressable>
-            ))}
+          <View style={styles.torchChipGrid}>
+            <View style={styles.torchChipRow}>
+              {TORCH_PRESET_ORDER.slice(0, 3).map((kind) => (
+                <Pressable
+                  key={kind}
+                  onPress={() => setTorchKind(kind)}
+                  style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
+                >
+                  <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
+                    {TORCH_PRESET_LABELS[kind as Exclude<TorchPatternKind, 'custom'>]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.torchChipRow}>
+              {TORCH_PRESET_ORDER.slice(3).map((kind) => (
+                <Pressable
+                  key={kind}
+                  onPress={() => setTorchKind(kind)}
+                  style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
+                >
+                  <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
+                    {kind === 'custom' ? 'Custom' : TORCH_PRESET_LABELS[kind]}
+                  </Text>
+                </Pressable>
+              ))}
+              {/* Invisible spacer keeps this row's chips the same width as
+                  the 3-chip row above, so columns line up as a real grid. */}
+              <View style={styles.torchChipSpacer} />
+            </View>
           </View>
 
           {torchKind === 'custom' && (
@@ -245,15 +263,18 @@ const styles = StyleSheet.create({
     color: '#e11d74',
     fontWeight: '600',
   },
+  torchChipGrid: {
+    gap: 8,
+  },
   torchChipRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
   torchChip: {
+    flex: 1,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
     backgroundColor: '#fdeef4',
   },
   torchChipActive: {
@@ -266,6 +287,9 @@ const styles = StyleSheet.create({
   },
   torchChipTextActive: {
     color: '#fff',
+  },
+  torchChipSpacer: {
+    flex: 1,
   },
   customRow: {
     flexDirection: 'row',

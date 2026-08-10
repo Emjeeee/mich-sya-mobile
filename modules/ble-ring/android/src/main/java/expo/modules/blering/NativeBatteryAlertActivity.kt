@@ -3,11 +3,13 @@ package expo.modules.blering
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
 import android.app.Activity
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.LinearInterpolator
+import android.widget.FrameLayout
 import android.widget.SeekBar
 import android.widget.TextView
 
@@ -48,6 +50,21 @@ class NativeBatteryAlertActivity : Activity() {
     }
 
     val swipeLabel = findViewById<TextView>(R.id.battery_alert_swipe_label)
+    val swipeContainer = findViewById<FrameLayout>(R.id.battery_alert_swipe_container)
+
+    // The swipe sits close to the screen edge, and a drag starting there can
+    // get intercepted by the OS's own edge/back gesture instead of reaching
+    // this SeekBar -- confirmed on-device (a test swipe near the edge got
+    // grabbed by a system gesture and opened a share sheet instead of
+    // dismissing). Excluding this view's bounds from system gesture
+    // handling (Android Q+) is the platform-sanctioned fix for exactly this
+    // "app has its own edge-adjacent swipe" conflict.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      swipeContainer.post {
+        swipeContainer.systemGestureExclusionRects =
+          listOf(Rect(0, 0, swipeContainer.width, swipeContainer.height))
+      }
+    }
 
     findViewById<SeekBar>(R.id.battery_alert_dismiss_seekbar).setOnSeekBarChangeListener(
       object : SeekBar.OnSeekBarChangeListener {
@@ -59,9 +76,15 @@ class NativeBatteryAlertActivity : Activity() {
           }
         }
 
-        override fun onStartTrackingTouch(seekBar: SeekBar) {}
+        override fun onStartTrackingTouch(seekBar: SeekBar) {
+          // Belt-and-suspenders alongside the gesture exclusion above --
+          // stops any ancestor view (within this app) from stealing the
+          // drag once it's started.
+          seekBar.parent?.requestDisallowInterceptTouchEvent(true)
+        }
 
         override fun onStopTrackingTouch(seekBar: SeekBar) {
+          seekBar.parent?.requestDisallowInterceptTouchEvent(false)
           // Snap back if released before completing the swipe -- makes it
           // read as "swipe to confirm" rather than a plain volume slider.
           if (!dismissed) {

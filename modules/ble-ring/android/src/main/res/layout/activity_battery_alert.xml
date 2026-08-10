@@ -45,6 +45,7 @@
        layers a transparent-track SeekBar (thumb only) over a styled
        background + label. -->
   <FrameLayout
+    android:id="@+id/battery_alert_swipe_container"
     android:layout_width="match_parent"
     android:layout_height="64dp">
 
