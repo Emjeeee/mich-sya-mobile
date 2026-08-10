@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CompassArrow from './CompassArrow';
+import SilentRingToggle from './SilentRingToggle';
 import { useFindPartner } from '../hooks/useFindPartner';
 import { ringPartner } from '../lib/ringPartner';
 import { torchPartner } from '../lib/torchPartner';
@@ -128,6 +129,8 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
               <Text style={styles.ringButtonText}>🔊 Bunyikan HP pasangan</Text>
             )}
           </Pressable>
+
+          <SilentRingToggle />
 
           <View style={styles.torchChipRow}>
             {TORCH_PRESET_ORDER.map((kind) => (

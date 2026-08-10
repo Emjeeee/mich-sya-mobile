@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/battery_alert_root"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
   android:orientation="vertical"
@@ -36,21 +37,44 @@
     android:gravity="center"
     android:layout_marginBottom="48dp" />
 
-  <TextView
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="Geser buat matiin"
-    android:textColor="#F0FFFFFF"
-    android:textSize="13sp"
-    android:layout_marginBottom="8dp" />
-
-  <SeekBar
-    android:id="@+id/battery_alert_dismiss_seekbar"
+  <!-- Swipe-to-dismiss, styled to match the app's SwipeToConfirm component
+       (src/components/SwipeToConfirm.tsx, e.g. "Geser untuk mulai kencan"):
+       a white pill track with the label inside, and a pink circular knob
+       with a white chevron that fades the label out as it's dragged. A
+       plain SeekBar can't render that composited look on its own, so this
+       layers a transparent-track SeekBar (thumb only) over a styled
+       background + label. -->
+  <FrameLayout
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:max="100"
-    android:progress="0"
-    android:progressTint="#ffffff"
-    android:thumbTint="#ffffff" />
+    android:layout_height="64dp">
+
+    <View
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:background="@drawable/battery_alert_track_bg" />
+
+    <TextView
+      android:id="@+id/battery_alert_swipe_label"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="center"
+      android:text="Geser buat matiin"
+      android:textColor="#e11d74"
+      android:textSize="15sp"
+      android:textStyle="bold" />
+
+    <SeekBar
+      android:id="@+id/battery_alert_dismiss_seekbar"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:max="100"
+      android:progress="0"
+      android:progressDrawable="@android:color/transparent"
+      android:splitTrack="false"
+      android:thumb="@drawable/battery_alert_thumb"
+      android:paddingStart="4dp"
+      android:paddingEnd="4dp" />
+
+  </FrameLayout>
 
 </LinearLayout>
