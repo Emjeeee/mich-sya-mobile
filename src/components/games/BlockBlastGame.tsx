@@ -20,7 +20,11 @@ import { GameCard } from './GameCard';
 // How far above the finger the dragged piece floats, so it stays visible past
 // the touch point instead of hidden directly underneath it -- also the point
 // used for grid hit-testing so what's shown lines up with where it lands.
-const LIFT_PX = 60;
+// (Ported from the web version's LIFT_PX=60 CSS-px constant, but that board
+// renders far larger there -- verified on-device here that 60dp against this
+// board's 35dp CELL_SIZE floated the piece nearly two full cells above where
+// it would actually drop, making placement look and feel misaligned.)
+const LIFT_PX = 20;
 
 const BLOCK_HEX = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'];
 
