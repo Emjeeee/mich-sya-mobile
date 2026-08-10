@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as QuickActions from 'expo-quick-actions';
@@ -97,10 +98,12 @@ export default function App() {
 
   if (ringActive) {
     return (
-      <SafeAreaProvider>
-        <RingAlertScreen onDismiss={() => setRingActive(false)} />
-        <StatusBar style="light" />
-      </SafeAreaProvider>
+      <GestureHandlerRootView style={styles.flex}>
+        <SafeAreaProvider>
+          <RingAlertScreen onDismiss={() => setRingActive(false)} />
+          <StatusBar style="light" />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     );
   }
 
@@ -113,26 +116,31 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {session ? (
-            <>
-              <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Arcade" component={ArcadeScreen} />
-              <Stack.Screen name="Game" component={GameScreen} />
-            </>
-          ) : (
-            <Stack.Screen name="SignIn" component={SignInScreen} />
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-      <StatusBar style="auto" />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.flex}>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {session ? (
+              <>
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="Arcade" component={ArcadeScreen} />
+                <Stack.Screen name="Game" component={GameScreen} />
+              </>
+            ) : (
+              <Stack.Screen name="SignIn" component={SignInScreen} />
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+        <StatusBar style="auto" />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   loading: {
     flex: 1,
     alignItems: 'center',

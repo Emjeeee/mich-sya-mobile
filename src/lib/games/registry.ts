@@ -1,10 +1,11 @@
+import { BlockBlastGame } from '../../components/games/BlockBlastGame';
 import { ColorMatchGame } from '../../components/games/ColorMatchGame';
-import { ComingSoonGame } from '../../components/games/ComingSoonGame';
 import { ConnectFourLocal } from '../../components/games/ConnectFourLocal';
 import { ConnectFourOnline } from '../../components/games/ConnectFourOnline';
 import { DiceBattleLocal } from '../../components/games/DiceBattleLocal';
 import { DiceBattleOnline } from '../../components/games/DiceBattleOnline';
 import { EmojiQuizGame } from '../../components/games/EmojiQuizGame';
+import { Game2048 } from '../../components/games/Game2048';
 import { HangmanLocal } from '../../components/games/HangmanLocal';
 import { HangmanOnline } from '../../components/games/HangmanOnline';
 import { MemoryMatchGame } from '../../components/games/MemoryMatchGame';
@@ -15,6 +16,7 @@ import { RockPaperScissorsLocal } from '../../components/games/RockPaperScissors
 import { RockPaperScissorsOnline } from '../../components/games/RockPaperScissorsOnline';
 import { SimonSaysGame } from '../../components/games/SimonSaysGame';
 import { SlidingPuzzleGame } from '../../components/games/SlidingPuzzleGame';
+import { SnakeGame } from '../../components/games/SnakeGame';
 import { TapBattleGame } from '../../components/games/TapBattleGame';
 import { TapBattleOnline } from '../../components/games/TapBattleOnline';
 import { TicTacToeLocal } from '../../components/games/TicTacToeLocal';
@@ -31,8 +33,7 @@ import type { GameDef } from './types';
 
 // Mirrors the web app's src/lib/games/registry.ts (same 21 games, same
 // keys/titles/descriptions/icons/scoreMode so game_scores/game_sessions rows
-// are shared between the two apps). Games not yet ported point at
-// ComingSoonGame -- see plan batches 2-4.
+// are shared between the two apps).
 export const GAMES: GameDef[] = [
   {
     key: 'tictactoe',
@@ -113,8 +114,7 @@ export const GAMES: GameDef[] = [
     hasOnline: false,
     scoreMode: 'score',
     scoreSort: 'desc',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: Game2048,
   },
   {
     key: 'snake',
@@ -125,8 +125,7 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'desc',
     scoreUnit: ' panjang',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: SnakeGame,
   },
   {
     key: 'simon',
@@ -254,7 +253,6 @@ export const GAMES: GameDef[] = [
     scoreMode: 'score',
     scoreSort: 'desc',
     scoreUnit: ' poin',
-    LocalComponent: ComingSoonGame,
-    implemented: false,
+    LocalComponent: BlockBlastGame,
   },
 ];
