@@ -48,14 +48,27 @@ object RingReactor {
     if (mediaPlayer != null) return
     if (RingPreferences.isSilent(context)) return // vibrate()/notification/activity still happen
     try {
-      val player = MediaPlayer.create(context, R.raw.ring)
-      player.isLooping = true
+      // MediaPlayer.create()'s factory already prepares the player against
+      // the default stream before returning, so a setAudioAttributes() call
+      // afterward doesn't reliably re-route the already-prepared session on
+      // every device -- confirmed live via dumpsys audio, which showed the
+      // player stuck on usage=USAGE_UNKNOWN despite this call, so it played
+      // on a stream that happened to be muted instead of alarm (audible
+      // regardless of ringer/silent/vibrate mode, same as an alarm clock).
+      // Building the player manually and setting attributes before prepare()
+      // is the order that actually applies them.
+      val player = MediaPlayer()
       player.setAudioAttributes(
         AudioAttributes.Builder()
           .setUsage(AudioAttributes.USAGE_ALARM)
           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
           .build()
       )
+      val afd = context.resources.openRawResourceFd(R.raw.ring)
+      player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+      afd.close()
+      player.isLooping = true
+      player.prepare()
       player.start()
       mediaPlayer = player
     } catch (e: Exception) {

@@ -57,15 +57,22 @@ object BatteryAlertReactor {
     val volume = volumeFor(thresholdPercent) ?: return
     if (mediaPlayer != null) return
     try {
-      val player = MediaPlayer.create(context, R.raw.ring)
-      player.isLooping = true
-      player.setVolume(volume, volume)
+      // See RingReactor.playRingtone() for why attributes are set before
+      // prepare() here instead of using the MediaPlayer.create() factory --
+      // that order is required for USAGE_ALARM to actually take effect.
+      val player = MediaPlayer()
       player.setAudioAttributes(
         AudioAttributes.Builder()
           .setUsage(AudioAttributes.USAGE_ALARM)
           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
           .build()
       )
+      val afd = context.resources.openRawResourceFd(R.raw.ring)
+      player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+      afd.close()
+      player.isLooping = true
+      player.setVolume(volume, volume)
+      player.prepare()
       player.start()
       mediaPlayer = player
     } catch (e: Exception) {
