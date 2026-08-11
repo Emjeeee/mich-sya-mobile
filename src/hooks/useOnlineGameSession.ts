@@ -29,7 +29,7 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
   // the same poll window and one write silently clobbers the other's.
   const refetch = useCallback(async (): Promise<GameSessionRow | null> => {
     if (!coupleId) return null;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('game_sessions')
       .select('*')
       .eq('couple_id', coupleId)
@@ -37,6 +37,11 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (error) {
+      console.warn('[michsya] failed to fetch game_sessions:', error);
+      setIsLoading(false);
+      return null;
+    }
     const row = (data as GameSessionRow) ?? null;
     setSession(row);
     setIsLoading(false);
@@ -53,9 +58,9 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
   const startGame = useCallback(
     // Pass a state override for games where the starting player sets it up
     // (e.g. Hangman's secret word); omit it to use the game's fixed initialState.
-    async (overrideState?: unknown) => {
-      if (!coupleId || !userId) return;
-      await supabase.from('game_sessions').insert({
+    async (overrideState?: unknown): Promise<boolean> => {
+      if (!coupleId || !userId) return false;
+      const { error } = await supabase.from('game_sessions').insert({
         couple_id: coupleId,
         game_type: gameType,
         state: overrideState ?? initialState,
@@ -63,23 +68,33 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
         player_x: userId,
         created_by: userId,
       });
+      if (error) {
+        console.warn('[michsya] failed to start game_session:', error);
+        return false;
+      }
       await refetch();
+      return true;
     },
     [coupleId, userId, gameType, initialState, refetch]
   );
 
   const joinGame = useCallback(
-    async (sessionId: string) => {
-      if (!userId) return;
-      await supabase.from('game_sessions').update({ player_o: userId }).eq('id', sessionId);
+    async (sessionId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const { error } = await supabase.from('game_sessions').update({ player_o: userId }).eq('id', sessionId);
+      if (error) {
+        console.warn('[michsya] failed to join game_session:', error);
+        return false;
+      }
       await refetch();
+      return true;
     },
     [userId, refetch]
   );
 
   const updateSession = useCallback(
-    async (input: { id: string; state: unknown; turn: string | null; winner: GameWinner | null; status: GameStatus }) => {
-      await supabase
+    async (input: { id: string; state: unknown; turn: string | null; winner: GameWinner | null; status: GameStatus }): Promise<boolean> => {
+      const { error } = await supabase
         .from('game_sessions')
         .update({
           state: input.state,
@@ -89,7 +104,12 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
           updated_at: new Date().toISOString(),
         })
         .eq('id', input.id);
+      if (error) {
+        console.warn('[michsya] failed to update game_session:', error);
+        return false;
+      }
       await refetch();
+      return true;
     },
     [refetch]
   );
