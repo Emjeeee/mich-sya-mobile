@@ -1,6 +1,15 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import * as QuickActions from 'expo-quick-actions';
@@ -217,79 +226,85 @@ export default function HomeScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 16, paddingTop: insets.top + 16 }]}>
-      <View style={styles.center}>
-        <Text style={styles.title}>MichSya</Text>
+    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 16 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.center}>
+          <Text style={styles.title}>MichSya</Text>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+          {error && <Text style={styles.error}>{error}</Text>}
 
-        {session ? (
-          <>
-            <Text style={styles.status}>Kencan sedang berlangsung</Text>
-            <Text style={styles.timer}>{elapsed}</Text>
-            <SwipeToConfirm
-              key={swipeResetKey}
-              label="Geser untuk akhiri kencan"
-              color="#e11d74"
-              onConfirm={() => setShowEndModal(true)}
-              loading={ending}
-            />
-          </>
-        ) : (
-          <>
-            <Text style={styles.status}>Belum ada kencan aktif</Text>
-            <SwipeToConfirm
-              label="Geser untuk mulai kencan"
-              color="#e11d74"
-              onConfirm={startSession}
-              loading={starting}
-            />
-            {nextSchedule && daysUntil !== null && (
-              <Text style={styles.hintLine}>
-                {daysUntil <= 0 ? 'Hari ini' : `${daysUntil} hari lagi`}: {nextSchedule.title}
-              </Text>
-            )}
-            {stats && (
-              <Text style={styles.hintLine}>
-                {stats.totalMemories} kenangan · {stats.datesThisMonth} kencan bulan ini
-              </Text>
-            )}
-          </>
-        )}
-      </View>
-
-      {coupleId && (
-        <View style={styles.actionsRow}>
-          <ActionButton icon={ICON_CAMERA} label="Kenangan" onPress={() => setShowMemoryModal(true)} />
-          <ActionButton icon={ICON_TARGET} label="Wishlist" onPress={() => setShowWishlistModal(true)} />
-          <ActionButton icon={ICON_COMPASS} label="Cari Pasangan" onPress={() => setShowFindPartnerModal(true)} />
-          <ActionButton icon={ICON_MAP} label="Journey Map" onPress={() => setShowJourneyMapModal(true)} />
-          <ActionButton icon={ICON_HEART} label="Momen" onPress={handleQuickMemory} />
-          <ActionButton
-            icon={<Pixel name="gamepad" size={24} />}
-            label="Arcade"
-            onPress={() => navigation.navigate('Arcade', { coupleId })}
-          />
+          {session ? (
+            <>
+              <Text style={styles.status}>Kencan sedang berlangsung</Text>
+              <Text style={styles.timer}>{elapsed}</Text>
+              <SwipeToConfirm
+                key={swipeResetKey}
+                label="Geser untuk akhiri kencan"
+                color="#e11d74"
+                onConfirm={() => setShowEndModal(true)}
+                loading={ending}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={styles.status}>Belum ada kencan aktif</Text>
+              <SwipeToConfirm
+                label="Geser untuk mulai kencan"
+                color="#e11d74"
+                onConfirm={startSession}
+                loading={starting}
+              />
+              {nextSchedule && daysUntil !== null && (
+                <Text style={styles.hintLine}>
+                  {daysUntil <= 0 ? 'Hari ini' : `${daysUntil} hari lagi`}: {nextSchedule.title}
+                </Text>
+              )}
+              {stats && (
+                <Text style={styles.hintLine}>
+                  {stats.totalMemories} kenangan · {stats.datesThisMonth} kencan bulan ini
+                </Text>
+              )}
+            </>
+          )}
         </View>
-      )}
 
-      {coupleId && (
-        <Text style={styles.momenHint}>
-          Momen = catat momen spontan sekali tap, tanpa foto/tulisan — otomatis masuk ke Kenangan.
-        </Text>
-      )}
+        {coupleId && (
+          <View style={styles.actionsRow}>
+            <ActionButton icon={ICON_CAMERA} label="Kenangan" onPress={() => setShowMemoryModal(true)} />
+            <ActionButton icon={ICON_TARGET} label="Wishlist" onPress={() => setShowWishlistModal(true)} />
+            <ActionButton icon={ICON_COMPASS} label="Cari Pasangan" onPress={() => setShowFindPartnerModal(true)} />
+            <ActionButton icon={ICON_MAP} label="Journey Map" onPress={() => setShowJourneyMapModal(true)} />
+            <ActionButton icon={ICON_HEART} label="Momen" onPress={handleQuickMemory} />
+            <ActionButton
+              icon={<Pixel name="gamepad" size={24} />}
+              label="Arcade"
+              onPress={() => navigation.navigate('Arcade', { coupleId })}
+            />
+          </View>
+        )}
 
-      {quickMemoryNotice && <Text style={styles.noticeText}>{quickMemoryNotice}</Text>}
+        {coupleId && (
+          <Text style={styles.momenHint}>
+            Momen = catat momen spontan sekali tap, tanpa foto/tulisan — otomatis masuk ke Kenangan.
+          </Text>
+        )}
 
-      {coupleId && (
-        <Pressable onPress={() => setShowPhoneNumberModal(true)}>
-          <Text style={styles.phoneNumberLink}>📱 Atur nomor HP (cadangan SMS untuk Bunyikan)</Text>
+        {quickMemoryNotice && <Text style={styles.noticeText}>{quickMemoryNotice}</Text>}
+
+        {coupleId && (
+          <Pressable onPress={() => setShowPhoneNumberModal(true)}>
+            <Text style={styles.phoneNumberLink}>📱 Atur nomor HP (cadangan SMS untuk Bunyikan)</Text>
+          </Pressable>
+        )}
+
+        <Pressable style={styles.signOutButton} onPress={() => supabase.auth.signOut()}>
+          <Text style={styles.signOutText}>Keluar</Text>
         </Pressable>
-      )}
-
-      <Pressable style={styles.signOutButton} onPress={() => supabase.auth.signOut()}>
-        <Text style={styles.signOutText}>Keluar</Text>
-      </Pressable>
+      </ScrollView>
 
       <EndDateModal
         visible={showEndModal}
@@ -359,6 +374,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 24,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   center: {
     flex: 1,

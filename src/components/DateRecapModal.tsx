@@ -5,6 +5,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -50,42 +51,44 @@ export default function DateRecapModal({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
-          <Text style={styles.heading}>Bagikan recap kencan ini?</Text>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            <Text style={styles.heading}>Bagikan recap kencan ini?</Text>
 
-          <View ref={cardRef} collapsable={false} style={styles.card}>
-            <Text style={styles.cardTitle}>{title}</Text>
-            <Text style={styles.cardStat}>
-              {durationLabel}
-              {distanceLabel ? ` · ${distanceLabel}` : ''}
-            </Text>
+            <View ref={cardRef} collapsable={false} style={styles.card}>
+              <Text style={styles.cardTitle}>{title}</Text>
+              <Text style={styles.cardStat}>
+                {durationLabel}
+                {distanceLabel ? ` · ${distanceLabel}` : ''}
+              </Text>
 
-            {photoUrls.length > 0 && (
-              <View style={styles.grid}>
-                {photoUrls.slice(0, 4).map((url) => (
-                  <Image key={url} source={{ uri: url }} style={styles.gridPhoto} />
-                ))}
-              </View>
-            )}
-
-            <Text style={styles.cardBrand}>MichSya 💕</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Pressable style={[styles.button, styles.cancelButton]} onPress={onClose}>
-              <Text style={styles.cancelText}>Tutup</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.button, styles.shareButton]}
-              onPress={handleShare}
-              disabled={sharing}
-            >
-              {sharing ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.shareText}>Bagikan</Text>
+              {photoUrls.length > 0 && (
+                <View style={styles.grid}>
+                  {photoUrls.slice(0, 4).map((url) => (
+                    <Image key={url} source={{ uri: url }} style={styles.gridPhoto} />
+                  ))}
+                </View>
               )}
-            </Pressable>
-          </View>
+
+              <Text style={styles.cardBrand}>MichSya 💕</Text>
+            </View>
+
+            <View style={styles.row}>
+              <Pressable style={[styles.button, styles.cancelButton]} onPress={onClose}>
+                <Text style={styles.cancelText}>Tutup</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.shareButton]}
+                onPress={handleShare}
+                disabled={sharing}
+              >
+                {sharing ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.shareText}>Bagikan</Text>
+                )}
+              </Pressable>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -103,6 +106,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
+    maxHeight: '85%',
   },
   heading: {
     fontSize: 18,

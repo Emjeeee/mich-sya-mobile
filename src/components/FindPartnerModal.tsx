@@ -5,6 +5,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -87,12 +88,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View
-        style={[
-          styles.container,
-          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 },
-        ]}
-      >
+      <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
         <View style={styles.header}>
           <Text style={styles.heading}>Cari Pasangan</Text>
           <Pressable onPress={handleClose}>
@@ -100,106 +96,112 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
           </Pressable>
         </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {error && <Text style={styles.error}>{error}</Text>}
 
-        <CompassArrow
-          myLocation={myLocation}
-          partnerLocation={partnerPresence ? { lat: partnerPresence.lat, lng: partnerPresence.lng } : null}
-        />
+          <CompassArrow
+            myLocation={myLocation}
+            partnerLocation={partnerPresence ? { lat: partnerPresence.lat, lng: partnerPresence.lng } : null}
+          />
 
-        <View style={styles.actions}>
-          {isSharing ? (
-            <Pressable style={[styles.button, styles.stopButton]} onPress={stopFinding}>
-              <Text style={styles.stopButtonText}>Berhenti berbagi lokasi</Text>
-            </Pressable>
-          ) : (
-            <Pressable style={[styles.button, styles.startButton]} onPress={startFinding} disabled={starting}>
-              {starting ? (
-                <ActivityIndicator color="#fff" />
+          <View style={styles.actions}>
+            {isSharing ? (
+              <Pressable style={[styles.button, styles.stopButton]} onPress={stopFinding}>
+                <Text style={styles.stopButtonText}>Berhenti berbagi lokasi</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={[styles.button, styles.startButton]} onPress={startFinding} disabled={starting}>
+                {starting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.startButtonText}>Mulai cari pasangan</Text>
+                )}
+              </Pressable>
+            )}
+
+            <Pressable style={[styles.button, styles.ringButton]} onPress={handleRing} disabled={ringing}>
+              {ringing ? (
+                <ActivityIndicator color="#e11d74" />
               ) : (
-                <Text style={styles.startButtonText}>Mulai cari pasangan</Text>
+                <Text style={styles.ringButtonText}>🔊 Bunyikan HP pasangan</Text>
               )}
             </Pressable>
-          )}
 
-          <Pressable style={[styles.button, styles.ringButton]} onPress={handleRing} disabled={ringing}>
-            {ringing ? (
-              <ActivityIndicator color="#e11d74" />
-            ) : (
-              <Text style={styles.ringButtonText}>🔊 Bunyikan HP pasangan</Text>
+            <SilentRingToggle />
+
+            <View style={styles.torchChipGrid}>
+              <View style={styles.torchChipRow}>
+                {TORCH_PRESET_ORDER.slice(0, 3).map((kind) => (
+                  <Pressable
+                    key={kind}
+                    onPress={() => setTorchKind(kind)}
+                    style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
+                  >
+                    <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
+                      {TORCH_PRESET_LABELS[kind as Exclude<TorchPatternKind, 'custom'>]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.torchChipRow}>
+                {TORCH_PRESET_ORDER.slice(3).map((kind) => (
+                  <Pressable
+                    key={kind}
+                    onPress={() => setTorchKind(kind)}
+                    style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
+                  >
+                    <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
+                      {kind === 'custom' ? 'Custom' : TORCH_PRESET_LABELS[kind]}
+                    </Text>
+                  </Pressable>
+                ))}
+                {/* Invisible spacer keeps this row's chips the same width as
+                    the 3-chip row above, so columns line up as a real grid. */}
+                <View style={styles.torchChipSpacer} />
+              </View>
+            </View>
+
+            {torchKind === 'custom' && (
+              <View style={styles.customRow}>
+                <View style={styles.customField}>
+                  <Text style={styles.customLabel}>Nyala (ms)</Text>
+                  <TextInput
+                    style={styles.customInput}
+                    keyboardType="number-pad"
+                    value={customOnMs}
+                    onChangeText={setCustomOnMs}
+                  />
+                </View>
+                <View style={styles.customField}>
+                  <Text style={styles.customLabel}>Mati (ms)</Text>
+                  <TextInput
+                    style={styles.customInput}
+                    keyboardType="number-pad"
+                    value={customOffMs}
+                    onChangeText={setCustomOffMs}
+                  />
+                </View>
+              </View>
             )}
-          </Pressable>
 
-          <SilentRingToggle />
-
-          <View style={styles.torchChipGrid}>
-            <View style={styles.torchChipRow}>
-              {TORCH_PRESET_ORDER.slice(0, 3).map((kind) => (
-                <Pressable
-                  key={kind}
-                  onPress={() => setTorchKind(kind)}
-                  style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
-                >
-                  <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
-                    {TORCH_PRESET_LABELS[kind as Exclude<TorchPatternKind, 'custom'>]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <View style={styles.torchChipRow}>
-              {TORCH_PRESET_ORDER.slice(3).map((kind) => (
-                <Pressable
-                  key={kind}
-                  onPress={() => setTorchKind(kind)}
-                  style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
-                >
-                  <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
-                    {kind === 'custom' ? 'Custom' : TORCH_PRESET_LABELS[kind]}
-                  </Text>
-                </Pressable>
-              ))}
-              {/* Invisible spacer keeps this row's chips the same width as
-                  the 3-chip row above, so columns line up as a real grid. */}
-              <View style={styles.torchChipSpacer} />
-            </View>
+            <Pressable style={[styles.button, styles.ringButton]} onPress={handleTorch} disabled={torching}>
+              {torching ? (
+                <ActivityIndicator color="#e11d74" />
+              ) : (
+                <Text style={styles.ringButtonText}>🔦 Nyalain senter pasangan</Text>
+              )}
+            </Pressable>
           </View>
 
-          {torchKind === 'custom' && (
-            <View style={styles.customRow}>
-              <View style={styles.customField}>
-                <Text style={styles.customLabel}>Nyala (ms)</Text>
-                <TextInput
-                  style={styles.customInput}
-                  keyboardType="number-pad"
-                  value={customOnMs}
-                  onChangeText={setCustomOnMs}
-                />
-              </View>
-              <View style={styles.customField}>
-                <Text style={styles.customLabel}>Mati (ms)</Text>
-                <TextInput
-                  style={styles.customInput}
-                  keyboardType="number-pad"
-                  value={customOffMs}
-                  onChangeText={setCustomOffMs}
-                />
-              </View>
-            </View>
-          )}
-
-          <Pressable style={[styles.button, styles.ringButton]} onPress={handleTorch} disabled={torching}>
-            {torching ? (
-              <ActivityIndicator color="#e11d74" />
-            ) : (
-              <Text style={styles.ringButtonText}>🔦 Nyalain senter pasangan</Text>
-            )}
-          </Pressable>
-        </View>
-
-        <Text style={styles.hint}>
-          Lokasi tetap dibagikan meski layar ini ditutup atau app diminimize -- otomatis berhenti
-          setelah 30 menit, atau tekan "Berhenti berbagi lokasi" kapan saja.
-        </Text>
+          <Text style={styles.hint}>
+            Lokasi tetap dibagikan meski layar ini ditutup atau app diminimize -- otomatis
+            berhenti setelah 30 menit, atau tekan "Berhenti berbagi lokasi" kapan saja.
+          </Text>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -216,6 +218,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  scroll: {
+    flex: 1,
   },
   heading: {
     fontSize: 22,
@@ -313,7 +318,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   hint: {
-    marginTop: 'auto',
+    marginTop: 24,
     textAlign: 'center',
     color: '#767676',
     fontSize: 12,

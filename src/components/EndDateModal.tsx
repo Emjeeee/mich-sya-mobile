@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -40,42 +41,44 @@ export default function EndDateModal({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
-          <Text style={styles.heading}>Akhiri kencan</Text>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
+            <Text style={styles.heading}>Akhiri kencan</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Judul kencan (opsional)"
-            placeholderTextColor="#767676"
-            value={title}
-            onChangeText={setTitle}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Judul kencan (opsional)"
+              placeholderTextColor="#767676"
+              value={title}
+              onChangeText={setTitle}
+            />
 
-          <TextInput
-            style={[styles.input, styles.multiline]}
-            placeholder="Kemana saja, ngapain saja?"
-            placeholderTextColor="#767676"
-            value={summary}
-            onChangeText={setSummary}
-            multiline
-            textAlignVertical="top"
-          />
+            <TextInput
+              style={[styles.input, styles.multiline]}
+              placeholder="Kemana saja, ngapain saja?"
+              placeholderTextColor="#767676"
+              value={summary}
+              onChangeText={setSummary}
+              multiline
+              textAlignVertical="top"
+            />
 
-          <View style={styles.row}>
-            <Pressable style={[styles.button, styles.cancelButton]} onPress={onCancel}>
-              <Text style={styles.cancelText}>Batal</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.button, styles.submitButton]}
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitText}>Selesai</Text>
-              )}
-            </Pressable>
-          </View>
+            <View style={styles.row}>
+              <Pressable style={[styles.button, styles.cancelButton]} onPress={onCancel}>
+                <Text style={styles.cancelText}>Batal</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.submitButton]}
+                onPress={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitText}>Selesai</Text>
+                )}
+              </Pressable>
+            </View>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -93,6 +96,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
+    maxHeight: '85%',
+  },
+  scrollContent: {
     gap: 12,
   },
   heading: {
