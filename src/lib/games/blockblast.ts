@@ -28,38 +28,20 @@ function normalize(cells: [number, number][]): [number, number][] {
   return cells.map(([r, c]) => [r - minRow, c - minCol])
 }
 
-// A curated pool of fixed-orientation polyomino shapes (no in-game rotation,
-// matching the real Block Blast) — several shapes appear pre-rotated as
-// separate entries so the tray still gets orientation variety.
+// The exact 10 shapes from the MVP spec (block-blast-mvp-mobile.md section
+// 5), fixed-orientation (no in-game rotation) -- deliberately not the larger
+// curated pool this used to have (tetrominoes, 3x3 square, plus, S/Z...).
 const RAW_SHAPES: [string, [number, number][]][] = [
   ['single', [[0, 0]]],
-  ['domino-h', [[0, 0], [0, 1]]],
-  ['domino-v', [[0, 0], [1, 0]]],
-  ['tromino-i-h', [[0, 0], [0, 1], [0, 2]]],
-  ['tromino-i-v', [[0, 0], [1, 0], [2, 0]]],
-  ['tromino-l-1', [[0, 0], [1, 0], [1, 1]]],
-  ['tromino-l-2', [[0, 0], [0, 1], [1, 0]]],
-  ['tromino-l-3', [[0, 0], [0, 1], [1, 1]]],
-  ['tromino-l-4', [[1, 0], [1, 1], [0, 1]]],
-  ['square-2x2', [[0, 0], [0, 1], [1, 0], [1, 1]]],
-  ['tetromino-i-h', [[0, 0], [0, 1], [0, 2], [0, 3]]],
-  ['tetromino-i-v', [[0, 0], [1, 0], [2, 0], [3, 0]]],
-  ['tetromino-l-1', [[0, 0], [1, 0], [2, 0], [2, 1]]],
-  ['tetromino-l-2', [[0, 0], [0, 1], [0, 2], [1, 0]]],
-  ['tetromino-l-3', [[0, 0], [0, 1], [1, 1], [2, 1]]],
-  ['tetromino-l-4', [[1, 0], [1, 1], [1, 2], [0, 2]]],
-  ['tetromino-j-1', [[0, 1], [1, 1], [2, 1], [2, 0]]],
-  ['tetromino-j-2', [[0, 0], [1, 0], [1, 1], [1, 2]]],
-  ['tetromino-j-3', [[0, 0], [0, 1], [1, 0], [2, 0]]],
-  ['tetromino-j-4', [[0, 0], [0, 1], [0, 2], [1, 2]]],
-  ['tetromino-t-1', [[0, 0], [0, 1], [0, 2], [1, 1]]],
-  ['tetromino-t-2', [[0, 0], [1, 0], [2, 0], [1, 1]]],
-  ['tetromino-t-3', [[1, 0], [1, 1], [1, 2], [0, 1]]],
-  ['tetromino-t-4', [[0, 1], [1, 0], [1, 1], [2, 1]]],
-  ['tetromino-s', [[0, 1], [0, 2], [1, 0], [1, 1]]],
-  ['tetromino-z', [[0, 0], [0, 1], [1, 1], [1, 2]]],
-  ['square-3x3', [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]]],
-  ['plus', [[0, 1], [1, 0], [1, 1], [1, 2], [2, 1]]],
+  ['horizontal-2', [[0, 0], [0, 1]]],
+  ['horizontal-3', [[0, 0], [0, 1], [0, 2]]],
+  ['vertical-2', [[0, 0], [1, 0]]],
+  ['vertical-3', [[0, 0], [1, 0], [2, 0]]],
+  ['square', [[0, 0], [0, 1], [1, 0], [1, 1]]],
+  ['l', [[0, 0], [1, 0], [1, 1]]],
+  ['reverse-l', [[0, 1], [1, 0], [1, 1]]],
+  ['t', [[0, 0], [0, 1], [0, 2], [1, 1]]],
+  ['z', [[0, 0], [0, 1], [1, 1], [1, 2]]],
 ]
 
 const SHAPES = RAW_SHAPES.map(([shapeId, cells]) => ({ shapeId, cells: normalize(cells) }))
@@ -125,9 +107,11 @@ export function placePiece(grid: Grid, piece: TrayPiece, row: number, col: numbe
     for (let r = 0; r < GRID_SIZE; r++) next[r][c] = 0
   }
 
-  // 1 point per block placed, plus a quadratic bonus for clearing multiple
-  // lines in one placement (1 line = 10, 2 = 40, 3 = 90...) to reward combos.
+  // 1 point per block placed (spec section 14 "Placement"). Line-clear bonus
+  // matches the spec's table exactly (1=10, 2=30, 3=60, 4=100) via the
+  // triangular-number formula 10*n*(n+1)/2, which reproduces that table for
+  // n=1..4 and extends sensibly for a placement that completes more lines.
   const placedScore = piece.cells.length
-  const lineScore = linesCleared * linesCleared * 10
+  const lineScore = (10 * linesCleared * (linesCleared + 1)) / 2
   return { grid: next, linesCleared, scoreGained: placedScore + lineScore }
 }
