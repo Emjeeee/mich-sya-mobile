@@ -1,14 +1,14 @@
-# Spec: Kompas Arah Pasangan & Bunyikan HP Pasangan
+# Spec: Kompas Arah Pasangan, Bunyikan HP Pasangan, & Nyalain Senter Pasangan
 
-Dokumen ini menjelaskan cara kerja dua fitur di aplikasi mobile MichSya secara
-detail, sebagai referensi untuk menerapkan fungsi yang sama di web app
+Dokumen ini menjelaskan cara kerja tiga fitur di aplikasi mobile MichSya
+secara detail, sebagai referensi untuk menerapkan fungsi yang sama di web app
 (`michael-tasya`). Tujuannya: kalau salah satu pasangan lupa bawa HP, mereka
-tetap bisa (a) lihat arah & jarak ke pasangan, dan (b) bunyikan HP pasangan,
-lewat browser.
+tetap bisa (a) lihat arah & jarak ke pasangan, (b) bunyikan HP pasangan, dan
+(c) nyalain senter HP pasangan, lewat browser.
 
-Kedua fitur berbagi backend Supabase yang sama dengan mobile app (tidak perlu
+Ketiga fitur berbagi backend Supabase yang sama dengan mobile app (tidak perlu
 migration baru untuk baca/tulis data yang sudah ada), tapi **kemampuan native
-di HP (Bluetooth, SMS, sensor kompas) tidak semuanya bisa dipindah ke
+di HP (Bluetooth, SMS, sensor kompas, kamera) tidak semuanya bisa dipindah ke
 browser** -- bagian "Batasan & pertimbangan untuk web" di tiap fitur
 menjelaskan persis apa yang portable dan apa yang tidak.
 
@@ -219,6 +219,111 @@ tidak ada cara memastikan pasangan benar-benar menerimanya secara sinkron.
 
 ---
 
+## 3. Nyalain Senter Pasangan (Torch)
+
+Sama filosofinya dengan Bunyikan HP Pasangan, tapi menyalakan/mengedipkan
+senter HP pasangan alih-alih membunyikan -- berguna kalau HP pasangan
+ketinggalan di tempat gelap/susah keliatan (di dalam tas, di bawah sofa,
+dll), atau sebagai sinyal SOS.
+
+### Data model
+
+Reuse `device_push_tokens` yang sama persis dengan fitur ring di atas --
+tidak ada tabel baru.
+
+### Tiga jalur paralel (`src/lib/torchPartner.ts`)
+
+Strukturnya identik dengan `ringPartner.ts` (BLE + push paralel, SMS
+menyusul setelah `getPartnerPhoneNumber`, tiap jalur dibungkus
+`.catch(() => false)`, resolve `true` kalau salah satu berhasil). Bedanya,
+fungsi ini juga menerima parameter `pattern` (`src/lib/torchPattern.ts`):
+
+```ts
+type TorchPatternKind = 'steady' | 'slow' | 'fast' | 'sos' | 'custom';
+interface TorchPattern { kind: TorchPatternKind; onMs?: number; offMs?: number; }
+```
+
+#### a. Push notification
+
+- Payload data-only: `{ data: { type: 'torch', kind, onMs, offMs } }`.
+- **Beda penting dari ring**: sisi penerima *tidak ada reaksi JS sama
+  sekali*. Tidak ada cara headless-safe untuk mengedipkan senter dari JS
+  (tidak ada Expo Torch API yang jalan di luar komponen kamera yang sedang
+  mounted) -- `backgroundNotifications.ts` cuma memanggil `triggerTorch()`
+  (native module call) yang men-start `TorchBlinkService` yang sama persis
+  dipakai jalur BLE/SMS di bawah. Jadi ketiga jalur pemicu selalu berujung
+  ke satu reaksi native yang sama, tidak seperti ring yang jalur push-nya
+  punya reaksi JS terpisah (`expo-audio`) di samping reaksi native.
+
+#### b. Bluetooth LE broadcast
+
+- Payload service-data 6 byte (dibedakan dari ring lewat byte pertama):
+  byte 0 = `1` (event type torch; ring pakai `0`), byte 1 = index kind
+  (`0`=steady, `2`=fast, `3`=sos, `4`=custom, selain itu=slow), byte 2-3 =
+  `onMs` (little-endian, cuma dipakai kalau custom), byte 4-5 = `offMs`.
+  Dibaca oleh `BleRingScanService` yang sama dengan jalur ring (satu
+  scanner, dua jenis event).
+- **Tidak portable ke web**, alasan sama seperti ring: Web Bluetooth API
+  cuma bisa jadi *central* (scan), tidak bisa *advertise* seperti
+  peripheral.
+
+#### c. SMS fallback
+
+- Marker `SMS_TORCH_TRIGGER_MARKER` + suffix `:<kind>` atau
+  `:custom:<onMs>:<offMs>`. **Sengaja tanpa emoji** (beda dari pesan ring) --
+  emoji memaksa encoding UCS-2 dengan kapasitas per-segmen SMS jauh lebih
+  kecil, itu persis yang pernah bikin marker ring kepecah jadi dua part SMS
+  dan gagal ke-match; suffix pattern di torch butuh sisa karakter lebih
+  banyak jadi pesannya sengaja dijaga tetap GSM-7 biasa.
+- **Tidak portable ke web**, alasan sama seperti ring: tidak ada API
+  kirim/terima SMS di browser.
+
+### Reaksi di penerima (100% native, `TorchReactor.kt` + `TorchBlinkService.kt`)
+
+- Filosofi sama dengan `RingReactor`: nol dependency ke JS engine, supaya
+  tetap jalan walau app di-kill total.
+- `TorchReactor.stepsFor(kind, onMs, offMs)` mengubah preset jadi list
+  `(onMs, offMs)` steps yang diulang oleh `TorchBlinkService`:
+  - `steady` -- nyala terus selama `TORCH_AUTO_OFF_MS` (30 detik), lalu
+    otomatis mati (bukan benar-benar "nyala selamanya", untuk jaga baterai
+    kalau notifikasi Stop terlewat).
+  - `slow` -- kedip 500ms nyala / 500ms mati.
+  - `fast` -- kedip 150ms nyala / 150ms mati.
+  - `sos` -- pola kedip morse S-O-S (unit dasar 200ms).
+  - `custom` -- `onMs`/`offMs` dari pemicu, di-clamp ke rentang 50-5000ms.
+- Kontrol lewat `CameraManager`, cari kamera pertama yang punya flash
+  (`FLASH_INFO_AVAILABLE`), di-cache setelah ketemu sekali.
+- Notifikasi dengan tombol Stop (`ACTION_STOP_TORCH` broadcast), mirip pola
+  Stop di battery alert.
+- Butuh permission `CAMERA` (sudah dideklarasikan di `app.json`).
+
+### Batasan & pertimbangan untuk web
+
+- **Sebagai pengirim (memicu senter HP pasangan menyala)**: sama seperti
+  ring, cuma jalur push yang portable -- reuse `expo_push_token` pasangan
+  dari `device_push_tokens`, kirim payload `{ type: 'torch', kind, onMs,
+  offMs }` lewat Expo Push API langsung dari client web. Tidak perlu
+  implementasi baru di sisi penerima (tetap HP Android pasangan yang
+  bereaksi lewat `TorchBlinkService` yang sudah ada).
+- **Sebagai penerima (menyalakan "senter" di web itu sendiri) -- secara
+  realistis tidak bisa diandalkan, bahkan untuk sebagian kasus tidak bisa
+  sama sekali:**
+  - Ada `MediaDevices.getUserMedia()` + `ImageCapture.applyConstraints({
+    advanced: [{ torch: true }] })` di beberapa browser, tapi dukungannya
+    parsial (Chrome Android umumnya bisa, banyak browser lain termasuk
+    Safari iOS tidak), dan **butuh kamera sudah aktif/stream terbuka lebih
+    dulu** -- tidak ada cara nyalakan torch tanpa itu, beda dengan native
+    yang bisa langsung akses `CameraManager` tanpa membuka preview kamera.
+  - **Laptop/desktop tidak punya lampu flash sama sekali** -- kalau target
+    pemakaian "lupa HP, buka di laptop", fitur ini murni tidak mungkin ada
+    equivalent-nya di sisi penerima.
+  - Kesimpulan: web realistisnya **hanya bisa jadi pengirim**, sama seperti
+    ring -- bukan penerima, kecuali use case-nya sempit sekali (HP Android
+    lain dengan Chrome, kamera diizinkan, dan mau menerima secara manual
+    lewat halaman yang tetap terbuka).
+
+---
+
 ## Ringkasan portability
 
 | Bagian | Portable ke web? | Catatan |
@@ -229,3 +334,7 @@ tidak ada cara memastikan pasangan benar-benar menerimanya secara sinkron.
 | Ring via push | ✅ Ya | Reuse `expo_push_token` pasangan + Expo Push API langsung dari client |
 | Ring via Bluetooth LE | ❌ Tidak | Web Bluetooth tidak bisa advertise |
 | Ring via SMS | ❌ Tidak | Tidak ada SMS API di browser |
+| Torch (memicu ke HP pasangan) via push | ✅ Ya | Payload `{ type: 'torch', kind, onMs, offMs }`, jalur sama seperti ring |
+| Torch via Bluetooth LE | ❌ Tidak | Sama seperti ring -- Web Bluetooth tidak bisa advertise |
+| Torch via SMS | ❌ Tidak | Sama seperti ring -- tidak ada SMS API di browser |
+| Torch sebagai penerima (nyalakan flash di web) | ⚠️ Sebagian/❌ | Dukungan browser parsial + butuh kamera aktif; tidak ada di desktop sama sekali |
