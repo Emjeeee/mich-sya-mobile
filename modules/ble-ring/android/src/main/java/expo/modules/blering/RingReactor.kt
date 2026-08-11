@@ -131,7 +131,7 @@ object RingReactor {
 
     val notification = Notification.Builder(context, channelId)
       .setContentTitle("HP kamu lagi dibunyiin pasangan 🔊")
-      .setContentText("Terdeteksi tanpa internet. Ketuk untuk mematikan.")
+      .setContentText("Ketuk untuk mematikan.")
       .setSmallIcon(context.applicationInfo.icon)
       .setContentIntent(contentIntent)
       .setFullScreenIntent(contentIntent, true)

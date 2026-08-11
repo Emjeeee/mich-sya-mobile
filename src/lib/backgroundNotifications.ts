@@ -1,64 +1,13 @@
-import notifee, { AndroidCategory, AndroidImportance, EventType } from '@notifee/react-native';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
-import { isSilentRing, triggerTorch } from 'ble-ring';
+import { triggerRing, triggerTorch } from 'ble-ring';
 
 import { startFindPartnerTracking } from './backgroundFindPartner';
 import { notifyRingSignal } from './ringSignal';
-import { playRingtone, stopRingtone } from './ringtone';
 import { supabase } from './supabase';
 import { refreshWidget } from './widget';
 
 const BACKGROUND_NOTIFICATION_TASK = 'michsya-background-notification-task';
-const RING_CHANNEL_ID = 'ring-alert';
-// Separate channel (not just a runtime toggle) since a notifee/Android
-// channel's sound is fixed at creation time -- see silentRing.ts.
-const RING_CHANNEL_ID_SILENT = 'ring-alert-silent';
-export const RING_NOTIFICATION_ID = 'ring-alert';
-const STOP_RING_ACTION = 'stop-ring';
-
-async function showRingNotification() {
-  // notifee's default (omitting `sound`) is already "no sound" -- only add
-  // it for the non-silent channel, matching the native RingReactor.kt path.
-  const silent = await isSilentRing().catch(() => false);
-  const channelId = silent ? RING_CHANNEL_ID_SILENT : RING_CHANNEL_ID;
-
-  await notifee.createChannel({
-    id: channelId,
-    name: silent ? 'Bunyikan HP (senyap)' : 'Bunyikan HP',
-    importance: AndroidImportance.HIGH,
-    ...(silent ? {} : { sound: 'default' }),
-  });
-
-  await notifee.displayNotification({
-    id: RING_NOTIFICATION_ID,
-    title: 'HP kamu lagi dibunyiin pasangan 🔊',
-    body: 'Ketuk untuk mematikan.',
-    data: { type: 'ring' },
-    android: {
-      channelId,
-      category: AndroidCategory.CALL,
-      importance: AndroidImportance.HIGH,
-      ongoing: true,
-      autoCancel: false,
-      fullScreenAction: { id: 'default' },
-      pressAction: { id: 'default' },
-      actions: [{ title: 'Stop', pressAction: { id: STOP_RING_ACTION } }],
-    },
-  });
-}
-
-// Registered at module scope (not inside a component) per notifee's requirement --
-// this is what lets the Stop action work even while the app is backgrounded/killed.
-notifee.onBackgroundEvent(async ({ type, detail }) => {
-  if (
-    type === EventType.ACTION_PRESS &&
-    detail.pressAction?.id === STOP_RING_ACTION
-  ) {
-    stopRingtone();
-    await notifee.cancelNotification(RING_NOTIFICATION_ID);
-  }
-});
 
 // Handles a data-only "ring" push regardless of whether the app is foreground,
 // background, or fully terminated. Must be defined at module scope so it survives
@@ -80,22 +29,18 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
 
     if (payload.type === 'ring') {
       console.log('[michsya] background task: ring payload received');
-      // Isolated try/catches so a failure in one doesn't block the other --
-      // both are independently useful even if one throws in a headless context.
-      try {
-        await playRingtone();
-        console.log('[michsya] playRingtone() completed');
-      } catch (err) {
-        console.warn('[michsya] playRingtone() failed:', err);
-      }
-      // Covers the app-alive case (foreground or backgrounded but not killed) --
-      // see ringSignal.ts for why the notifee full-screen intent alone isn't enough.
+      // Reuses RingReactor -- the same native sound/vibrate/full-screen-alert
+      // engine the BLE/SMS receivers already use -- instead of a JS-side
+      // notification + expo-audio player. That JS path only bypassed
+      // Android's ringer mode (silent/vibrate), not a separately muted
+      // media/music stream, which is why push-triggered ring could go
+      // completely silent even in Normal mode; RingReactor routes playback
+      // to the ALARM stream, which doesn't have that problem.
       notifyRingSignal();
       try {
-        await showRingNotification();
-        console.log('[michsya] showRingNotification() completed');
+        await triggerRing();
       } catch (err) {
-        console.warn('[michsya] showRingNotification() failed:', err);
+        console.warn('[michsya] triggerRing() failed:', err);
       }
     }
 

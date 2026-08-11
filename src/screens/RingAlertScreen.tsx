@@ -1,10 +1,8 @@
-import notifee from '@notifee/react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { stopRing } from 'ble-ring';
 
 import SwipeToConfirm from '../components/SwipeToConfirm';
-import { RING_NOTIFICATION_ID } from '../lib/backgroundNotifications';
-import { stopRingtone } from '../lib/ringtone';
 
 interface RingAlertScreenProps {
   onDismiss: () => void;
@@ -14,8 +12,7 @@ export default function RingAlertScreen({ onDismiss }: RingAlertScreenProps) {
   const insets = useSafeAreaInsets();
 
   const handleStop = () => {
-    stopRingtone();
-    notifee.cancelNotification(RING_NOTIFICATION_ID).catch(() => {});
+    stopRing().catch(() => {});
     onDismiss();
   };
 

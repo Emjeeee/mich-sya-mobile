@@ -87,6 +87,32 @@ class BleRingModule : Module() {
         promise.resolve(false)
       }
     }
+
+    // Same idea as triggerTorch above, for the push channel's "ring"
+    // payload. Reuses RingReactor -- the exact sound/vibrate/full-screen
+    // engine the BLE/SMS receivers already use -- instead of a JS-side
+    // audio player, which only bypasses Android's ringer mode (silent/
+    // vibrate) and not a separately muted media/music stream. RingReactor
+    // routes explicit playback to the ALARM stream, which is the fix that
+    // made BLE/SMS-triggered ring audible regardless of the device's media
+    // volume.
+    AsyncFunction("triggerRing") { promise: Promise ->
+      try {
+        RingReactor.trigger(context)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
+
+    // Lets RingAlertScreen (the full-screen swipe-to-dismiss UI shown while
+    // the app is alive, driven by ringSignal.ts) stop the actual native
+    // sound/vibration/notification a push-triggered ring started via
+    // triggerRing() above.
+    AsyncFunction("stopRing") { promise: Promise ->
+      RingReactor.stop(context)
+      promise.resolve(true)
+    }
   }
 
   private fun patternKindByte(kind: String): Byte = when (kind) {

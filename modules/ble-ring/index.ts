@@ -41,6 +41,20 @@ interface BleRingModuleType {
    */
   triggerTorch(kind: string, onMs: number | null, offMs: number | null): Promise<boolean>;
   /**
+   * Same idea as triggerTorch, for the push channel's "ring" payload --
+   * runs the native RingReactor (sound/vibrate/full-screen alert) directly
+   * instead of the JS-side expo-audio player, since RingReactor reliably
+   * bypasses the device's ringer mode AND a separately muted media stream
+   * (routes to the ALARM audio stream), which expo-audio does not.
+   */
+  triggerRing(): Promise<boolean>;
+  /**
+   * Stops whatever RingReactor started (sound, vibration, notification) --
+   * used by RingAlertScreen's swipe-to-dismiss, since a push-triggered
+   * ring's actual sound now lives natively, not in a JS audio player.
+   */
+  stopRing(): Promise<boolean>;
+  /**
    * Per-device "silent ring" preference -- when true, all 3 trigger
    * channels react on this device with vibration only, no sound. See
    * src/lib/silentRing.ts for where this gets set.
@@ -62,5 +76,7 @@ export const sendTorchSms = (phoneNumber: string, kind: string, onMs: number | n
   BleRingModule.sendTorchSms(phoneNumber, kind, onMs, offMs);
 export const triggerTorch = (kind: string, onMs: number | null, offMs: number | null) =>
   BleRingModule.triggerTorch(kind, onMs, offMs);
+export const triggerRing = () => BleRingModule.triggerRing();
+export const stopRing = () => BleRingModule.stopRing();
 export const setSilentRing = (silent: boolean) => BleRingModule.setSilentRing(silent);
 export const isSilentRing = () => BleRingModule.isSilentRing();

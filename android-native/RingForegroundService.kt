@@ -13,8 +13,8 @@ import android.util.Log
 
 // Exists purely to promote the process to a protected foreground execution
 // grade for a few seconds after a 'ring'/'find_start' push arrives -- long
-// enough for the JS engine to boot and run the real handling (playRingtone(),
-// notifee's full-screen alert). See RingAwareFirebaseMessagingService.
+// enough for the JS engine to boot and run the real handling (triggerRing(),
+// which hands off to the native RingReactor). See RingAwareFirebaseMessagingService.
 class RingForegroundService : Service() {
   private val handler = Handler(Looper.getMainLooper())
   private val stopRunnable = Runnable { stopSelf() }

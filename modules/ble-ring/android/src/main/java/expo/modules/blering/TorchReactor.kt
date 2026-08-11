@@ -9,9 +9,9 @@ import android.util.Log
 // (onMs, offMs) steps, and wraps the actual CameraManager torch control.
 // Shared by all three trigger channels (push/BLE/SMS) via TorchBlinkService
 // -- there's no headless-safe way to blink the torch from JS at all (no
-// Expo Torch API usable outside a mounted camera view), so unlike ring
-// (where the push path reacts in JS via expo-audio), every torch trigger
-// ends up here regardless of which channel it arrived on.
+// Expo Torch API usable outside a mounted camera view), so every torch
+// trigger ends up here regardless of which channel it arrived on. Ring
+// works the same way now too (see RingReactor + BleRingModule.triggerRing).
 object TorchReactor {
   private const val TAG = "TorchReactor"
   private const val UNIT_MS = 200L // SOS morse unit
