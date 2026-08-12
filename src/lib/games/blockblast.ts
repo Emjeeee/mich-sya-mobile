@@ -1,6 +1,7 @@
 export const GRID_SIZE = 8
 
-// Grid cell values: 0 = empty, 1..N = filled with that color index (see BLOCK_COLORS).
+// Grid cell values: 0 = empty, 1..N = filled with that color index (see
+// blockblastThemes.ts's BlockTheme.blocks).
 export type Grid = number[][]
 
 export function emptyGrid(): Grid {
@@ -13,14 +14,10 @@ export interface TrayPiece {
   color: number
 }
 
-export const BLOCK_COLORS = [
-  'bg-red-500',
-  'bg-orange-500',
-  'bg-yellow-500',
-  'bg-green-500',
-  'bg-blue-500',
-  'bg-purple-500',
-]
+// Color count only -- the actual hex values live per-theme in
+// blockblastThemes.ts (BlockTheme.blocks), since this module stays
+// presentation-free.
+export const BLOCK_COLOR_COUNT = 6
 
 function normalize(cells: [number, number][]): [number, number][] {
   const minRow = Math.min(...cells.map((c) => c[0]))
@@ -48,7 +45,7 @@ const SHAPES = RAW_SHAPES.map(([shapeId, cells]) => ({ shapeId, cells: normalize
 
 export function randomPiece(): TrayPiece {
   const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)]
-  const color = Math.floor(Math.random() * BLOCK_COLORS.length)
+  const color = Math.floor(Math.random() * BLOCK_COLOR_COUNT)
   return { shapeId: shape.shapeId, cells: shape.cells, color }
 }
 
@@ -80,32 +77,45 @@ export function isGameOver(grid: Grid, tray: (TrayPiece | null)[]): boolean {
 }
 
 export interface PlaceResult {
-  grid: Grid
-  linesCleared: number
+  grid: Grid // final board, cleared lines already removed
+  filledGrid: Grid // board with the piece placed, BEFORE clearing -- the "about to clear" flash frame
+  placedCells: [number, number][] // absolute [row,col] of the cells just placed
+  clearedRows: number[]
+  clearedCols: number[]
+  linesCleared: number // = clearedRows.length + clearedCols.length
   scoreGained: number
+  perfectClear: boolean // this placement emptied the entire board
 }
 
 export function placePiece(grid: Grid, piece: TrayPiece, row: number, col: number): PlaceResult | null {
   if (!canPlace(grid, piece, row, col)) return null
-  const next = grid.map((r) => [...r])
+
+  const filled = grid.map((r) => [...r])
+  const placedCells: [number, number][] = []
   for (const [dr, dc] of piece.cells) {
-    next[row + dr][col + dc] = piece.color + 1
+    filled[row + dr][col + dc] = piece.color + 1
+    placedCells.push([row + dr, col + dc])
   }
 
-  const fullRows: number[] = []
-  const fullCols: number[] = []
+  const clearedRows: number[] = []
+  const clearedCols: number[] = []
   for (let r = 0; r < GRID_SIZE; r++) {
-    if (next[r].every((v) => v !== 0)) fullRows.push(r)
+    if (filled[r].every((v) => v !== 0)) clearedRows.push(r)
   }
   for (let c = 0; c < GRID_SIZE; c++) {
-    if (next.every((row) => row[c] !== 0)) fullCols.push(c)
+    if (filled.every((row) => row[c] !== 0)) clearedCols.push(c)
   }
 
-  const linesCleared = fullRows.length + fullCols.length
-  for (const r of fullRows) next[r] = Array(GRID_SIZE).fill(0)
-  for (const c of fullCols) {
+  // Separate copy from `filled` -- the component renders both, at different
+  // moments (filled as the pre-clear flash frame, next as the real board),
+  // so they must not alias.
+  const next = filled.map((r) => [...r])
+  for (const r of clearedRows) next[r] = Array(GRID_SIZE).fill(0)
+  for (const c of clearedCols) {
     for (let r = 0; r < GRID_SIZE; r++) next[r][c] = 0
   }
+
+  const linesCleared = clearedRows.length + clearedCols.length
 
   // 1 point per block placed (spec section 14 "Placement"). Line-clear bonus
   // matches the spec's table exactly (1=10, 2=30, 3=60, 4=100) via the
@@ -113,5 +123,20 @@ export function placePiece(grid: Grid, piece: TrayPiece, row: number, col: numbe
   // n=1..4 and extends sensibly for a placement that completes more lines.
   const placedScore = piece.cells.length
   const lineScore = (10 * linesCleared * (linesCleared + 1)) / 2
-  return { grid: next, linesCleared, scoreGained: placedScore + lineScore }
+
+  // A placement always fills at least one cell, so an all-empty board here
+  // can only mean the clear above wiped everything -- no need to also
+  // require linesCleared > 0.
+  const perfectClear = next.every((r) => r.every((v) => v === 0))
+
+  return {
+    grid: next,
+    filledGrid: filled,
+    placedCells,
+    clearedRows,
+    clearedCols,
+    linesCleared,
+    scoreGained: placedScore + lineScore,
+    perfectClear,
+  }
 }

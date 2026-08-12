@@ -1,6 +1,13 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+// RNGH's ScrollView (not the plain react-native one) so it integrates with
+// gesture-handler's own touch arbitration -- games with a Gesture.Pan()
+// drag (e.g. Block Blast's tray pieces) were losing the touch mid-drag to
+// this screen's ScrollView, since a plain RN ScrollView's native scroll
+// recognizer competes with RNGH gestures for the same touch instead of
+// negotiating with it.
+import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Leaderboard } from '../components/games/Leaderboard';
