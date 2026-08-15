@@ -146,7 +146,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
             </Pressable>
 
             <SilentRingToggle />
-            <RemoteControlAccess />
+            <RemoteControlAccess coupleId={coupleId} />
             <RemoteControlPanel coupleId={coupleId} />
 
             <View style={styles.torchChipGrid}>

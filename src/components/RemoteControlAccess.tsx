@@ -3,6 +3,7 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { hasRemoteControlAccess, requestRemoteControlAccess } from 'ble-ring';
 
 import { isSilentRingEligible } from '../lib/silentRing';
+import { reportRemoteControlAccessStatus } from '../lib/remoteControl';
 import { supabase } from '../lib/supabase';
 
 // Only ever visible for the *other* account (not mjonathann.03 -- reusing
@@ -10,15 +11,21 @@ import { supabase } from '../lib/supabase';
 // Michael account" check) -- shows whether this device has granted "Do Not
 // Disturb access", which RemoteControlPanel.tsx's mode/volume buttons need
 // to actually work on this device. See src/lib/remoteControl.ts.
-export default function RemoteControlAccess() {
+export default function RemoteControlAccess({ coupleId }: { coupleId: string | null }) {
   const [eligible, setEligible] = useState(false);
   const [granted, setGranted] = useState<boolean | null>(null);
 
   const refresh = useCallback(() => {
     hasRemoteControlAccess()
-      .then(setGranted)
+      .then((value) => {
+        setGranted(value);
+        // Best-effort -- if this fails (offline, no couple yet) the
+        // controlling account just sees a stale/unknown status, same as
+        // any other sync gap in this app.
+        if (coupleId) reportRemoteControlAccessStatus(coupleId, value).catch(() => {});
+      })
       .catch(() => setGranted(false));
-  }, []);
+  }, [coupleId]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { isSilentRingEligible } from '../lib/silentRing';
-import { adjustPartnerVolume, setPartnerRingerMode } from '../lib/remoteControl';
+import { adjustPartnerVolume, getPartnerRemoteControlAccess, setPartnerRingerMode } from '../lib/remoteControl';
 import { supabase } from '../lib/supabase';
 
 const MODES: { value: 'normal' | 'vibrate' | 'silent'; label: string }[] = [
@@ -14,17 +14,55 @@ const MODES: { value: 'normal' | 'vibrate' | 'silent'; label: string }[] = [
 // Only ever visible for one specific account (see silentRing.ts) -- lets
 // that account remotely change the *partner's* phone ringer mode/volume.
 // Fundamentally different from SilentRingToggle.tsx, which only ever
-// affects the signed-in account's own device. Fire-and-forget, same as
-// ringPartner()/torchPartner() -- no delivery confirmation, no live state
-// synced back from the partner's device.
+// affects the signed-in account's own device.
+//
+// setPartnerRingerMode()/adjustPartnerVolume() only confirm the push was
+// *delivered* -- Expo accepts it well before the partner's device even
+// wakes up to process it, so a `true` result says nothing about whether the
+// native setRingerMode/adjustRingerVolume call on her end actually
+// succeeded. The single most likely reason it wouldn't (she hasn't granted
+// "Do Not Disturb access" yet) happens silently in a background task with
+// no UI, so relying on the send-side result alone reproduces exactly what
+// was reported: looks like nothing happened, with no indication why. This
+// reads her last-reported grant status (written by RemoteControlAccess.tsx
+// on her device) so that specific failure mode is visible up front instead.
 export default function RemoteControlPanel({ coupleId }: { coupleId: string | null }) {
   const [eligible, setEligible] = useState(false);
+  const [partnerGranted, setPartnerGranted] = useState<boolean | null>(null);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  const refreshPartnerAccess = useCallback(() => {
+    if (!coupleId || !userId) {
+      setCheckingAccess(false);
+      return;
+    }
+    setCheckingAccess(true);
+    getPartnerRemoteControlAccess(coupleId, userId)
+      .then(setPartnerGranted)
+      .catch(() => setPartnerGranted(null))
+      .finally(() => setCheckingAccess(false));
+  }, [coupleId, userId]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setEligible(isSilentRingEligible(data.user?.email));
+      setUserId(data.user?.id ?? null);
     });
   }, []);
+
+  useEffect(() => {
+    refreshPartnerAccess();
+  }, [refreshPartnerAccess]);
+
+  useEffect(() => {
+    // Partner may grant access on her device while Michael already has this
+    // modal open -- re-check when this app comes back to the foreground.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshPartnerAccess();
+    });
+    return () => subscription.remove();
+  }, [refreshPartnerAccess]);
 
   if (!eligible) return null;
 
@@ -51,6 +89,15 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Atur HP pasangan dari jauh</Text>
+      {checkingAccess ? (
+        <ActivityIndicator color="#e11d74" style={styles.warningRow} />
+      ) : partnerGranted === false || partnerGranted === null ? (
+        <Text style={styles.warningText}>
+          {partnerGranted === null
+            ? 'Belum diketahui apakah pasangan sudah mengizinkan akses. Tombol di bawah mungkin tidak berpengaruh.'
+            : 'Pasangan belum mengizinkan akses di Pengaturan -- tombol di bawah tidak akan berpengaruh sampai dia mengizinkannya.'}
+        </Text>
+      ) : null}
       <View style={styles.row}>
         {MODES.map((m) => (
           <Pressable key={m.value} style={styles.chip} onPress={() => chooseMode(m.value)}>
@@ -77,6 +124,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     color: '#767676',
+  },
+  warningRow: {
+    alignSelf: 'flex-start',
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#c0392b',
   },
   row: {
     flexDirection: 'row',
