@@ -105,8 +105,16 @@ class BleRingScanService : Service() {
         2 -> "fast"
         3 -> "sos"
         4 -> "custom"
+        5 -> "stop"
         else -> "slow"
       }
+
+      if (kind == "stop") {
+        Log.d(TAG, "Torch stop advertisement detected, stopping torch")
+        TorchBlinkService.requestStop(applicationContext)
+        return
+      }
+
       val onMs = if (payload.size >= 4) (payload[2].toInt() and 0xFF) or ((payload[3].toInt() and 0xFF) shl 8) else null
       val offMs = if (payload.size >= 6) (payload[4].toInt() and 0xFF) or ((payload[5].toInt() and 0xFF) shl 8) else null
 

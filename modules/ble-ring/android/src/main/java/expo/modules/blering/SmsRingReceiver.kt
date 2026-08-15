@@ -39,6 +39,13 @@ class SmsRingReceiver : BroadcastReceiver() {
         val suffix = fullBody.substring(torchIndex + RingBleConstants.SMS_TORCH_TRIGGER_MARKER.length)
         val parts = suffix.trimStart(':').split(":")
         val kind = parts.getOrNull(0)?.takeIf { it.isNotBlank() } ?: "slow"
+
+        if (kind == "stop") {
+          Log.d(TAG, "Torch stop SMS detected, stopping torch")
+          TorchBlinkService.requestStop(context.applicationContext)
+          return
+        }
+
         val onMs = parts.getOrNull(1)?.toLongOrNull()
         val offMs = parts.getOrNull(2)?.toLongOrNull()
 

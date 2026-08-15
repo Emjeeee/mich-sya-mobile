@@ -5,11 +5,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import androidx.core.content.ContextCompat
 
 // Foreground service that owns the actual torch blink loop, notification,
 // and auto-off/stop lifecycle -- started by any of the 3 trigger channels
@@ -27,6 +29,14 @@ class TorchBlinkService : Service() {
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     if (intent?.action == RingBleConstants.TORCH_STOP_ACTION) {
+      // Must satisfy the startForegroundService() contract even when this
+      // arrives from requestStop() below and no blink loop was actually
+      // running (a remote "stop" trigger with nothing to stop) -- Android
+      // requires startForeground() shortly after that call or the process
+      // crashes with RemoteServiceException, even for a same-instance
+      // no-op. stopBlinking() cancels this same notification immediately
+      // after, so it's an imperceptible flash rather than a visible one.
+      startForeground(RingBleConstants.TORCH_NOTIFICATION_ID, buildNotification())
       stopBlinking()
       return START_NOT_STICKY
     }
@@ -117,5 +127,20 @@ class TorchBlinkService : Service() {
       .setOngoing(true)
       .addAction(stopAction)
       .build()
+  }
+
+  companion object {
+    // Single source of truth for "how to remotely stop this service" --
+    // used by the push channel's stopTorch() bridge in BleRingModule.kt,
+    // and by BleRingScanService/SmsRingReceiver when they decode a "stop"
+    // kind instead of a blink pattern. startForegroundService() (not
+    // startService()) since this may be reaching an already-stopped
+    // service -- see the startForeground() call in the STOP branch of
+    // onStartCommand for why that's still safe.
+    fun requestStop(context: Context) {
+      val intent = Intent(context, TorchBlinkService::class.java)
+        .setAction(RingBleConstants.TORCH_STOP_ACTION)
+      ContextCompat.startForegroundService(context, intent)
+    }
   }
 }
