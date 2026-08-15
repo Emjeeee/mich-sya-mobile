@@ -93,9 +93,18 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
             {
               transform: [
                 {
+                  // Ionicons' "navigate" glyph doesn't point straight up by
+                  // default -- its tip sits at (448,64) in a 512x512 box
+                  // (confirmed directly from the bundled SVG path), i.e.
+                  // bearing 45°/NE from center, not 0°/N. Left uncorrected,
+                  // the arrow was always rendered 45° clockwise from the
+                  // true target direction. Shifting the whole interpolation
+                  // range by -45° compensates for that fixed offset while
+                  // keeping `rotation`'s own value equal to the true
+                  // bearing-relative-to-heading (0-360, used elsewhere).
                   rotate: rotation.interpolate({
                     inputRange: [0, 360],
-                    outputRange: ['0deg', '360deg'],
+                    outputRange: ['-45deg', '315deg'],
                   }),
                 },
               ],
