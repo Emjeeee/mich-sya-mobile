@@ -30,6 +30,13 @@ function normalizePhoneInput(text: string): string {
   const stripped = text.replace(/[\s-]/g, '');
   if (stripped.startsWith('0')) return `+62${stripped.slice(1)}`;
   if (stripped.startsWith('62') && !stripped.startsWith('+')) return `+${stripped}`;
+  // Indonesian mobile numbers always start with 8 once the leading 0/62 is
+  // stripped -- someone who types "812..." straight, without the leading
+  // 0, would otherwise never get the +62 prefix at all. Deliberately not a
+  // broader "any non-zero digit" rule: that would also catch a lone "6"
+  // typed as the first digit of "62812...", pre-empting the case above and
+  // breaking digit-by-digit country-code entry.
+  if (stripped.startsWith('8')) return `+62${stripped}`;
   return stripped;
 }
 
