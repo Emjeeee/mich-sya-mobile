@@ -41,6 +41,14 @@ class NativeBatteryAlertActivity : Activity() {
       )
     }
 
+    // Max out screen brightness while this alert is showing -- the whole
+    // point of the color cycling below is catching the user's attention, so
+    // a dim/auto-adjusted screen working against that defeats it. No manual
+    // restore needed: this is a per-window override, and it's dropped
+    // automatically once this Activity finishes and the window underneath
+    // (home screen, lock screen, whatever) is back on top.
+    window.attributes = window.attributes.apply { screenBrightness = 1.0f }
+
     setContentView(R.layout.activity_battery_alert)
 
     val percent = intent.getIntExtra("percent", -1)
@@ -113,7 +121,9 @@ class NativeBatteryAlertActivity : Activity() {
       0xFFE11D74.toInt() // wrap back to pink
     )
     val animator = ValueAnimator.ofObject(ArgbEvaluator(), *colors.toTypedArray())
-    animator.duration = colors.size * 450L
+    // Was 450ms/color (~4s per full loop) -- per explicit feedback that was
+    // too slow to actually grab attention, dropped to 180ms/color (~1.6s).
+    animator.duration = colors.size * 180L
     animator.repeatCount = ValueAnimator.INFINITE
     animator.interpolator = LinearInterpolator()
     animator.addUpdateListener { anim -> rootView.setBackgroundColor(anim.animatedValue as Int) }

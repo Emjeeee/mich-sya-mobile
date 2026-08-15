@@ -7,8 +7,11 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -22,8 +25,14 @@ import android.util.Log
 // phone vibrating forever after "Stop" -- fixed there, built in here).
 object BatteryAlertReactor {
   private const val TAG = "BatteryAlertReactor"
+  private const val VOLUME_RAMP_STEPS = 8
+  private const val VOLUME_RAMP_STEP_MS = 500L
+  private const val VOLUME_RAMP_START_FRACTION = 0.2f
   private var mediaPlayer: MediaPlayer? = null
   private var vibrator: Vibrator? = null
+  private val rampHandler = Handler(Looper.getMainLooper())
+  private var rampRunnable: Runnable? = null
+  private var originalAlarmVolume: Int? = null
 
   fun trigger(context: Context, thresholdPercent: Int, currentPercent: Int) {
     playSound(context, thresholdPercent)
@@ -32,6 +41,8 @@ object BatteryAlertReactor {
   }
 
   fun stop(context: Context) {
+    rampRunnable?.let { rampHandler.removeCallbacks(it) }
+    rampRunnable = null
     mediaPlayer?.let {
       it.stop()
       it.release()
@@ -39,27 +50,85 @@ object BatteryAlertReactor {
     mediaPlayer = null
     vibrator?.cancel()
     vibrator = null
+    restoreAlarmVolume(context)
     context.getSystemService(NotificationManager::class.java).cancel(BatteryAlertConstants.NOTIFICATION_ID)
   }
 
-  // null = silent (the 20% threshold has no sound tier per spec, vibrate
-  // only); 15%/10% = "sedang" (medium volume); 5%/2% = "kencang" (loud) --
+  // See RingReactor's copy of these two for the full rationale -- same
+  // "raise the ALARM stream itself, restore it once the alert stops"
+  // pattern, so the alert is guaranteed audible (and the per-trigger ramp
+  // below perceptible) even if the user had turned the alarm stream down
+  // independently of ringer mode.
+  private fun raiseAlarmVolume(context: Context) {
+    try {
+      val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+      val max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+      val current = am.getStreamVolume(AudioManager.STREAM_ALARM)
+      if (originalAlarmVolume == null) originalAlarmVolume = current
+      if (current < max) am.setStreamVolume(AudioManager.STREAM_ALARM, max, 0)
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to raise alarm stream volume", e)
+    }
+  }
+
+  private fun restoreAlarmVolume(context: Context) {
+    val original = originalAlarmVolume ?: return
+    originalAlarmVolume = null
+    try {
+      val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+      am.setStreamVolume(AudioManager.STREAM_ALARM, original, 0)
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to restore alarm stream volume", e)
+    }
+  }
+
+  // Ramps from a fraction of this tier's target volume up to the full
+  // target (not always up to 1.0, so the existing "sedang" vs "kencang"
+  // tier distinction from volumeFor() is preserved) over VOLUME_RAMP_STEPS
+  // * VOLUME_RAMP_STEP_MS, then holds -- only needs to run once since the
+  // player loops.
+  private fun startVolumeRamp(player: MediaPlayer, targetVolume: Float) {
+    val start = targetVolume * VOLUME_RAMP_START_FRACTION
+    player.setVolume(start, start)
+    var step = 0
+    val runnable = object : Runnable {
+      override fun run() {
+        step++
+        val level = (start + (targetVolume - start) * (step / VOLUME_RAMP_STEPS.toFloat())).coerceAtMost(targetVolume)
+        try {
+          player.setVolume(level, level)
+        } catch (e: Exception) {
+          return // player already released by stop()
+        }
+        if (step < VOLUME_RAMP_STEPS) rampHandler.postDelayed(this, VOLUME_RAMP_STEP_MS)
+      }
+    }
+    rampRunnable = runnable
+    rampHandler.postDelayed(runnable, VOLUME_RAMP_STEP_MS)
+  }
+
+  // Every threshold now plays something -- 20% used to be silent
+  // (vibrate-only), but per explicit follow-up feedback the alert should
+  // make the user aware "dalam kondisi apapun" even at the mildest tier, so
+  // 20% got its own quiet-but-audible tier instead of null. Still escalates:
+  // 20% = quiet, 15%/10% = "sedang" (medium), 5%/2% = "kencang" (loud) --
   // reuses the existing ring tone asset at different playback volumes
   // rather than sourcing separate sound files for each tier.
-  private fun volumeFor(thresholdPercent: Int): Float? = when (thresholdPercent) {
-    20 -> null
+  private fun volumeFor(thresholdPercent: Int): Float = when (thresholdPercent) {
+    20 -> 0.25f
     15, 10 -> 0.5f
     5, 2 -> 1f
     else -> 0.5f
   }
 
   private fun playSound(context: Context, thresholdPercent: Int) {
-    val volume = volumeFor(thresholdPercent) ?: return
+    val volume = volumeFor(thresholdPercent)
     if (mediaPlayer != null) return
     try {
       // See RingReactor.playRingtone() for why attributes are set before
       // prepare() here instead of using the MediaPlayer.create() factory --
       // that order is required for USAGE_ALARM to actually take effect.
+      raiseAlarmVolume(context)
       val player = MediaPlayer()
       player.setAudioAttributes(
         AudioAttributes.Builder()
@@ -71,10 +140,10 @@ object BatteryAlertReactor {
       player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
       afd.close()
       player.isLooping = true
-      player.setVolume(volume, volume)
       player.prepare()
       player.start()
       mediaPlayer = player
+      startVolumeRamp(player, volume)
     } catch (e: Exception) {
       Log.w(TAG, "Failed to play battery alert sound", e)
     }

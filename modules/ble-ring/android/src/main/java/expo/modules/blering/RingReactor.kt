@@ -7,8 +7,11 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -21,8 +24,14 @@ import android.util.Log
 // be active at a time.
 object RingReactor {
   private const val TAG = "RingReactor"
+  private const val VOLUME_RAMP_STEPS = 8
+  private const val VOLUME_RAMP_STEP_MS = 500L
+  private const val VOLUME_RAMP_START = 0.15f
   private var mediaPlayer: MediaPlayer? = null
   private var vibrator: Vibrator? = null
+  private val rampHandler = Handler(Looper.getMainLooper())
+  private var rampRunnable: Runnable? = null
+  private var originalAlarmVolume: Int? = null
 
   fun trigger(context: Context) {
     playRingtone(context)
@@ -31,6 +40,8 @@ object RingReactor {
   }
 
   fun stop(context: Context) {
+    rampRunnable?.let { rampHandler.removeCallbacks(it) }
+    rampRunnable = null
     mediaPlayer?.let {
       it.stop()
       it.release()
@@ -41,7 +52,62 @@ object RingReactor {
     // after "Stop" was tapped, since only the ringtone was ever stopped here.
     vibrator?.cancel()
     vibrator = null
+    restoreAlarmVolume(context)
     context.getSystemService(NotificationManager::class.java).cancel(RingBleConstants.RING_NOTIFICATION_ID)
+  }
+
+  // Raises (never lowers below what it already was) the ALARM stream's own
+  // system volume toward max, restored via restoreAlarmVolume() once the
+  // alert stops. USAGE_ALARM below already bypasses ringer mode (silent/
+  // vibrate/normal all play), but that alone doesn't help if the user
+  // separately turned the alarm stream itself down -- this makes sure the
+  // stream is actually audible before the per-player ramp in playRingtone()
+  // makes it perceptibly *increase*, matching the explicit "pastikan
+  // volume terus increasing, mau mode apapun" request.
+  private fun raiseAlarmVolume(context: Context) {
+    try {
+      val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+      val max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+      val current = am.getStreamVolume(AudioManager.STREAM_ALARM)
+      if (originalAlarmVolume == null) originalAlarmVolume = current
+      if (current < max) am.setStreamVolume(AudioManager.STREAM_ALARM, max, 0)
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to raise alarm stream volume", e)
+    }
+  }
+
+  private fun restoreAlarmVolume(context: Context) {
+    val original = originalAlarmVolume ?: return
+    originalAlarmVolume = null
+    try {
+      val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+      am.setStreamVolume(AudioManager.STREAM_ALARM, original, 0)
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to restore alarm stream volume", e)
+    }
+  }
+
+  // Ramps this player's own gain from VOLUME_RAMP_START up to full over
+  // VOLUME_RAMP_STEPS * VOLUME_RAMP_STEP_MS, then holds at full -- the
+  // perceptible "keeps getting louder" effect, on top of the stream-level
+  // raise above. Only needs to run once per trigger since the player loops.
+  private fun startVolumeRamp(player: MediaPlayer) {
+    player.setVolume(VOLUME_RAMP_START, VOLUME_RAMP_START)
+    var step = 0
+    val runnable = object : Runnable {
+      override fun run() {
+        step++
+        val level = (VOLUME_RAMP_START + (1f - VOLUME_RAMP_START) * (step / VOLUME_RAMP_STEPS.toFloat())).coerceAtMost(1f)
+        try {
+          player.setVolume(level, level)
+        } catch (e: Exception) {
+          return // player already released by stop()
+        }
+        if (step < VOLUME_RAMP_STEPS) rampHandler.postDelayed(this, VOLUME_RAMP_STEP_MS)
+      }
+    }
+    rampRunnable = runnable
+    rampHandler.postDelayed(runnable, VOLUME_RAMP_STEP_MS)
   }
 
   private fun playRingtone(context: Context) {
@@ -57,6 +123,7 @@ object RingReactor {
       // regardless of ringer/silent/vibrate mode, same as an alarm clock).
       // Building the player manually and setting attributes before prepare()
       // is the order that actually applies them.
+      raiseAlarmVolume(context)
       val player = MediaPlayer()
       player.setAudioAttributes(
         AudioAttributes.Builder()
@@ -71,6 +138,7 @@ object RingReactor {
       player.prepare()
       player.start()
       mediaPlayer = player
+      startVolumeRamp(player)
     } catch (e: Exception) {
       Log.w(TAG, "Failed to play native ringtone", e)
     }
