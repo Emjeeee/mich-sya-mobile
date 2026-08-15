@@ -18,10 +18,18 @@ import { supabase } from '../../lib/supabase';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
-// How far above the finger the dragged piece floats, so it stays visible past
-// the touch point instead of hidden directly underneath it -- also the point
-// used for grid hit-testing so what's shown lines up with where it lands.
-const LIFT_PX = 20;
+const BOARD_SIZE = 280;
+const CELL_SIZE = BOARD_SIZE / GRID_SIZE;
+
+// How far above the finger the dragged piece floats, so it stays clearly
+// visible above the thumb instead of hugging right against the touch point
+// -- also the point used for grid hit-testing so what's shown lines up with
+// where it lands. The original 20px (~0.6 cells) read as "the piece is
+// right behind my finger" per direct user feedback comparing against the
+// real Block Blast, which floats the piece a couple of cell-heights clear
+// of the touch point; tied to CELL_SIZE rather than a fixed pixel count so
+// it stays proportional if the board size ever changes.
+const LIFT_PX = CELL_SIZE * 1.8;
 
 interface PieceShapeProps {
   piece: TrayPiece;
@@ -503,9 +511,6 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
     </View>
   );
 }
-
-const BOARD_SIZE = 280;
-const CELL_SIZE = BOARD_SIZE / GRID_SIZE;
 
 const styles = StyleSheet.create({
   wrapper: {
