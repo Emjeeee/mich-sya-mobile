@@ -21,15 +21,16 @@ import { GameCard } from './GameCard';
 const BOARD_SIZE = 280;
 const CELL_SIZE = BOARD_SIZE / GRID_SIZE;
 
-// How far above the finger the dragged piece floats, so it stays clearly
-// visible above the thumb instead of hugging right against the touch point
-// -- also the point used for grid hit-testing so what's shown lines up with
-// where it lands. The original 20px (~0.6 cells) read as "the piece is
-// right behind my finger" per direct user feedback comparing against the
-// real Block Blast, which floats the piece a couple of cell-heights clear
-// of the touch point; tied to CELL_SIZE rather than a fixed pixel count so
-// it stays proportional if the board size ever changes.
-const LIFT_PX = CELL_SIZE * 1.8;
+// How many full cell-heights of clear space sit between the finger and the
+// dragged piece's BOTTOM edge -- also the basis for the point used for grid
+// hit-testing so what's shown lines up with where it lands. Deliberately a
+// gap from the piece's bottom edge, not from its center: an earlier version
+// centered the piece LIFT_PX above the finger, which meant a taller piece
+// (more of its own height extending back down toward the finger) ended up
+// with much LESS actual clearance than a short one -- reported as "still
+// too close" even after increasing that center offset. Measuring from the
+// bottom edge keeps the gap the same 2 cells for every piece size.
+const DRAG_GAP_CELLS = 2;
 
 interface PieceShapeProps {
   piece: TrayPiece;
@@ -169,10 +170,11 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
 
   function updateDragPosition(absX: number, absY: number, piece: TrayPiece) {
     const { rows, cols } = pieceSpan(piece);
-    // Top-left of the piece's bounding box: centered on the finger on both
-    // axes, then lifted so the finger doesn't sit on top of the piece.
+    // Horizontally centered on the finger. Vertically, the piece's BOTTOM
+    // edge sits DRAG_GAP_CELLS cells above the finger -- so origin (top-left)
+    // is that gap plus the piece's own full height further up.
     const originX = absX - (cols * CELL_SIZE) / 2;
-    const originY = absY - (rows * CELL_SIZE) / 2 - LIFT_PX;
+    const originY = absY - DRAG_GAP_CELLS * CELL_SIZE - rows * CELL_SIZE;
 
     dragPos.setValue({
       x: originX - containerLayout.current.x,
@@ -263,7 +265,7 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
     setScore((s) => s + result.scoreGained);
     bumpScore();
     let nextTray = trayRef.current.map((p, i) => (i === index ? null : p));
-    if (nextTray.every((p) => p === null)) nextTray = randomTray();
+    if (nextTray.every((p) => p === null)) nextTray = randomTray(result.grid);
     setTray(nextTray);
 
     if (result.linesCleared === 0) {

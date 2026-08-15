@@ -49,10 +49,6 @@ export function randomPiece(): TrayPiece {
   return { shapeId: shape.shapeId, cells: shape.cells, color }
 }
 
-export function randomTray(): (TrayPiece | null)[] {
-  return [randomPiece(), randomPiece(), randomPiece()]
-}
-
 export function canPlace(grid: Grid, piece: TrayPiece, row: number, col: number): boolean {
   for (const [dr, dc] of piece.cells) {
     const r = row + dr
@@ -70,6 +66,44 @@ export function canPlaceAnywhere(grid: Grid, piece: TrayPiece): boolean {
     }
   }
   return false
+}
+
+// Uniform-random piece selection (the old randomTray's whole behavior) had
+// no connection to the current board at all, which could hand out a tray
+// that's a poor match for the board state -- reported directly as feeling
+// unfairly hard compared to the real game, where "the blocks provided are
+// expected to be able to complete the round" with good play, not blocked by
+// unlucky RNG. Resampling a few times and keeping the first candidate that
+// fits somewhere biases toward a usable tray without making it deterministic
+// or removing challenge -- a full board still eventually runs out of places
+// to put even a biased piece, so isGameOver can still fire legitimately.
+const PLACEABLE_BIAS_ATTEMPTS = 6
+
+function biasedPiece(grid: Grid): TrayPiece {
+  let candidate = randomPiece()
+  for (let attempt = 0; attempt < PLACEABLE_BIAS_ATTEMPTS; attempt++) {
+    if (canPlaceAnywhere(grid, candidate)) return candidate
+    candidate = randomPiece()
+  }
+  return candidate
+}
+
+// `grid` is optional (defaults to an empty board) so every existing call
+// site -- the initial tray on game start/reset, before any grid exists yet
+// -- keeps working unchanged; the bias only matters once the board actually
+// has content, since canPlaceAnywhere on an empty board is trivially true
+// for every shape anyway.
+export function randomTray(grid: Grid = emptyGrid()): (TrayPiece | null)[] {
+  const tray = [biasedPiece(grid), biasedPiece(grid), biasedPiece(grid)]
+  // Last-resort safety net: if bad luck still left every biased pick
+  // unplaceable (vanishingly unlikely, but possible on a nearly-full
+  // board), force one single-cell piece in -- the only shape that can be
+  // unplaceable is a completely full board, which is already a legitimate
+  // game over regardless of what the tray contains.
+  if (tray.every((p) => !canPlaceAnywhere(grid, p))) {
+    tray[0] = { shapeId: 'single', cells: [[0, 0]], color: Math.floor(Math.random() * BLOCK_COLOR_COUNT) }
+  }
+  return tray
 }
 
 export function isGameOver(grid: Grid, tray: (TrayPiece | null)[]): boolean {
