@@ -14,6 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CompassArrow from './CompassArrow';
+import RemoteControlAccess from './RemoteControlAccess';
+import RemoteControlPanel from './RemoteControlPanel';
 import SilentRingToggle from './SilentRingToggle';
 import { useFindPartner } from '../hooks/useFindPartner';
 import { ringPartner } from '../lib/ringPartner';
@@ -26,7 +28,9 @@ import {
   type TorchPatternKind,
 } from '../lib/torchPattern';
 
-const TORCH_PRESET_ORDER: TorchPatternKind[] = ['steady', 'slow', 'fast', 'sos', 'custom'];
+// Excludes 'stop' -- it's a control action (see the dedicated "Matikan
+// senter pasangan" button below), not a selectable blink-pattern chip.
+const TORCH_PRESET_ORDER: Exclude<TorchPatternKind, 'stop'>[] = ['steady', 'slow', 'fast', 'sos', 'custom'];
 
 interface FindPartnerModalProps {
   visible: boolean;
@@ -50,6 +54,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
   const [customOnMs, setCustomOnMs] = useState('250');
   const [customOffMs, setCustomOffMs] = useState('250');
   const [torching, setTorching] = useState(false);
+  const [stoppingTorch, setStoppingTorch] = useState(false);
 
   const handleClose = () => {
     // Sharing now runs in the background independent of this screen -- closing it
@@ -84,6 +89,15 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
       return;
     }
     AsyncStorage.setItem(TORCH_PATTERN_STORAGE_KEY, JSON.stringify(pattern)).catch(() => {});
+  };
+
+  const handleStopTorch = async () => {
+    setStoppingTorch(true);
+    const sent = await torchPartner(coupleId, { kind: 'stop' });
+    setStoppingTorch(false);
+    if (!sent) {
+      Alert.alert('Gagal', 'Tidak bisa matiin senter HP pasangan. Pastikan dia sudah pernah membuka MichSya di HP-nya.');
+    }
   };
 
   return (
@@ -132,6 +146,8 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
             </Pressable>
 
             <SilentRingToggle />
+            <RemoteControlAccess />
+            <RemoteControlPanel coupleId={coupleId} />
 
             <View style={styles.torchChipGrid}>
               <View style={styles.torchChipRow}>
@@ -142,7 +158,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                     style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
                   >
                     <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
-                      {TORCH_PRESET_LABELS[kind as Exclude<TorchPatternKind, 'custom'>]}
+                      {TORCH_PRESET_LABELS[kind as Exclude<TorchPatternKind, 'custom' | 'stop'>]}
                     </Text>
                   </Pressable>
                 ))}
@@ -188,13 +204,30 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
               </View>
             )}
 
-            <Pressable style={[styles.button, styles.ringButton]} onPress={handleTorch} disabled={torching}>
-              {torching ? (
-                <ActivityIndicator color="#e11d74" />
-              ) : (
-                <Text style={styles.ringButtonText}>🔦 Nyalain senter pasangan</Text>
-              )}
-            </Pressable>
+            <View style={styles.torchButtonRow}>
+              <Pressable
+                style={[styles.button, styles.ringButton, styles.torchButtonHalf]}
+                onPress={handleTorch}
+                disabled={torching}
+              >
+                {torching ? (
+                  <ActivityIndicator color="#e11d74" />
+                ) : (
+                  <Text style={styles.ringButtonText}>🔦 Nyalain</Text>
+                )}
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.stopButton, styles.torchButtonHalf]}
+                onPress={handleStopTorch}
+                disabled={stoppingTorch}
+              >
+                {stoppingTorch ? (
+                  <ActivityIndicator color="#e11d74" />
+                ) : (
+                  <Text style={styles.stopButtonText}>⏹️ Matikan</Text>
+                )}
+              </Pressable>
+            </View>
           </View>
 
           <Text style={styles.hint}>
@@ -267,6 +300,13 @@ const styles = StyleSheet.create({
   ringButtonText: {
     color: '#e11d74',
     fontWeight: '600',
+  },
+  torchButtonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  torchButtonHalf: {
+    flex: 1,
   },
   torchChipGrid: {
     gap: 8,

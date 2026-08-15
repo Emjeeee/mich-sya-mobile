@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
-import { triggerRing, triggerTorch } from 'ble-ring';
+import { adjustRingerVolume, setRingerMode, stopTorch, triggerRing, triggerTorch } from 'ble-ring';
 
 import { startFindPartnerTracking } from './backgroundFindPartner';
 import { notifyRingSignal } from './ringSignal';
@@ -52,13 +52,35 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
       // anyway, so this just starts the same native service the BLE/SMS
       // paths start directly.
       try {
-        await triggerTorch(
-          typeof payload.kind === 'string' ? payload.kind : 'slow',
-          typeof payload.onMs === 'number' ? payload.onMs : null,
-          typeof payload.offMs === 'number' ? payload.offMs : null
-        );
+        if (payload.kind === 'stop') {
+          await stopTorch();
+        } else {
+          await triggerTorch(
+            typeof payload.kind === 'string' ? payload.kind : 'slow',
+            typeof payload.onMs === 'number' ? payload.onMs : null,
+            typeof payload.offMs === 'number' ? payload.offMs : null
+          );
+        }
       } catch (err) {
-        console.warn('[michsya] triggerTorch() failed:', err);
+        console.warn('[michsya] triggerTorch()/stopTorch() failed:', err);
+      }
+    }
+
+    if (payload.type === 'set_ringer_mode' && typeof payload.mode === 'string') {
+      console.log('[michsya] background task: set_ringer_mode payload received');
+      try {
+        await setRingerMode(payload.mode);
+      } catch (err) {
+        console.warn('[michsya] setRingerMode() failed:', err);
+      }
+    }
+
+    if (payload.type === 'adjust_volume' && typeof payload.direction === 'string') {
+      console.log('[michsya] background task: adjust_volume payload received');
+      try {
+        await adjustRingerVolume(payload.direction);
+      } catch (err) {
+        console.warn('[michsya] adjustRingerVolume() failed:', err);
       }
     }
 

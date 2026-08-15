@@ -1,15 +1,18 @@
 package expo.modules.blering
 
+import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
+import android.provider.Settings
 import android.telephony.SmsManager
 import androidx.core.content.ContextCompat
 import expo.modules.kotlin.Promise
@@ -113,6 +116,105 @@ class BleRingModule : Module() {
       RingReactor.stop(context)
       promise.resolve(true)
     }
+
+    // Push channel's bridge for remotely stopping the *other* device's
+    // torch -- see TorchBlinkService.requestStop() for why this can't just
+    // be "start the service with the stop action" inline (ANR risk if the
+    // service isn't already running).
+    AsyncFunction("stopTorch") { promise: Promise ->
+      try {
+        TorchBlinkService.requestStop(context)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
+
+    // android.permission.ACCESS_NOTIFICATION_POLICY alone isn't enough --
+    // AudioManager.setRingerMode()/adjustStreamVolume() on STREAM_RING also
+    // need the user to have granted this app "Do Not Disturb access" via
+    // system Settings (a special-access toggle, not a normal runtime
+    // permission -- can't be requested through PermissionsAndroid the way
+    // BLE/SMS/camera are in bleRing.ts). Checked on whichever device is
+    // about to be remotely controlled, i.e. the partner's, not the
+    // controlling account's.
+    AsyncFunction("hasRemoteControlAccess") { promise: Promise ->
+      val nm = context.getSystemService(NotificationManager::class.java)
+      promise.resolve(nm.isNotificationPolicyAccessGranted)
+    }
+
+    // Can't grant this programmatically -- opens the system settings screen
+    // for the user to flip the toggle themselves. Interactive, so this must
+    // only be called from a foreground context with a visible Activity.
+    AsyncFunction("requestRemoteControlAccess") { promise: Promise ->
+      try {
+        val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+          flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
+
+    // Sets *this* device's own ringer mode -- called on the receiving end
+    // of a "set_ringer_mode" push from the controlling account. Resolves
+    // false (rather than letting a SecurityException escape) if DND access
+    // hasn't been granted yet, or the mode string isn't recognized.
+    AsyncFunction("setRingerMode") { mode: String, promise: Promise ->
+      try {
+        val nm = context.getSystemService(NotificationManager::class.java)
+        if (!nm.isNotificationPolicyAccessGranted) {
+          promise.resolve(false)
+          return@AsyncFunction
+        }
+        val ringerMode = when (mode) {
+          "normal" -> AudioManager.RINGER_MODE_NORMAL
+          "vibrate" -> AudioManager.RINGER_MODE_VIBRATE
+          "silent" -> AudioManager.RINGER_MODE_SILENT
+          else -> null
+        }
+        if (ringerMode == null) {
+          promise.resolve(false)
+          return@AsyncFunction
+        }
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        am.ringerMode = ringerMode
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
+
+    // Raises/lowers this device's own ring volume by one step -- same DND
+    // access gate as setRingerMode above (adjusting STREAM_RING can hit the
+    // same restriction when it would affect DND state). No FLAG_SHOW_UI --
+    // this device's owner isn't the one who triggered the change, so the
+    // system volume overlay popping up unprompted would be confusing.
+    AsyncFunction("adjustRingerVolume") { direction: String, promise: Promise ->
+      try {
+        val nm = context.getSystemService(NotificationManager::class.java)
+        if (!nm.isNotificationPolicyAccessGranted) {
+          promise.resolve(false)
+          return@AsyncFunction
+        }
+        val adjustment = when (direction) {
+          "up" -> AudioManager.ADJUST_RAISE
+          "down" -> AudioManager.ADJUST_LOWER
+          else -> null
+        }
+        if (adjustment == null) {
+          promise.resolve(false)
+          return@AsyncFunction
+        }
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        am.adjustStreamVolume(AudioManager.STREAM_RING, adjustment, 0)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
   }
 
   private fun patternKindByte(kind: String): Byte = when (kind) {
@@ -121,6 +223,7 @@ class BleRingModule : Module() {
     "fast" -> 2
     "sos" -> 3
     "custom" -> 4
+    "stop" -> 5
     else -> 1
   }
 

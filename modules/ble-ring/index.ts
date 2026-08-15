@@ -61,6 +61,25 @@ interface BleRingModuleType {
    */
   setSilentRing(silent: boolean): Promise<boolean>;
   isSilentRing(): Promise<boolean>;
+  /**
+   * Push channel's bridge for remotely stopping the *other* device's torch
+   * -- see src/lib/torchPattern.ts's 'stop' kind and FindPartnerModal.tsx's
+   * "Matikan senter pasangan" button.
+   */
+  stopTorch(): Promise<boolean>;
+  /**
+   * Whether this device has granted "Do Not Disturb access" -- required
+   * (separately from any PermissionsAndroid runtime permission) before
+   * setRingerMode/adjustRingerVolume below will actually work. See
+   * src/lib/remoteControl.ts.
+   */
+  hasRemoteControlAccess(): Promise<boolean>;
+  /** Opens system Settings for the user to grant DND access manually -- can't be requested programmatically. */
+  requestRemoteControlAccess(): Promise<boolean>;
+  /** Sets this device's own ringer mode; resolves false if DND access isn't granted or `mode` is unrecognized. */
+  setRingerMode(mode: string): Promise<boolean>;
+  /** Raises/lowers this device's own ring volume by one step; same DND access gate as setRingerMode. */
+  adjustRingerVolume(direction: string): Promise<boolean>;
 }
 
 export const BleRingModule = requireNativeModule<BleRingModuleType>('BleRing');
@@ -80,3 +99,8 @@ export const triggerRing = () => BleRingModule.triggerRing();
 export const stopRing = () => BleRingModule.stopRing();
 export const setSilentRing = (silent: boolean) => BleRingModule.setSilentRing(silent);
 export const isSilentRing = () => BleRingModule.isSilentRing();
+export const stopTorch = () => BleRingModule.stopTorch();
+export const hasRemoteControlAccess = () => BleRingModule.hasRemoteControlAccess();
+export const requestRemoteControlAccess = () => BleRingModule.requestRemoteControlAccess();
+export const setRingerMode = (mode: string) => BleRingModule.setRingerMode(mode);
+export const adjustRingerVolume = (direction: string) => BleRingModule.adjustRingerVolume(direction);
