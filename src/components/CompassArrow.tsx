@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Polygon } from 'react-native-svg';
 
 import { bearingDegrees, distanceMeters, formatDistance, proximityStatus } from '../lib/geo';
 
@@ -93,25 +94,33 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
             {
               transform: [
                 {
-                  // Ionicons' "navigate" glyph doesn't point straight up by
-                  // default -- its tip sits at (448,64) in a 512x512 box
-                  // (confirmed directly from the bundled SVG path), i.e.
-                  // bearing 45°/NE from center, not 0°/N. Left uncorrected,
-                  // the arrow was always rendered 45° clockwise from the
-                  // true target direction. Shifting the whole interpolation
-                  // range by -45° compensates for that fixed offset while
-                  // keeping `rotation`'s own value equal to the true
-                  // bearing-relative-to-heading (0-360, used elsewhere).
+                  // A previous fix compensated for Ionicons' "navigate" glyph
+                  // not pointing straight up by default (tip at bearing
+                  // 45°/NE, confirmed from its SVG path) -- that offset still
+                  // didn't fully resolve reported direction inaccuracy, which
+                  // left the icon's *exact* bundled orientation as one
+                  // remaining unknown (the compensation was derived from the
+                  // ionicons GitHub source, not necessarily byte-identical to
+                  // whatever version is actually bundled in this font).
+                  // Switching to a custom-drawn SVG triangle removes that
+                  // uncertainty entirely: the coordinates below are authored
+                  // here, so "points straight up at rotate(0deg)" is true by
+                  // construction, not by inference -- no compensation offset
+                  // needed. Any remaining inaccuracy is now isolated to the
+                  // bearing/heading math or device sensor conditions, not
+                  // icon rendering.
                   rotate: rotation.interpolate({
                     inputRange: [0, 360],
-                    outputRange: ['-45deg', '315deg'],
+                    outputRange: ['0deg', '360deg'],
                   }),
                 },
               ],
             },
           ]}
         >
-          <Ionicons name="navigate" size={76} color="#e11d74" />
+          <Svg width={76} height={76} viewBox="0 0 24 24">
+            <Polygon points="12,1 19,21 12,16 5,21" fill="#e11d74" />
+          </Svg>
         </Animated.View>
       </View>
       <Text style={styles.distanceText}>{formatDistance(distance!)}</Text>
