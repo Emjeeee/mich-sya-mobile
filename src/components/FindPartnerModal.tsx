@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -46,6 +47,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
     partnerPresence,
     starting,
     error,
+    needsBackgroundLocationSettings,
     startFinding,
     stopFinding,
   } = useFindPartner(coupleId);
@@ -116,6 +118,11 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
           showsVerticalScrollIndicator={false}
         >
           {error && <Text style={styles.error}>{error}</Text>}
+          {needsBackgroundLocationSettings && (
+            <Pressable style={styles.settingsButton} onPress={() => Linking.openSettings()}>
+              <Text style={styles.settingsButtonText}>Buka Pengaturan</Text>
+            </Pressable>
+          )}
 
           <CompassArrow
             myLocation={myLocation}
@@ -268,6 +275,19 @@ const styles = StyleSheet.create({
     color: '#c0392b',
     textAlign: 'center',
     marginTop: 8,
+  },
+  settingsButton: {
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#c0392b',
+    marginTop: 8,
+  },
+  settingsButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#c0392b',
   },
   actions: {
     gap: 12,

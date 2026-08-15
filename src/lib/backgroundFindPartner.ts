@@ -53,19 +53,31 @@ TaskManager.defineTask(FIND_PARTNER_TASK_NAME, async ({ data, error }) => {
   );
 });
 
-// Returns false if location permission isn't granted -- the caller decides how to
-// surface that (this function itself can't show a permission UI from a background task).
-export async function startFindPartnerTracking(coupleId: string, userId: string): Promise<boolean> {
+export type StartFindPartnerResult = 'ok' | 'foreground-denied' | 'background-denied';
+
+// The caller decides how to surface a non-'ok' result (this function itself can't
+// show a permission UI from a background task). 'background-denied' specifically
+// means: on Android 11+ (and especially on OEM skins like Samsung's), the OS often
+// won't offer "Allow all the time" in the same dialog chained right after the
+// foreground grant at all -- requestBackgroundPermissionsAsync() can resolve
+// immediately without ever really showing a dialog, which is why this looked like
+// the screen just flickering. The only reliable fix on those devices is sending the
+// user to the app's own permission settings screen to pick "Allow all the time"
+// manually -- see the "Buka Pengaturan" button in FindPartnerModal.tsx.
+export async function startFindPartnerTracking(
+  coupleId: string,
+  userId: string
+): Promise<StartFindPartnerResult> {
   await AsyncStorage.setItem(
     ACTIVE_FIND_KEY,
     JSON.stringify({ coupleId, userId, startedAt: Date.now() } satisfies ActiveFindRef)
   );
 
   const foreground = await Location.requestForegroundPermissionsAsync();
-  if (foreground.status !== 'granted') return false;
+  if (foreground.status !== 'granted') return 'foreground-denied';
 
   const background = await Location.requestBackgroundPermissionsAsync();
-  if (background.status !== 'granted') return false;
+  if (background.status !== 'granted') return 'background-denied';
 
   const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(
     FIND_PARTNER_TASK_NAME
@@ -82,7 +94,7 @@ export async function startFindPartnerTracking(coupleId: string, userId: string)
       },
     });
   }
-  return true;
+  return 'ok';
 }
 
 export async function stopFindPartnerTracking(coupleId: string, userId: string) {

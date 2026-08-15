@@ -12,6 +12,7 @@ export function useFindPartner(coupleId: string | null) {
   const [partnerPresence, setPartnerPresence] = useState<PartnerPresence | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsBackgroundLocationSettings, setNeedsBackgroundLocationSettings] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
@@ -73,10 +74,22 @@ export function useFindPartner(coupleId: string | null) {
     if (!coupleId || !myUserId) return;
     setStarting(true);
     setError(null);
+    setNeedsBackgroundLocationSettings(false);
 
-    const started = await startFindPartnerTracking(coupleId, myUserId);
-    if (!started) {
-      setError('Izin lokasi (termasuk latar belakang) diperlukan untuk mencari pasangan.');
+    const result = await startFindPartnerTracking(coupleId, myUserId);
+    if (result === 'foreground-denied') {
+      setError('Izin lokasi diperlukan untuk mencari pasangan.');
+      setStarting(false);
+      return;
+    }
+    if (result === 'background-denied') {
+      // On Android 11+ (especially on Samsung/OEM skins), requesting background
+      // location right after foreground often can't show a dialog with "Allow all
+      // the time" at all -- it just resolves immediately, which looks like the
+      // screen flickering. Only a trip to the app's own settings screen actually
+      // works here.
+      setError('Izin lokasi "Izinkan selalu" diperlukan. Buka Pengaturan untuk mengizinkannya.');
+      setNeedsBackgroundLocationSettings(true);
       setStarting(false);
       return;
     }
@@ -97,6 +110,7 @@ export function useFindPartner(coupleId: string | null) {
     partnerPresence,
     starting,
     error,
+    needsBackgroundLocationSettings,
     startFinding,
     stopFinding,
   };
