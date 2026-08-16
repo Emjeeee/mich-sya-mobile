@@ -70,22 +70,35 @@ interface BleRingModuleType {
   /**
    * Whether this device has granted "Do Not Disturb access" -- required
    * (separately from any PermissionsAndroid runtime permission) before
-   * setRingerMode/setRingerVolume below will actually work. See
-   * src/lib/remoteControl.ts.
+   * setRingerMode/setStreamVolume below will actually work for the
+   * "ring"/"notification" streams. See src/lib/remoteControl.ts.
    */
   hasRemoteControlAccess(): Promise<boolean>;
   /** Opens system Settings for the user to grant DND access manually -- can't be requested programmatically. */
   requestRemoteControlAccess(): Promise<boolean>;
   /** Sets this device's own ringer mode; resolves false if DND access isn't granted or `mode` is unrecognized. */
   setRingerMode(mode: string): Promise<boolean>;
-  /** Sets this device's own ring volume to an exact 0-100 percent; same DND access gate as setRingerMode. */
-  setRingerVolume(percent: number): Promise<boolean>;
   /**
-   * Reads this device's current ringer mode + ring volume (0-100, normalized
-   * since the actual step count varies by device). Plain getters -- unlike
-   * setRingerMode/setRingerVolume, no DND access needed.
+   * Sets one of this device's own 4 user-facing volume streams (matches the
+   * 4 sliders in Android's own system volume panel on both the A9 and the
+   * Vivo) to an exact 0-100 percent. Only "ring"/"notification" need DND
+   * access granted first (same gate as setRingerMode) -- "media"/"alarm"
+   * don't, since Android doesn't tie them to ringer mode at all.
    */
-  getRingerState(): Promise<{ mode: 'normal' | 'vibrate' | 'silent'; volumePercent: number } | null>;
+  setStreamVolume(stream: 'ring' | 'notification' | 'media' | 'alarm', percent: number): Promise<boolean>;
+  /**
+   * Reads this device's current ringer mode + all 4 stream volumes (each
+   * 0-100, normalized since the actual step count varies by device/stream).
+   * Plain getters -- unlike setRingerMode/setStreamVolume, no DND access
+   * needed for any of these.
+   */
+  getVolumeState(): Promise<{
+    mode: 'normal' | 'vibrate' | 'silent';
+    ring: number;
+    notification: number;
+    media: number;
+    alarm: number;
+  } | null>;
   /**
    * Whether this device has exempted the app from Doze/App Standby battery
    * restrictions. OEMs with aggressive background-kill policies (Vivo,
@@ -121,7 +134,8 @@ export const stopTorch = () => BleRingModule.stopTorch();
 export const hasRemoteControlAccess = () => BleRingModule.hasRemoteControlAccess();
 export const requestRemoteControlAccess = () => BleRingModule.requestRemoteControlAccess();
 export const setRingerMode = (mode: string) => BleRingModule.setRingerMode(mode);
-export const setRingerVolume = (percent: number) => BleRingModule.setRingerVolume(percent);
-export const getRingerState = () => BleRingModule.getRingerState();
+export const setStreamVolume = (stream: 'ring' | 'notification' | 'media' | 'alarm', percent: number) =>
+  BleRingModule.setStreamVolume(stream, percent);
+export const getVolumeState = () => BleRingModule.getVolumeState();
 export const hasBatteryOptimizationExemption = () => BleRingModule.hasBatteryOptimizationExemption();
 export const requestBatteryOptimizationExemption = () => BleRingModule.requestBatteryOptimizationExemption();

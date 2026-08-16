@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
-import { setRingerMode, setRingerVolume, stopTorch, triggerRing, triggerTorch } from 'ble-ring';
+import { setRingerMode, setStreamVolume, stopTorch, triggerRing, triggerTorch } from 'ble-ring';
 
 import { startFindPartnerTracking } from './backgroundFindPartner';
 import { notifyRingSignal } from './ringSignal';
@@ -75,12 +75,16 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
       }
     }
 
-    if (payload.type === 'set_ringer_volume' && typeof payload.percent === 'number') {
-      console.log('[michsya] background task: set_ringer_volume payload received');
+    if (
+      payload.type === 'set_stream_volume' &&
+      typeof payload.stream === 'string' &&
+      typeof payload.percent === 'number'
+    ) {
+      console.log('[michsya] background task: set_stream_volume payload received', { stream: payload.stream });
       try {
-        await setRingerVolume(payload.percent);
+        await setStreamVolume(payload.stream as 'ring' | 'notification' | 'media' | 'alarm', payload.percent);
       } catch (err) {
-        console.warn('[michsya] setRingerVolume() failed:', err);
+        console.warn('[michsya] setStreamVolume() failed:', err);
       }
     }
 

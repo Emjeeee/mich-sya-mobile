@@ -196,32 +196,46 @@ class BleRingModule : Module() {
     // FLAG_SHOW_UI -- this device's owner isn't the one who triggered the
     // change, so the system volume overlay popping up unprompted would be
     // confusing.
-    AsyncFunction("setRingerVolume") { percent: Int, promise: Promise ->
+    //
+    // `stream` is one of "ring"/"notification"/"media"/"alarm" -- matches the
+    // 4 sliders Android's own system volume panel shows on both the A9 and
+    // the Vivo. Only ring/notification are "ringer mode affected streams"
+    // (confirmed via `dumpsys audio` -- alongside SYSTEM/DTMF, which this app
+    // has no UI for) and therefore need the DND access gate; media/alarm are
+    // plain per-app-inaccessible-otherwise streams with no such restriction.
+    AsyncFunction("setStreamVolume") { stream: String, percent: Int, promise: Promise ->
       try {
-        val nm = context.getSystemService(NotificationManager::class.java)
-        if (!nm.isNotificationPolicyAccessGranted) {
+        val streamId = streamIdFor(stream)
+        if (streamId == null) {
           promise.resolve(false)
           return@AsyncFunction
         }
+        if (streamId == AudioManager.STREAM_RING || streamId == AudioManager.STREAM_NOTIFICATION) {
+          val nm = context.getSystemService(NotificationManager::class.java)
+          if (!nm.isNotificationPolicyAccessGranted) {
+            promise.resolve(false)
+            return@AsyncFunction
+          }
+        }
         val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val max = am.getStreamMaxVolume(AudioManager.STREAM_RING)
-        val min = am.getStreamMinVolume(AudioManager.STREAM_RING)
+        val max = am.getStreamMaxVolume(streamId)
+        val min = am.getStreamMinVolume(streamId)
         val clampedPercent = percent.coerceIn(0, 100)
         val level = (min + (clampedPercent / 100.0) * (max - min)).toInt().coerceIn(min, max)
-        am.setStreamVolume(AudioManager.STREAM_RING, level, 0)
+        am.setStreamVolume(streamId, level, 0)
         promise.resolve(true)
       } catch (e: Exception) {
         promise.resolve(false)
       }
     }
 
-    // Reads *this* device's current ringer mode + ring volume -- plain
-    // getters, unlike the setters above these need no special permission at
-    // all. Lets the controlling account's UI show what the partner's phone
-    // is *currently* set to before making any change, instead of guessing
-    // blind. Volume is normalized to 0-100 since STREAM_RING's actual step
-    // count varies by device/OEM.
-    AsyncFunction("getRingerState") { promise: Promise ->
+    // Reads *this* device's current ringer mode + all 4 stream volumes --
+    // plain getters, unlike setStreamVolume/setRingerMode these need no
+    // special permission at all. Lets the controlling account's UI show what
+    // the partner's phone is *currently* set to before making any change,
+    // instead of guessing blind. Each volume is normalized to 0-100 since
+    // the actual step count varies by device/OEM/stream.
+    AsyncFunction("getVolumeState") { promise: Promise ->
       try {
         val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val mode = when (am.ringerMode) {
@@ -230,11 +244,22 @@ class BleRingModule : Module() {
           AudioManager.RINGER_MODE_SILENT -> "silent"
           else -> "normal"
         }
-        val max = am.getStreamMaxVolume(AudioManager.STREAM_RING)
-        val min = am.getStreamMinVolume(AudioManager.STREAM_RING)
-        val current = am.getStreamVolume(AudioManager.STREAM_RING)
-        val percent = if (max > min) (((current - min).toDouble() / (max - min)) * 100).toInt() else 0
-        promise.resolve(mapOf("mode" to mode, "volumePercent" to percent.coerceIn(0, 100)))
+        fun percentFor(streamId: Int): Int {
+          val max = am.getStreamMaxVolume(streamId)
+          val min = am.getStreamMinVolume(streamId)
+          val current = am.getStreamVolume(streamId)
+          val percent = if (max > min) (((current - min).toDouble() / (max - min)) * 100).toInt() else 0
+          return percent.coerceIn(0, 100)
+        }
+        promise.resolve(
+          mapOf(
+            "mode" to mode,
+            "ring" to percentFor(AudioManager.STREAM_RING),
+            "notification" to percentFor(AudioManager.STREAM_NOTIFICATION),
+            "media" to percentFor(AudioManager.STREAM_MUSIC),
+            "alarm" to percentFor(AudioManager.STREAM_ALARM)
+          )
+        )
       } catch (e: Exception) {
         promise.resolve(null)
       }
@@ -277,6 +302,14 @@ class BleRingModule : Module() {
         promise.resolve(false)
       }
     }
+  }
+
+  private fun streamIdFor(stream: String): Int? = when (stream) {
+    "ring" -> AudioManager.STREAM_RING
+    "notification" -> AudioManager.STREAM_NOTIFICATION
+    "media" -> AudioManager.STREAM_MUSIC
+    "alarm" -> AudioManager.STREAM_ALARM
+    else -> null
   }
 
   private fun patternKindByte(kind: String): Byte = when (kind) {

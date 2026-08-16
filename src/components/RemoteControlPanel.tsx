@@ -6,7 +6,8 @@ import { isSilentRingEligible } from '../lib/silentRing';
 import {
   getPartnerRemoteControlState,
   setPartnerRingerMode,
-  setPartnerRingerVolume,
+  setPartnerStreamVolume,
+  type VolumeStream,
 } from '../lib/remoteControl';
 import { supabase } from '../lib/supabase';
 
@@ -16,31 +17,45 @@ const MODES: { value: 'normal' | 'vibrate' | 'silent'; label: string }[] = [
   { value: 'silent', label: '🔇 Senyap' },
 ];
 
+// Matches the 4 sliders Android's own system volume panel shows (confirmed
+// on both the Samsung A9 and the Vivo V51 5G) -- ring/notification are the
+// only two gated behind "Do Not Disturb access"; media/alarm need no such
+// permission at all.
+const STREAMS: { value: VolumeStream; label: string }[] = [
+  { value: 'ring', label: '🔔 Nada dering' },
+  { value: 'notification', label: '📩 Notifikasi' },
+  { value: 'media', label: '🎵 Media' },
+  { value: 'alarm', label: '⏰ Alarm' },
+];
+
+type VolumeMap = Record<VolumeStream, number>;
+const DEFAULT_VOLUMES: VolumeMap = { ring: 50, notification: 50, media: 50, alarm: 50 };
+
 // Only ever visible for one specific account (see silentRing.ts) -- lets
-// that account remotely change the *partner's* phone ringer mode/volume.
-// Fundamentally different from SilentRingToggle.tsx, which only ever
-// affects the signed-in account's own device.
+// that account remotely change the *partner's* phone ringer mode + all 4
+// volume streams. Fundamentally different from SilentRingToggle.tsx, which
+// only ever affects the signed-in account's own device.
 //
-// setPartnerRingerMode()/setPartnerRingerVolume() only confirm the push was
+// setPartnerRingerMode()/setPartnerStreamVolume() only confirm the push was
 // *delivered* -- Expo accepts it well before the partner's device even
 // wakes up to process it, so a `true` result says nothing about whether the
 // native call on her end actually succeeded. The single most likely reason
-// it wouldn't (she hasn't granted "Do Not Disturb access" yet) happens
-// silently in a background task with no UI, so relying on the send-side
-// result alone reproduces exactly what was reported: looks like nothing
-// happened, with no indication why. This reads her last-reported grant
-// status + current mode/volume (written by RemoteControlAccess.tsx on her
-// device) so that failure mode is visible up front, and the mode chip/
-// volume slider start from her phone's *actual* current state instead of a
-// blind guess.
+// it wouldn't for ring/notification (she hasn't granted "Do Not Disturb
+// access" yet) happens silently in a background task with no UI, so relying
+// on the send-side result alone reproduces exactly what was reported: looks
+// like nothing happened, with no indication why. This reads her
+// last-reported grant status + current mode/volumes (written by
+// RemoteControlAccess.tsx on her device) so that failure mode is visible up
+// front, and the mode chip/volume sliders start from her phone's *actual*
+// current state instead of a blind guess.
 export default function RemoteControlPanel({ coupleId }: { coupleId: string | null }) {
   const [eligible, setEligible] = useState(false);
   const [partnerGranted, setPartnerGranted] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [mode, setMode] = useState<'normal' | 'vibrate' | 'silent' | null>(null);
-  const [volumePercent, setVolumePercent] = useState(50);
-  const [sliding, setSliding] = useState(false);
+  const [volumes, setVolumes] = useState<VolumeMap>(DEFAULT_VOLUMES);
+  const [slidingStream, setSlidingStream] = useState<VolumeStream | null>(null);
   // "Terkirim" only means the push was delivered, not that the native call
   // finished running on the partner's device -- both mode and volume changes
   // have little/no visible UI on her screen (no FLAG_SHOW_UI for volume, and
@@ -59,15 +74,21 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
     getPartnerRemoteControlState(coupleId, userId)
       .then((state) => {
         setPartnerGranted(state.granted);
-        // Only adopt the reported state when there isn't a slider drag in
-        // flight -- a refresh landing mid-drag would otherwise yank the
-        // thumb out from under the user's finger.
         if (state.mode) setMode(state.mode);
-        if (state.volumePercent !== null && !sliding) setVolumePercent(state.volumePercent);
+        // Only adopt each reported value when that particular slider isn't
+        // being dragged right now -- a refresh landing mid-drag would
+        // otherwise yank the thumb out from under the user's finger.
+        setVolumes((prev) => ({
+          ring: slidingStream === 'ring' || state.ring === null ? prev.ring : state.ring,
+          notification:
+            slidingStream === 'notification' || state.notification === null ? prev.notification : state.notification,
+          media: slidingStream === 'media' || state.media === null ? prev.media : state.media,
+          alarm: slidingStream === 'alarm' || state.alarm === null ? prev.alarm : state.alarm,
+        }));
       })
       .catch(() => setPartnerGranted(null))
       .finally(() => setCheckingAccess(false));
-  }, [coupleId, userId, sliding]);
+  }, [coupleId, userId, slidingStream]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -120,10 +141,10 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
     flashSent(`Mode "${MODES.find((m) => m.value === value)?.label ?? value}" terkirim`);
   };
 
-  const commitVolume = async (value: number) => {
-    setSliding(false);
+  const commitVolume = async (stream: VolumeStream, value: number) => {
+    setSlidingStream(null);
     const rounded = Math.round(value);
-    const sent = await setPartnerRingerVolume(coupleId, rounded);
+    const sent = await setPartnerStreamVolume(coupleId, stream, rounded);
     if (!sent) {
       Alert.alert(
         'Gagal',
@@ -131,7 +152,7 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
       );
       return;
     }
-    flashSent(`Volume ${rounded}% terkirim`);
+    flashSent(`${STREAMS.find((s) => s.value === stream)?.label ?? stream} ${rounded}% terkirim`);
   };
 
   return (
@@ -142,8 +163,8 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
       ) : partnerGranted === false || partnerGranted === null ? (
         <Text style={styles.warningText}>
           {partnerGranted === null
-            ? 'Belum diketahui apakah pasangan sudah mengizinkan akses. Tombol di bawah mungkin tidak berpengaruh.'
-            : 'Pasangan belum mengizinkan akses di Pengaturan -- tombol di bawah tidak akan berpengaruh sampai dia mengizinkannya.'}
+            ? 'Belum diketahui apakah pasangan sudah mengizinkan akses. Nada dering/notifikasi di bawah mungkin tidak berpengaruh (Media/Alarm tetap bisa).'
+            : 'Pasangan belum mengizinkan akses di Pengaturan -- nada dering/notifikasi di bawah tidak akan berpengaruh sampai dia mengizinkannya (Media/Alarm tetap bisa).'}
         </Text>
       ) : null}
       {lastSent && <Text style={styles.sentText}>✓ {lastSent} -- perubahan tidak selalu terlihat di layar pasangan.</Text>}
@@ -160,24 +181,28 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
         ))}
       </View>
 
-      <View style={styles.volumeRow}>
-        <Text style={styles.volumeLabel}>🔊 Volume</Text>
-        <Text style={styles.volumeValue}>{Math.round(volumePercent)}%</Text>
-      </View>
-      <Slider
-        minimumValue={0}
-        maximumValue={100}
-        step={1}
-        value={volumePercent}
-        onValueChange={(value) => {
-          setSliding(true);
-          setVolumePercent(value);
-        }}
-        onSlidingComplete={commitVolume}
-        minimumTrackTintColor="#e11d74"
-        maximumTrackTintColor="#fdeef4"
-        thumbTintColor="#e11d74"
-      />
+      {STREAMS.map((s) => (
+        <View key={s.value}>
+          <View style={styles.volumeRow}>
+            <Text style={styles.volumeLabel}>{s.label}</Text>
+            <Text style={styles.volumeValue}>{Math.round(volumes[s.value])}%</Text>
+          </View>
+          <Slider
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={volumes[s.value]}
+            onValueChange={(value) => {
+              setSlidingStream(s.value);
+              setVolumes((prev) => ({ ...prev, [s.value]: value }));
+            }}
+            onSlidingComplete={(value) => commitVolume(s.value, value)}
+            minimumTrackTintColor="#e11d74"
+            maximumTrackTintColor="#fdeef4"
+            thumbTintColor="#e11d74"
+          />
+        </View>
+      ))}
     </View>
   );
 }
