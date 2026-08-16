@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { isSilentRingEligible } from '../lib/silentRing';
@@ -31,6 +31,14 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
   const [partnerGranted, setPartnerGranted] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  // "Terkirim" only means the push was delivered, not that setRingerMode/
+  // adjustRingerVolume finished running on the partner's device -- both
+  // native calls have zero visible UI (no FLAG_SHOW_UI for volume, and
+  // ringer-mode changes only touch a small status-bar icon), which was
+  // being misread as "nothing happened" even when it fully worked. This is
+  // a lightweight *attempt* confirmation, not proof of the actual outcome.
+  const [lastSent, setLastSent] = useState<string | null>(null);
+  const lastSentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshPartnerAccess = useCallback(() => {
     if (!coupleId || !userId) {
@@ -64,6 +72,18 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
     return () => subscription.remove();
   }, [refreshPartnerAccess]);
 
+  useEffect(() => {
+    return () => {
+      if (lastSentTimer.current) clearTimeout(lastSentTimer.current);
+    };
+  }, []);
+
+  const flashSent = (label: string) => {
+    if (lastSentTimer.current) clearTimeout(lastSentTimer.current);
+    setLastSent(label);
+    lastSentTimer.current = setTimeout(() => setLastSent(null), 2500);
+  };
+
   if (!eligible) return null;
 
   const chooseMode = async (mode: 'normal' | 'vibrate' | 'silent') => {
@@ -73,7 +93,9 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
         'Gagal',
         'Tidak bisa ubah mode HP pasangan. Pastikan dia sudah mengizinkan akses di Pengaturan.'
       );
+      return;
     }
+    flashSent(`Perintah mode "${MODES.find((m) => m.value === mode)?.label ?? mode}" terkirim`);
   };
 
   const adjustVolume = async (direction: 'up' | 'down') => {
@@ -83,7 +105,9 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
         'Gagal',
         'Tidak bisa ubah volume HP pasangan. Pastikan dia sudah mengizinkan akses di Pengaturan.'
       );
+      return;
     }
+    flashSent(`Perintah volume ${direction === 'up' ? '+' : '-'} terkirim`);
   };
 
   return (
@@ -98,6 +122,7 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
             : 'Pasangan belum mengizinkan akses di Pengaturan -- tombol di bawah tidak akan berpengaruh sampai dia mengizinkannya.'}
         </Text>
       ) : null}
+      {lastSent && <Text style={styles.sentText}>✓ {lastSent} -- perubahan tidak selalu terlihat di layar pasangan.</Text>}
       <View style={styles.row}>
         {MODES.map((m) => (
           <Pressable key={m.value} style={styles.chip} onPress={() => chooseMode(m.value)}>
@@ -131,6 +156,10 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 12,
     color: '#c0392b',
+  },
+  sentText: {
+    fontSize: 12,
+    color: '#2e7d32',
   },
   row: {
     flexDirection: 'row',
