@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import BatteryOptimizationNotice from './BatteryOptimizationNotice';
 import CompassArrow from './CompassArrow';
 import RemoteControlAccess from './RemoteControlAccess';
 import RemoteControlPanel from './RemoteControlPanel';
@@ -152,6 +153,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
               )}
             </Pressable>
 
+            <BatteryOptimizationNotice />
             <SilentRingToggle />
             <RemoteControlAccess coupleId={coupleId} />
             <RemoteControlPanel coupleId={coupleId} />

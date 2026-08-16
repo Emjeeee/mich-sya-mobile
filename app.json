@@ -37,7 +37,8 @@
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.SEND_SMS",
         "android.permission.RECEIVE_SMS",
-        "android.permission.ACCESS_NOTIFICATION_POLICY"
+        "android.permission.ACCESS_NOTIFICATION_POLICY",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ]
     },
     "web": {
