@@ -70,7 +70,7 @@ interface BleRingModuleType {
   /**
    * Whether this device has granted "Do Not Disturb access" -- required
    * (separately from any PermissionsAndroid runtime permission) before
-   * setRingerMode/adjustRingerVolume below will actually work. See
+   * setRingerMode/setRingerVolume below will actually work. See
    * src/lib/remoteControl.ts.
    */
   hasRemoteControlAccess(): Promise<boolean>;
@@ -78,8 +78,26 @@ interface BleRingModuleType {
   requestRemoteControlAccess(): Promise<boolean>;
   /** Sets this device's own ringer mode; resolves false if DND access isn't granted or `mode` is unrecognized. */
   setRingerMode(mode: string): Promise<boolean>;
-  /** Raises/lowers this device's own ring volume by one step; same DND access gate as setRingerMode. */
-  adjustRingerVolume(direction: string): Promise<boolean>;
+  /** Sets this device's own ring volume to an exact 0-100 percent; same DND access gate as setRingerMode. */
+  setRingerVolume(percent: number): Promise<boolean>;
+  /**
+   * Reads this device's current ringer mode + ring volume (0-100, normalized
+   * since the actual step count varies by device). Plain getters -- unlike
+   * setRingerMode/setRingerVolume, no DND access needed.
+   */
+  getRingerState(): Promise<{ mode: 'normal' | 'vibrate' | 'silent'; volumePercent: number } | null>;
+  /**
+   * Whether this device has exempted the app from Doze/App Standby battery
+   * restrictions. OEMs with aggressive background-kill policies (Vivo,
+   * Xiaomi, Oppo...) enforce this far more strictly than stock Android, and
+   * every background feature this app has (push ring/torch/remote control,
+   * the BLE scan foreground service, "Cari Pasangan" background location)
+   * depends on the process being allowed to wake up at all. See
+   * BatteryOptimizationNotice.tsx.
+   */
+  hasBatteryOptimizationExemption(): Promise<boolean>;
+  /** Launches the direct system dialog to request the exemption above -- one tap, unlike a generic Settings screen. */
+  requestBatteryOptimizationExemption(): Promise<boolean>;
 }
 
 export const BleRingModule = requireNativeModule<BleRingModuleType>('BleRing');
@@ -103,4 +121,7 @@ export const stopTorch = () => BleRingModule.stopTorch();
 export const hasRemoteControlAccess = () => BleRingModule.hasRemoteControlAccess();
 export const requestRemoteControlAccess = () => BleRingModule.requestRemoteControlAccess();
 export const setRingerMode = (mode: string) => BleRingModule.setRingerMode(mode);
-export const adjustRingerVolume = (direction: string) => BleRingModule.adjustRingerVolume(direction);
+export const setRingerVolume = (percent: number) => BleRingModule.setRingerVolume(percent);
+export const getRingerState = () => BleRingModule.getRingerState();
+export const hasBatteryOptimizationExemption = () => BleRingModule.hasBatteryOptimizationExemption();
+export const requestBatteryOptimizationExemption = () => BleRingModule.requestBatteryOptimizationExemption();

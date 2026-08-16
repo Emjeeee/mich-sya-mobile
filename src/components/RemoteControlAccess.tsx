@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
-import { hasRemoteControlAccess, requestRemoteControlAccess } from 'ble-ring';
+import { getRingerState, hasRemoteControlAccess, requestRemoteControlAccess } from 'ble-ring';
 
 import { isSilentRingEligible } from '../lib/silentRing';
 import { reportRemoteControlAccessStatus } from '../lib/remoteControl';
@@ -17,12 +17,14 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
 
   const refresh = useCallback(() => {
     hasRemoteControlAccess()
-      .then((value) => {
+      .then(async (value) => {
         setGranted(value);
-        // Best-effort -- if this fails (offline, no couple yet) the
-        // controlling account just sees a stale/unknown status, same as
-        // any other sync gap in this app.
-        if (coupleId) reportRemoteControlAccessStatus(coupleId, value).catch(() => {});
+        // Best-effort -- if any of this fails (offline, no couple yet) the
+        // controlling account just sees a stale/unknown status, same as any
+        // other sync gap in this app. Ringer state is read regardless of
+        // `value` -- reading it needs no DND access, only setting it does.
+        const ringerState = await getRingerState().catch(() => null);
+        if (coupleId) reportRemoteControlAccessStatus(coupleId, value, ringerState).catch(() => {});
       })
       .catch(() => setGranted(false));
   }, [coupleId]);

@@ -8,10 +8,12 @@ import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
+import android.os.PowerManager
 import android.provider.Settings
 import android.telephony.SmsManager
 import androidx.core.content.ContextCompat
@@ -187,29 +189,89 @@ class BleRingModule : Module() {
       }
     }
 
-    // Raises/lowers this device's own ring volume by one step -- same DND
-    // access gate as setRingerMode above (adjusting STREAM_RING can hit the
-    // same restriction when it would affect DND state). No FLAG_SHOW_UI --
-    // this device's owner isn't the one who triggered the change, so the
-    // system volume overlay popping up unprompted would be confusing.
-    AsyncFunction("adjustRingerVolume") { direction: String, promise: Promise ->
+    // Sets *this* device's ring volume to an exact percent (0-100) -- lets
+    // the controlling account's slider UI pick a precise target directly.
+    // Same DND access gate as setRingerMode above (adjusting STREAM_RING can
+    // hit the same restriction when it would affect DND state). No
+    // FLAG_SHOW_UI -- this device's owner isn't the one who triggered the
+    // change, so the system volume overlay popping up unprompted would be
+    // confusing.
+    AsyncFunction("setRingerVolume") { percent: Int, promise: Promise ->
       try {
         val nm = context.getSystemService(NotificationManager::class.java)
         if (!nm.isNotificationPolicyAccessGranted) {
           promise.resolve(false)
           return@AsyncFunction
         }
-        val adjustment = when (direction) {
-          "up" -> AudioManager.ADJUST_RAISE
-          "down" -> AudioManager.ADJUST_LOWER
-          else -> null
-        }
-        if (adjustment == null) {
-          promise.resolve(false)
-          return@AsyncFunction
-        }
         val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        am.adjustStreamVolume(AudioManager.STREAM_RING, adjustment, 0)
+        val max = am.getStreamMaxVolume(AudioManager.STREAM_RING)
+        val min = am.getStreamMinVolume(AudioManager.STREAM_RING)
+        val clampedPercent = percent.coerceIn(0, 100)
+        val level = (min + (clampedPercent / 100.0) * (max - min)).toInt().coerceIn(min, max)
+        am.setStreamVolume(AudioManager.STREAM_RING, level, 0)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
+
+    // Reads *this* device's current ringer mode + ring volume -- plain
+    // getters, unlike the setters above these need no special permission at
+    // all. Lets the controlling account's UI show what the partner's phone
+    // is *currently* set to before making any change, instead of guessing
+    // blind. Volume is normalized to 0-100 since STREAM_RING's actual step
+    // count varies by device/OEM.
+    AsyncFunction("getRingerState") { promise: Promise ->
+      try {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val mode = when (am.ringerMode) {
+          AudioManager.RINGER_MODE_NORMAL -> "normal"
+          AudioManager.RINGER_MODE_VIBRATE -> "vibrate"
+          AudioManager.RINGER_MODE_SILENT -> "silent"
+          else -> "normal"
+        }
+        val max = am.getStreamMaxVolume(AudioManager.STREAM_RING)
+        val min = am.getStreamMinVolume(AudioManager.STREAM_RING)
+        val current = am.getStreamVolume(AudioManager.STREAM_RING)
+        val percent = if (max > min) (((current - min).toDouble() / (max - min)) * 100).toInt() else 0
+        promise.resolve(mapOf("mode" to mode, "volumePercent" to percent.coerceIn(0, 100)))
+      } catch (e: Exception) {
+        promise.resolve(null)
+      }
+    }
+
+    // Separate from ACCESS_NOTIFICATION_POLICY above -- this is Android's
+    // Doze/App Standby battery-saver exemption, which OEMs with aggressive
+    // background-kill policies (Vivo's FunTouch/OriginOS, Xiaomi's MIUI,
+    // Oppo's ColorOS...) enforce far more strictly than stock Android. Every
+    // background feature this app has -- push-triggered ring/torch/remote
+    // control, the BLE scan foreground service, background location for
+    // "Cari Pasangan" -- depends on the process actually being allowed to
+    // wake up and run, which these OEMs can silently prevent even when every
+    // normal permission is already granted. This is the one exemption that's
+    // requestable through a standard system dialog; Vivo's separate
+    // "autostart manager" has no public API at all and can only be turned on
+    // by the user manually (see the note surfaced in the app UI).
+    AsyncFunction("hasBatteryOptimizationExemption") { promise: Promise ->
+      try {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        promise.resolve(pm.isIgnoringBatteryOptimizations(context.packageName))
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
+
+    // Launches the direct "allow this app to ignore battery optimizations?"
+    // system dialog (not a generic Settings screen) -- one tap for the user,
+    // unlike requestRemoteControlAccess above which can only open Settings
+    // and let them find the toggle themselves.
+    AsyncFunction("requestBatteryOptimizationExemption") { promise: Promise ->
+      try {
+        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+          data = Uri.parse("package:${context.packageName}")
+          flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
         promise.resolve(true)
       } catch (e: Exception) {
         promise.resolve(false)
