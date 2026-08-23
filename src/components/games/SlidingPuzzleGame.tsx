@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -34,6 +36,7 @@ function shuffledBoard(): number[] {
 }
 
 export function SlidingPuzzleGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [board, setBoard] = useState<number[]>(shuffledBoard);
   const [moves, setMoves] = useState(0);
   const [recorded, setRecorded] = useState(false);
@@ -66,19 +69,24 @@ export function SlidingPuzzleGame({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       <View style={styles.headerRow}>
-        <Text style={styles.muted}>Urutkan angka 1-15</Text>
-        <Text style={styles.score}>{moves} langkah</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Urutkan angka 1-15</Text>
+        <Text style={[styles.score, isArtDeco && deco.score]}>{moves} langkah</Text>
       </View>
 
       <View style={styles.grid}>
         {board.map((value, i) => (
-          <Pressable key={i} onPress={() => handleTileClick(i)} disabled={value === 0} style={styles.tile}>
-            <Text style={styles.tileText}>{value !== 0 ? value : ''}</Text>
+          <Pressable
+            key={i}
+            onPress={() => handleTileClick(i)}
+            disabled={value === 0}
+            style={[styles.tile, isArtDeco && deco.tile]}
+          >
+            <Text style={[styles.tileText, isArtDeco && deco.tileText]}>{value !== 0 ? value : ''}</Text>
           </Pressable>
         ))}
       </View>
 
-      {won && <Text style={styles.resultText}>Selesai dalam {moves} langkah! 🎉</Text>}
+      {won && <Text style={[styles.resultText, isArtDeco && deco.resultText]}>Selesai dalam {moves} langkah! 🎉</Text>}
 
       <GameButton variant="secondary" onPress={reset}>
         {won ? 'Main Lagi' : 'Acak Ulang'}
@@ -130,5 +138,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  score: {
+    color: artDeco.color.gold,
+  },
+  tile: {
+    backgroundColor: artDeco.color.surface2,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  tileText: {
+    color: artDeco.color.ink,
+  },
+  resultText: {
+    color: artDeco.color.ink,
   },
 });

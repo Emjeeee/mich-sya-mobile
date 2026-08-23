@@ -5,6 +5,8 @@ import { getVolumeState, hasRemoteControlAccess, requestRemoteControlAccess } fr
 import { isSilentRingEligible } from '../lib/silentRing';
 import { reportRemoteControlAccessStatus } from '../lib/remoteControl';
 import { supabase } from '../lib/supabase';
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
 
 // Only ever visible for the *other* account (not mjonathann.03 -- reusing
 // isSilentRingEligible inverted, since it's already the "is this the
@@ -12,6 +14,7 @@ import { supabase } from '../lib/supabase';
 // Disturb access", which RemoteControlPanel.tsx's mode/volume buttons need
 // to actually work on this device. See src/lib/remoteControl.ts.
 export default function RemoteControlAccess({ coupleId }: { coupleId: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [eligible, setEligible] = useState(false);
   const [granted, setGranted] = useState<boolean | null>(null);
 
@@ -50,9 +53,9 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Izinkan pasangan atur mode HP kamu dari jauh</Text>
-      <Pressable style={styles.button} onPress={() => requestRemoteControlAccess()}>
-        <Text style={styles.buttonText}>Izinkan di Pengaturan</Text>
+      <Text style={[styles.label, isArtDeco && deco.label]}>Izinkan pasangan atur mode HP kamu dari jauh</Text>
+      <Pressable style={[styles.button, isArtDeco && deco.button]} onPress={() => requestRemoteControlAccess()}>
+        <Text style={[styles.buttonText, isArtDeco && deco.buttonText]}>Izinkan di Pengaturan</Text>
       </Pressable>
     </View>
   );
@@ -77,5 +80,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  label: {
+    color: artDeco.color.muted,
+  },
+  button: {
+    borderColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  buttonText: {
+    color: artDeco.color.gold,
   },
 });

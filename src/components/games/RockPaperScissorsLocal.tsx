@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MOVES, roundWinner, type Move } from '../../lib/games/rps';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
 type Phase = 'p1turn' | 'handoff' | 'p2turn' | 'reveal';
 
 export function RockPaperScissorsLocal() {
+  const { isArtDeco } = useAppTheme();
   const [phase, setPhase] = useState<Phase>('p1turn');
   const [p1Move, setP1Move] = useState<Move | null>(null);
   const [p2Move, setP2Move] = useState<Move | null>(null);
@@ -44,21 +47,21 @@ export function RockPaperScissorsLocal() {
   return (
     <GameCard>
       <View style={styles.scoreRow}>
-        <Text style={styles.scoreText}>Pemain 1: {wins.p1}</Text>
-        <Text style={styles.scoreText}>Pemain 2: {wins.p2}</Text>
+        <Text style={[styles.scoreText, isArtDeco && deco.scoreText]}>Pemain 1: {wins.p1}</Text>
+        <Text style={[styles.scoreText, isArtDeco && deco.scoreText]}>Pemain 2: {wins.p2}</Text>
       </View>
 
       {matchWinner ? (
         <View style={styles.center}>
-          <Text style={styles.resultText}>{matchWinner} menang pertandingan! 🎉</Text>
+          <Text style={[styles.resultText, isArtDeco && deco.resultText]}>{matchWinner} menang pertandingan! 🎉</Text>
           <GameButton onPress={resetMatch}>Main Lagi</GameButton>
         </View>
       ) : phase === 'p1turn' ? (
         <View style={styles.center}>
-          <Text style={styles.promptText}>Pemain 1, pilih diam-diam</Text>
+          <Text style={[styles.promptText, isArtDeco && deco.promptText]}>Pemain 1, pilih diam-diam</Text>
           <View style={styles.moveRow}>
             {MOVES.map((m) => (
-              <Pressable key={m.key} onPress={() => pickP1(m.key)} style={styles.moveButton}>
+              <Pressable key={m.key} onPress={() => pickP1(m.key)} style={[styles.moveButton, isArtDeco && deco.moveButton]}>
                 <Text style={styles.moveEmoji}>{m.emoji}</Text>
               </Pressable>
             ))}
@@ -66,15 +69,15 @@ export function RockPaperScissorsLocal() {
         </View>
       ) : phase === 'handoff' ? (
         <View style={styles.center}>
-          <Text style={styles.muted}>Serahkan HP ke Pemain 2</Text>
+          <Text style={[styles.muted, isArtDeco && deco.muted]}>Serahkan HP ke Pemain 2</Text>
           <GameButton onPress={() => setPhase('p2turn')}>Lanjut</GameButton>
         </View>
       ) : phase === 'p2turn' ? (
         <View style={styles.center}>
-          <Text style={styles.promptText}>Pemain 2, pilih diam-diam</Text>
+          <Text style={[styles.promptText, isArtDeco && deco.promptText]}>Pemain 2, pilih diam-diam</Text>
           <View style={styles.moveRow}>
             {MOVES.map((m) => (
-              <Pressable key={m.key} onPress={() => pickP2(m.key)} style={styles.moveButton}>
+              <Pressable key={m.key} onPress={() => pickP2(m.key)} style={[styles.moveButton, isArtDeco && deco.moveButton]}>
                 <Text style={styles.moveEmoji}>{m.emoji}</Text>
               </Pressable>
             ))}
@@ -84,10 +87,10 @@ export function RockPaperScissorsLocal() {
         <View style={styles.center}>
           <View style={styles.vsRow}>
             <Text style={styles.vsEmoji}>{MOVES.find((m) => m.key === p1Move)?.emoji}</Text>
-            <Text style={styles.muted}>vs</Text>
+            <Text style={[styles.muted, isArtDeco && deco.muted]}>vs</Text>
             <Text style={styles.vsEmoji}>{MOVES.find((m) => m.key === p2Move)?.emoji}</Text>
           </View>
-          <Text style={styles.resultText}>
+          <Text style={[styles.resultText, isArtDeco && deco.resultText]}>
             {outcome === 'draw' ? 'Seri!' : outcome === 'a' ? 'Pemain 1 menang ronde ini' : 'Pemain 2 menang ronde ini'}
           </Text>
           <GameButton variant="secondary" onPress={nextRound}>
@@ -149,5 +152,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  scoreText: {
+    color: artDeco.color.ink2,
+    fontFamily: artDeco.font.serifBold,
+  },
+  promptText: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  muted: {
+    color: artDeco.color.muted,
+  },
+  moveButton: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+  },
+  resultText: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
   },
 });

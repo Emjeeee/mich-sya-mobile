@@ -15,6 +15,8 @@ import {
 import { THEMES } from '../../lib/games/blockblastThemes';
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -88,6 +90,7 @@ interface BannerState {
 }
 
 export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [grid, setGrid] = useState<Grid>(emptyGrid);
   const [tray, setTray] = useState<(TrayPiece | null)[]>(randomTray);
   const [score, setScore] = useState(0);
@@ -318,18 +321,21 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
     <View ref={containerRef} onLayout={measureContainer} style={styles.wrapper}>
       <GameCard>
         <View style={styles.headerRow}>
-          <Text style={styles.muted}>Seret potongan ke kotak buat menempatkannya</Text>
+          <Text style={[styles.muted, isArtDeco && deco.muted]}>Seret potongan ke kotak buat menempatkannya</Text>
           <Animated.Text
             style={[
               styles.score,
-              { color: theme.accent, transform: [{ scale: scorePop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.25] }) }] },
+              {
+                color: isArtDeco ? artDeco.color.gold : theme.accent,
+                transform: [{ scale: scorePop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.25] }) }],
+              },
             ]}
           >
             {score}
           </Animated.Text>
         </View>
 
-        <View ref={gridRef} onLayout={measureGrid} style={styles.gridOuter}>
+        <View ref={gridRef} onLayout={measureGrid} style={[styles.gridOuter, isArtDeco && deco.gridOuter]}>
           <Animated.View
             style={[
               styles.gridInner,
@@ -420,7 +426,22 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
                   },
                 ]}
               >
-                <Text style={[styles.banner, { color: banner.light ? '#ffffff' : theme.accent }]}>{banner.text}</Text>
+                <Text
+                  style={[
+                    styles.banner,
+                    {
+                      color: banner.light
+                        ? isArtDeco
+                          ? artDeco.color.ink
+                          : '#ffffff'
+                        : isArtDeco
+                          ? artDeco.color.gold
+                          : theme.accent,
+                    },
+                  ]}
+                >
+                  {banner.text}
+                </Text>
               </Animated.View>
             )}
           </Animated.View>
@@ -467,7 +488,7 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
                   {piece && dragIndex !== i ? (
                     <PieceShape piece={piece} cellPx={10} colors={theme.blocks} />
                   ) : (
-                    <View style={styles.trayPlaceholder} />
+                    <View style={[styles.trayPlaceholder, isArtDeco && deco.trayPlaceholder]} />
                   )}
                 </View>
               </GestureDetector>
@@ -485,7 +506,7 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
               },
             ]}
           >
-            <Text style={styles.resultText}>Game selesai — skor akhir {score}</Text>
+            <Text style={[styles.resultText, isArtDeco && deco.resultText]}>Game selesai — skor akhir {score}</Text>
             <GameButton onPress={reset}>Main Lagi</GameButton>
           </Animated.View>
         )}
@@ -627,5 +648,32 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     opacity: 0.9,
+  },
+});
+
+// Chrome-only Art Deco theming for this file: score/banner accent colors,
+// muted copy, result text, tray placeholder border, and the board frame.
+// The in-game tile/board palette itself (theme.blocks/boardBg/gridLine/
+// emptyCell, from lib/games/blockblastThemes.ts) is left as-is -- it's
+// entangled with the perfect-clear reward rotation (themeIndex advances on
+// perfect clears, and the celebration banner names the *upcoming* theme), so
+// swapping it for a fixed Art Deco palette would either desync the banner's
+// promised theme name from what's shown, or require duplicating the
+// rotation/banner logic. Reskinning just the surrounding chrome is the
+// documented acceptable trade-off for this file.
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  gridOuter: {
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  trayPlaceholder: {
+    borderRadius: artDeco.radius.none,
+    borderColor: artDeco.color.lineSoft,
+  },
+  resultText: {
+    color: artDeco.color.ink,
   },
 });

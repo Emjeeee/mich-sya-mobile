@@ -3,6 +3,8 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -11,6 +13,7 @@ function randomSecret() {
 }
 
 export function NumberGuessGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [secret, setSecret] = useState(randomSecret);
   const [guess, setGuess] = useState('');
   const [history, setHistory] = useState<{ value: number; hint: string }[]>([]);
@@ -42,22 +45,22 @@ export function NumberGuessGame({ coupleId }: { coupleId?: string | null }) {
 
   return (
     <GameCard>
-      <Text style={styles.muted}>Tebak angka 1-100 yang aku pikirkan, sesedikit mungkin coba.</Text>
+      <Text style={[styles.muted, isArtDeco && deco.muted]}>Tebak angka 1-100 yang aku pikirkan, sesedikit mungkin coba.</Text>
 
       {won ? (
         <View style={styles.center}>
-          <Text style={styles.resultText}>Berhasil dalam {history.length} tebakan! 🎉</Text>
+          <Text style={[styles.resultText, isArtDeco && deco.resultText]}>Berhasil dalam {history.length} tebakan! 🎉</Text>
           <GameButton onPress={reset}>Main Lagi</GameButton>
         </View>
       ) : (
         <View style={styles.inputRow}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, isArtDeco && deco.input]}
             keyboardType="number-pad"
             value={guess}
             onChangeText={setGuess}
             placeholder="1-100"
-            placeholderTextColor="#767676"
+            placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
           />
           <GameButton onPress={handleGuess}>Tebak</GameButton>
         </View>
@@ -67,8 +70,8 @@ export function NumberGuessGame({ coupleId }: { coupleId?: string | null }) {
         <ScrollView style={styles.history}>
           {history.map((h, i) => (
             <View key={i} style={styles.historyRow}>
-              <Text style={styles.historyValue}>{h.value}</Text>
-              <Text style={styles.historyHint}>{h.hint}</Text>
+              <Text style={[styles.historyValue, isArtDeco && deco.historyValue]}>{h.value}</Text>
+              <Text style={[styles.historyHint, isArtDeco && deco.historyHint]}>{h.hint}</Text>
             </View>
           ))}
         </ScrollView>
@@ -120,5 +123,28 @@ const styles = StyleSheet.create({
   historyHint: {
     fontSize: 13,
     color: '#767676',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  resultText: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
+  },
+  input: {
+    borderRadius: artDeco.radius.none,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+    color: artDeco.color.ink,
+  },
+  historyValue: {
+    color: artDeco.color.ink,
+  },
+  historyHint: {
+    color: artDeco.color.muted,
   },
 });

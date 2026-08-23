@@ -21,10 +21,20 @@ import GameScreen from './src/screens/GameScreen';
 import RingAlertScreen from './src/screens/RingAlertScreen';
 import SignInScreen from './src/screens/SignInScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import { ThemeProvider, useAppTheme } from './src/theme/ThemeContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
+}
+
+function AppInner() {
+  const { ready: themeReady } = useAppTheme();
   const [session, setSession] = useState<Session | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [ringActive, setRingActive] = useState(false);
@@ -107,7 +117,7 @@ export default function App() {
     );
   }
 
-  if (initializing) {
+  if (initializing || !themeReady) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator />

@@ -4,6 +4,8 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useGameScores } from '../../hooks/useGameScores';
 import { WORD_BANK } from '../../lib/games/wordBanks';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -33,6 +35,7 @@ function pickWord(exclude?: string): { word: string; scrambled: string } {
 }
 
 export function WordScrambleGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [{ word, scrambled }, setCurrent] = useState(() => pickWord());
   const [guess, setGuess] = useState('');
   const [solved, setSolved] = useState(0);
@@ -84,26 +87,31 @@ export function WordScrambleGame({ coupleId }: { coupleId?: string | null }) {
   }
 
   return (
-    <GameCard>
+    <GameCard style={isArtDeco && deco.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.muted}>{running ? `Sisa waktu: ${timeLeft}s` : 'Susun ulang hurufnya'}</Text>
-        <Text style={styles.score}>{solved}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>
+          {running ? `Sisa waktu: ${timeLeft}s` : 'Susun ulang hurufnya'}
+        </Text>
+        <Text style={[styles.score, isArtDeco && deco.score]}>{solved}</Text>
       </View>
 
       {running ? (
         <>
-          <Text style={styles.scrambled}>{scrambled}</Text>
+          <Text style={[styles.scrambled, isArtDeco && deco.scrambled]}>{scrambled}</Text>
           <View style={styles.inputRow}>
             <TextInput
               style={[
                 styles.input,
+                isArtDeco && deco.input,
                 feedback === 'wrong' && styles.inputWrong,
+                isArtDeco && feedback === 'wrong' && deco.inputWrong,
                 feedback === 'correct' && styles.inputCorrect,
+                isArtDeco && feedback === 'correct' && deco.inputCorrect,
               ]}
               value={guess}
               onChangeText={setGuess}
               placeholder="Jawabanmu..."
-              placeholderTextColor="#767676"
+              placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
               autoCapitalize="characters"
             />
             <GameButton onPress={handleGuess}>Cek</GameButton>
@@ -111,7 +119,11 @@ export function WordScrambleGame({ coupleId }: { coupleId?: string | null }) {
         </>
       ) : (
         <View style={styles.center}>
-          {timeLeft === 0 && <Text style={styles.resultText}>Waktu habis — {solved} kata terjawab</Text>}
+          {timeLeft === 0 && (
+            <Text style={[styles.resultText, isArtDeco && deco.resultText]}>
+              Waktu habis — {solved} kata terjawab
+            </Text>
+          )}
           <GameButton onPress={start}>{timeLeft === 0 ? 'Main Lagi' : 'Mulai'}</GameButton>
         </View>
       )}
@@ -168,5 +180,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  card: {
+    backgroundColor: artDeco.color.surface,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  muted: {
+    color: artDeco.color.muted,
+  },
+  score: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+  },
+  scrambled: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+  },
+  input: {
+    borderColor: artDeco.color.line,
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface2,
+    color: artDeco.color.ink,
+  },
+  inputWrong: {
+    borderColor: artDeco.color.ruby,
+  },
+  inputCorrect: {
+    borderColor: artDeco.color.go,
+  },
+  resultText: {
+    color: artDeco.color.ink,
   },
 });

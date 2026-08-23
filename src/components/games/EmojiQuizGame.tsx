@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useGameScores } from '../../hooks/useGameScores';
 import { EMOJI_QUIZ } from '../../lib/games/wordBanks';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -15,6 +17,7 @@ function pickQuestion(excludeEmoji?: string) {
 }
 
 export function EmojiQuizGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [current, setCurrent] = useState(pickQuestion);
   const [guess, setGuess] = useState('');
   const [correct, setCorrect] = useState(0);
@@ -73,8 +76,10 @@ export function EmojiQuizGame({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       <View style={styles.headerRow}>
-        <Text style={styles.muted}>{running ? `Sisa waktu: ${timeLeft}s` : 'Tebak dari emoji-nya'}</Text>
-        <Text style={styles.score}>{correct}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>
+          {running ? `Sisa waktu: ${timeLeft}s` : 'Tebak dari emoji-nya'}
+        </Text>
+        <Text style={[styles.score, isArtDeco && deco.score]}>{correct}</Text>
       </View>
 
       {running ? (
@@ -84,24 +89,29 @@ export function EmojiQuizGame({ coupleId }: { coupleId?: string | null }) {
             <TextInput
               style={[
                 styles.input,
+                isArtDeco && deco.input,
                 feedback === 'wrong' && styles.inputWrong,
+                feedback === 'wrong' && isArtDeco && deco.inputWrong,
                 feedback === 'correct' && styles.inputCorrect,
+                feedback === 'correct' && isArtDeco && deco.inputCorrect,
               ]}
               value={guess}
               onChangeText={setGuess}
               placeholder="Jawabanmu..."
-              placeholderTextColor="#767676"
+              placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
               autoCapitalize="characters"
             />
             <GameButton onPress={handleGuess}>Cek</GameButton>
           </View>
           <Pressable onPress={skip}>
-            <Text style={styles.skipText}>Lewati soal ini</Text>
+            <Text style={[styles.skipText, isArtDeco && deco.skipText]}>Lewati soal ini</Text>
           </Pressable>
         </>
       ) : (
         <View style={styles.center}>
-          {timeLeft === 0 && <Text style={styles.resultText}>Waktu habis — {correct} jawaban benar</Text>}
+          {timeLeft === 0 && (
+            <Text style={[styles.resultText, isArtDeco && deco.resultText]}>Waktu habis — {correct} jawaban benar</Text>
+          )}
           <GameButton onPress={start}>{timeLeft === 0 ? 'Main Lagi' : 'Mulai'}</GameButton>
         </View>
       )}
@@ -161,5 +171,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  score: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+  },
+  input: {
+    borderRadius: artDeco.radius.none,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+    color: artDeco.color.ink,
+  },
+  inputWrong: {
+    borderColor: artDeco.color.stop,
+  },
+  inputCorrect: {
+    borderColor: artDeco.color.go,
+  },
+  skipText: {
+    color: artDeco.color.muted,
+  },
+  resultText: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
   },
 });

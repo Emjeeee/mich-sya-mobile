@@ -2,6 +2,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import type { ScoreMode } from '../../lib/games/types';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 
 // Ported from the web app's Leaderboard.tsx. Uses static "Kamu"/"Pasangan"
 // labels instead of the web's useCouple() nickname context, which this app
@@ -21,12 +23,13 @@ export function Leaderboard({
   sort?: 'asc' | 'desc';
   unit?: string;
 }) {
+  const { isArtDeco } = useAppTheme();
   const { data } = useGameScores(coupleId, gameKey);
 
   if (mode === 'none') return null;
 
   if (!data || data.length === 0) {
-    return <Text style={styles.empty}>Belum ada skor tercatat.</Text>;
+    return <Text style={[styles.empty, isArtDeco && deco.empty]}>Belum ada skor tercatat.</Text>;
   }
 
   if (mode === 'wins') {
@@ -37,18 +40,18 @@ export function Leaderboard({
     return (
       <View style={styles.winsRow}>
         <View style={styles.winsItem}>
-          <Text style={styles.winsValue}>{myWins}</Text>
-          <Text style={styles.winsLabel}>Kamu</Text>
+          <Text style={[styles.winsValue, isArtDeco && deco.winsValue]}>{myWins}</Text>
+          <Text style={[styles.winsLabel, isArtDeco && deco.winsLabel]}>Kamu</Text>
         </View>
         {draws > 0 && (
           <View style={styles.winsItem}>
-            <Text style={[styles.winsValue, styles.drawValue]}>{draws}</Text>
-            <Text style={styles.winsLabel}>Seri</Text>
+            <Text style={[styles.winsValue, styles.drawValue, isArtDeco && deco.drawValue]}>{draws}</Text>
+            <Text style={[styles.winsLabel, isArtDeco && deco.winsLabel]}>Seri</Text>
           </View>
         )}
         <View style={styles.winsItem}>
-          <Text style={[styles.winsValue, styles.accentValue]}>{partnerWins}</Text>
-          <Text style={styles.winsLabel}>Pasangan</Text>
+          <Text style={[styles.winsValue, styles.accentValue, isArtDeco && deco.accentValue]}>{partnerWins}</Text>
+          <Text style={[styles.winsLabel, isArtDeco && deco.winsLabel]}>Pasangan</Text>
         </View>
       </View>
     );
@@ -60,17 +63,17 @@ export function Leaderboard({
     .slice(0, 5);
 
   if (sorted.length === 0) {
-    return <Text style={styles.empty}>Belum ada skor tercatat.</Text>;
+    return <Text style={[styles.empty, isArtDeco && deco.empty]}>Belum ada skor tercatat.</Text>;
   }
 
   return (
     <View style={styles.list}>
       {sorted.map((s, i) => (
         <View key={s.id} style={styles.listRow}>
-          <Text style={styles.listLabel}>
+          <Text style={[styles.listLabel, isArtDeco && deco.listLabel]}>
             #{i + 1} {s.user_id === userId ? 'Kamu' : 'Pasangan'}
           </Text>
-          <Text style={styles.listValue}>
+          <Text style={[styles.listValue, isArtDeco && deco.listValue]}>
             {s.score}
             {unit}
           </Text>
@@ -124,5 +127,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  empty: {
+    color: artDeco.color.muted,
+  },
+  winsValue: {
+    color: artDeco.color.gold,
+  },
+  drawValue: {
+    color: artDeco.color.muted,
+  },
+  accentValue: {
+    color: artDeco.color.ruby,
+  },
+  winsLabel: {
+    color: artDeco.color.muted,
+  },
+  listLabel: {
+    color: artDeco.color.muted,
+  },
+  listValue: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
   },
 });

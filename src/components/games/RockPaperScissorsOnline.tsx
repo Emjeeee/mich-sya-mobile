@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGameScores } from '../../hooks/useGameScores';
 import { useOnlineGameSession } from '../../hooks/useOnlineGameSession';
 import { MOVES, roundWinner, type Move } from '../../lib/games/rps';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -15,6 +17,7 @@ interface RpsState {
 const INITIAL_STATE: RpsState = { p1Move: null, p2Move: null };
 
 export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const { data: session, isLoading, userId, startGame, joinGame, updateSession, refetch } = useOnlineGameSession(
     coupleId,
     'rps',
@@ -27,7 +30,7 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
   if (isLoading) {
     return (
       <GameCard>
-        <Text style={styles.muted}>Memuat...</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Memuat...</Text>
       </GameCard>
     );
   }
@@ -44,13 +47,13 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
     return (
       <GameCard>
         {session?.status === 'finished' && (
-          <Text style={styles.text}>
+          <Text style={[styles.text, isArtDeco && deco.text]}>
             {session.winner === 'draw'
               ? 'Ronde terakhir seri.'
               : `${session.winner === 'x' ? (session.player_x === userId ? 'Kamu' : 'Pasangan') : session.player_o === userId ? 'Kamu' : 'Pasangan'} menang ronde terakhir.`}
           </Text>
         )}
-        <Text style={styles.muted}>Belum ada ronde aktif.</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Belum ada ronde aktif.</Text>
         <GameButton onPress={handleStart} loading={starting}>
           Mulai Ronde Baru
         </GameButton>
@@ -65,7 +68,7 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
   if (waitingForPartner) {
     return (
       <GameCard>
-        <Text style={styles.text}>Pasangan membuat ronde baru. Gabung yuk!</Text>
+        <Text style={[styles.text, isArtDeco && deco.text]}>Pasangan membuat ronde baru. Gabung yuk!</Text>
         <GameButton onPress={() => joinGame(session.id)}>Gabung</GameButton>
       </GameCard>
     );
@@ -73,7 +76,7 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
   if (waitingForOpponentToJoin) {
     return (
       <GameCard>
-        <Text style={styles.muted}>Menunggu pasangan bergabung...</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Menunggu pasangan bergabung...</Text>
       </GameCard>
     );
   }
@@ -124,10 +127,12 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
       <GameCard>
         <View style={styles.vsRow}>
           <Text style={styles.vsEmoji}>{MOVES.find((m) => m.key === state.p1Move)?.emoji}</Text>
-          <Text style={styles.muted}>vs</Text>
+          <Text style={[styles.muted, isArtDeco && deco.muted]}>vs</Text>
           <Text style={styles.vsEmoji}>{MOVES.find((m) => m.key === state.p2Move)?.emoji}</Text>
         </View>
-        <Text style={styles.resultText}>{outcome === 'draw' ? 'Seri!' : iWon ? 'Kamu menang! 🎉' : 'Pasangan menang.'}</Text>
+        <Text style={[styles.resultText, isArtDeco && deco.resultText]}>
+          {outcome === 'draw' ? 'Seri!' : iWon ? 'Kamu menang! 🎉' : 'Pasangan menang.'}
+        </Text>
         <GameButton variant="secondary" onPress={handleStart} loading={starting}>
           Ronde Baru
         </GameButton>
@@ -138,15 +143,15 @@ export function RockPaperScissorsOnline({ coupleId }: { coupleId?: string | null
   return (
     <GameCard>
       {myMove ? (
-        <Text style={styles.muted}>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>
           Kamu pilih {MOVES.find((m) => m.key === myMove)?.emoji} — menunggu pasangan...
         </Text>
       ) : (
         <View style={styles.center}>
-          <Text style={styles.promptText}>Pilih gerakanmu</Text>
+          <Text style={[styles.promptText, isArtDeco && deco.promptText]}>Pilih gerakanmu</Text>
           <View style={styles.moveRow}>
             {MOVES.map((m) => (
-              <Pressable key={m.key} onPress={() => pick(m.key)} disabled={picking} style={styles.moveButton}>
+              <Pressable key={m.key} onPress={() => pick(m.key)} disabled={picking} style={[styles.moveButton, isArtDeco && deco.moveButton]}>
                 <Text style={styles.moveEmoji}>{m.emoji}</Text>
               </Pressable>
             ))}
@@ -206,5 +211,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  text: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  promptText: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  moveButton: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+  },
+  resultText: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
   },
 });

@@ -10,6 +10,8 @@ import {
   type VolumeStream,
 } from '../lib/remoteControl';
 import { supabase } from '../lib/supabase';
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
 
 const MODES: { value: 'normal' | 'vibrate' | 'silent'; label: string }[] = [
   { value: 'normal', label: '🔊 Normal' },
@@ -49,6 +51,7 @@ const DEFAULT_VOLUMES: VolumeMap = { ring: 50, notification: 50, media: 50, alar
 // front, and the mode chip/volume sliders start from her phone's *actual*
 // current state instead of a blind guess.
 export default function RemoteControlPanel({ coupleId }: { coupleId: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [eligible, setEligible] = useState(false);
   const [partnerGranted, setPartnerGranted] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState(true);
@@ -157,26 +160,44 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Atur HP pasangan dari jauh</Text>
+      <Text style={[styles.label, isArtDeco && deco.label]}>Atur HP pasangan dari jauh</Text>
       {checkingAccess ? (
-        <ActivityIndicator color="#e11d74" style={styles.warningRow} />
+        <ActivityIndicator color={isArtDeco ? artDeco.color.gold : '#e11d74'} style={styles.warningRow} />
       ) : partnerGranted === false || partnerGranted === null ? (
-        <Text style={styles.warningText}>
+        <Text style={[styles.warningText, isArtDeco && deco.warningText]}>
           {partnerGranted === null
             ? 'Belum diketahui apakah pasangan sudah mengizinkan akses. Nada dering/notifikasi di bawah mungkin tidak berpengaruh (Media/Alarm tetap bisa).'
             : 'Pasangan belum mengizinkan akses di Pengaturan -- nada dering/notifikasi di bawah tidak akan berpengaruh sampai dia mengizinkannya (Media/Alarm tetap bisa).'}
         </Text>
       ) : null}
-      {lastSent && <Text style={styles.sentText}>✓ {lastSent} -- perubahan tidak selalu terlihat di layar pasangan.</Text>}
+      {lastSent && (
+        <Text style={[styles.sentText, isArtDeco && deco.sentText]}>
+          ✓ {lastSent} -- perubahan tidak selalu terlihat di layar pasangan.
+        </Text>
+      )}
 
       <View style={styles.row}>
         {MODES.map((m) => (
           <Pressable
             key={m.value}
-            style={[styles.chip, mode === m.value && styles.chipActive]}
+            style={[
+              styles.chip,
+              isArtDeco && deco.chip,
+              mode === m.value && styles.chipActive,
+              mode === m.value && isArtDeco && deco.chipActive,
+            ]}
             onPress={() => chooseMode(m.value)}
           >
-            <Text style={[styles.chipText, mode === m.value && styles.chipTextActive]}>{m.label}</Text>
+            <Text
+              style={[
+                styles.chipText,
+                isArtDeco && deco.chipText,
+                mode === m.value && styles.chipTextActive,
+                mode === m.value && isArtDeco && deco.chipTextActive,
+              ]}
+            >
+              {m.label}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -184,8 +205,10 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
       {STREAMS.map((s) => (
         <View key={s.value}>
           <View style={styles.volumeRow}>
-            <Text style={styles.volumeLabel}>{s.label}</Text>
-            <Text style={styles.volumeValue}>{Math.round(volumes[s.value])}%</Text>
+            <Text style={[styles.volumeLabel, isArtDeco && deco.volumeLabel]}>{s.label}</Text>
+            <Text style={[styles.volumeValue, isArtDeco && deco.volumeValue]}>
+              {Math.round(volumes[s.value])}%
+            </Text>
           </View>
           <Slider
             minimumValue={0}
@@ -197,9 +220,9 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
               setVolumes((prev) => ({ ...prev, [s.value]: value }));
             }}
             onSlidingComplete={(value) => commitVolume(s.value, value)}
-            minimumTrackTintColor="#e11d74"
-            maximumTrackTintColor="#fdeef4"
-            thumbTintColor="#e11d74"
+            minimumTrackTintColor={isArtDeco ? artDeco.color.gold : '#e11d74'}
+            maximumTrackTintColor={isArtDeco ? artDeco.color.lineSoft : '#fdeef4'}
+            thumbTintColor={isArtDeco ? artDeco.color.gold : '#e11d74'}
           />
         </View>
       ))}
@@ -263,5 +286,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#e11d74',
+  },
+});
+
+const deco = StyleSheet.create({
+  label: {
+    color: artDeco.color.muted,
+  },
+  warningText: {
+    color: artDeco.color.warn,
+  },
+  sentText: {
+    color: artDeco.color.go,
+  },
+  chip: {
+    backgroundColor: artDeco.color.goldSoft,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  chipActive: {
+    backgroundColor: artDeco.color.gold,
+  },
+  chipText: {
+    color: artDeco.color.ink2,
+  },
+  chipTextActive: {
+    color: artDeco.color.black,
+  },
+  volumeLabel: {
+    color: artDeco.color.ink2,
+  },
+  volumeValue: {
+    color: artDeco.color.gold,
   },
 });

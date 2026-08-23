@@ -15,8 +15,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { friendlyError } from '../lib/friendlyError';
 import { supabase } from '../lib/supabase';
+import { artDeco } from '../theme/artDecoTokens';
+import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { useAppTheme } from '../theme/ThemeContext';
 
 export default function SignInScreen() {
+  const { isArtDeco } = useAppTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -61,21 +65,22 @@ export default function SignInScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, isArtDeco && deco.flex]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'android' ? 24 : 0}
     >
+      {isArtDeco && <ArtDecoBackground />}
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>MichSya</Text>
-        <Text style={styles.subtitle}>Masuk dengan akun kalian</Text>
+        <Text style={[styles.title, isArtDeco && deco.title]}>MichSya</Text>
+        <Text style={[styles.subtitle, isArtDeco && deco.subtitle]}>Masuk dengan akun kalian</Text>
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, isArtDeco && deco.input]}
           placeholder="Email"
-          placeholderTextColor="#767676"
+          placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
@@ -85,11 +90,11 @@ export default function SignInScreen() {
           onChangeText={setEmail}
         />
 
-        <View style={styles.passwordRow}>
+        <View style={[styles.passwordRow, isArtDeco && deco.passwordRow]}>
           <TextInput
-            style={styles.passwordInput}
+            style={[styles.passwordInput, isArtDeco && deco.passwordInput]}
             placeholder="Kata sandi"
-            placeholderTextColor="#767676"
+            placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
             secureTextEntry={false}
             autoCapitalize="none"
             autoCorrect={false}
@@ -106,22 +111,22 @@ export default function SignInScreen() {
             <Ionicons
               name={showPassword ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color="#666"
+              color={isArtDeco ? artDeco.color.gold : '#666'}
             />
           </Pressable>
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text> : null}
 
         <Pressable
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, loading && styles.buttonDisabled, isArtDeco && deco.button]}
           onPress={handleSignIn}
           disabled={loading || !email || !password}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
           ) : (
-            <Text style={styles.buttonText}>Masuk</Text>
+            <Text style={[styles.buttonText, isArtDeco && deco.buttonText]}>Masuk</Text>
           )}
         </Pressable>
       </ScrollView>
@@ -199,5 +204,46 @@ const styles = StyleSheet.create({
     color: '#c0392b',
     marginBottom: 8,
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  flex: {
+    backgroundColor: 'transparent',
+  },
+  title: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+    letterSpacing: artDeco.letterSpacingWide,
+  },
+  subtitle: {
+    color: artDeco.color.muted,
+    fontFamily: artDeco.font.serifRegular,
+  },
+  input: {
+    borderColor: artDeco.color.line,
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface,
+    color: artDeco.color.ink,
+  },
+  passwordRow: {
+    borderColor: artDeco.color.line,
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface,
+  },
+  passwordInput: {
+    color: artDeco.color.ink,
+  },
+  button: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  buttonText: {
+    color: artDeco.color.black,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
+  },
+  error: {
+    color: artDeco.color.stop,
   },
 });

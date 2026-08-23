@@ -13,6 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useWishlist } from '../hooks/useWishlist';
 import { getSignedUrl } from '../lib/storage';
+import { artDeco } from '../theme/artDecoTokens';
+import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { useAppTheme } from '../theme/ThemeContext';
 import type { WishlistItem } from '../types/database';
 import AddWishlistModal from './AddWishlistModal';
 
@@ -33,6 +36,7 @@ function WishlistRow({
   onPromote: () => void;
   promoted: boolean;
 }) {
+  const { isArtDeco } = useAppTheme();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,18 +46,34 @@ function WishlistRow({
   }, [item.image_url]);
 
   return (
-    <View style={styles.row}>
-      {imageUrl && <Image source={{ uri: imageUrl }} style={styles.rowImage} />}
+    <View style={[styles.row, isArtDeco && deco.row]}>
+      {imageUrl && <Image source={{ uri: imageUrl }} style={[styles.rowImage, isArtDeco && deco.rowImage]} />}
       <Pressable style={styles.rowBody} onPress={onToggleDone}>
-        <Text style={[styles.rowTitle, item.is_done && styles.rowTitleDone]}>{item.title}</Text>
-        {item.description && <Text style={styles.rowDescription}>{item.description}</Text>}
+        <Text
+          style={[
+            styles.rowTitle,
+            isArtDeco && deco.rowTitle,
+            item.is_done && styles.rowTitleDone,
+            item.is_done && isArtDeco && deco.rowTitleDone,
+          ]}
+        >
+          {item.title}
+        </Text>
+        {item.description && (
+          <Text style={[styles.rowDescription, isArtDeco && deco.rowDescription]}>{item.description}</Text>
+        )}
       </Pressable>
       <Pressable
-        style={[styles.promoteButton, promoted && styles.promoteButtonDone]}
+        style={[
+          styles.promoteButton,
+          isArtDeco && deco.promoteButton,
+          promoted && styles.promoteButtonDone,
+          promoted && isArtDeco && deco.promoteButtonDone,
+        ]}
         onPress={onPromote}
         disabled={promoted}
       >
-        <Text style={styles.promoteButtonText}>
+        <Text style={[styles.promoteButtonText, isArtDeco && deco.promoteButtonText]}>
           {promoted ? 'Jadi goal ✓' : 'Jadikan goal'}
         </Text>
       </Pressable>
@@ -63,6 +83,7 @@ function WishlistRow({
 
 export default function WishlistListModal({ visible, coupleId, onClose }: WishlistListModalProps) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const { items, loading, error, refresh, toggleDone, promoteToGoal } = useWishlist(coupleId);
   const [showAddModal, setShowAddModal] = useState(false);
   const [promotedIds, setPromotedIds] = useState<Set<string>>(new Set());
@@ -76,24 +97,31 @@ export default function WishlistListModal({ visible, coupleId, onClose }: Wishli
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
+      <View
+        style={[
+          styles.container,
+          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 },
+          isArtDeco && deco.container,
+        ]}
+      >
+        {isArtDeco && <ArtDecoBackground />}
         <View style={styles.header}>
-          <Text style={styles.heading}>Wishlist</Text>
+          <Text style={[styles.heading, isArtDeco && deco.heading]}>Wishlist</Text>
           <Pressable onPress={onClose}>
-            <Text style={styles.closeText}>Tutup</Text>
+            <Text style={[styles.closeText, isArtDeco && deco.closeText]}>Tutup</Text>
           </Pressable>
         </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+        {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}
 
         {loading ? (
-          <ActivityIndicator style={styles.spacing} />
+          <ActivityIndicator style={styles.spacing} color={isArtDeco ? artDeco.color.gold : undefined} />
         ) : (
           <FlatList
             data={items}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
-            ListEmptyComponent={<Text style={styles.empty}>Belum ada wishlist.</Text>}
+            ListEmptyComponent={<Text style={[styles.empty, isArtDeco && deco.empty]}>Belum ada wishlist.</Text>}
             renderItem={({ item }) => (
               <WishlistRow
                 item={item}
@@ -105,8 +133,8 @@ export default function WishlistListModal({ visible, coupleId, onClose }: Wishli
           />
         )}
 
-        <Pressable style={styles.addButton} onPress={() => setShowAddModal(true)}>
-          <Text style={styles.addButtonText}>+ Tambah wishlist</Text>
+        <Pressable style={[styles.addButton, isArtDeco && deco.addButton]} onPress={() => setShowAddModal(true)}>
+          <Text style={[styles.addButtonText, isArtDeco && deco.addButtonText]}>+ Tambah wishlist</Text>
         </Pressable>
       </View>
 
@@ -217,5 +245,59 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+});
+
+const deco = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  heading: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+  },
+  closeText: {
+    color: artDeco.color.muted,
+  },
+  error: {
+    color: artDeco.color.stop,
+  },
+  empty: {
+    color: artDeco.color.muted,
+  },
+  row: {
+    backgroundColor: artDeco.color.surface,
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+  },
+  rowImage: {
+    borderRadius: artDeco.radius.none,
+  },
+  rowTitle: {
+    color: artDeco.color.ink,
+  },
+  rowTitleDone: {
+    color: artDeco.color.faint,
+  },
+  rowDescription: {
+    color: artDeco.color.muted,
+  },
+  promoteButton: {
+    borderColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  promoteButtonDone: {
+    borderColor: artDeco.color.lineFaint,
+  },
+  promoteButtonText: {
+    color: artDeco.color.gold,
+  },
+  addButton: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  addButtonText: {
+    color: artDeco.color.black,
+    fontFamily: artDeco.font.serifBold,
   },
 });

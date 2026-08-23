@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -33,6 +35,7 @@ function newRound() {
 }
 
 export function ColorMatchGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [round, setRound] = useState(newRound);
   const [score, setScore] = useState(0);
   const [running, setRunning] = useState(false);
@@ -81,22 +84,28 @@ export function ColorMatchGame({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       <View style={styles.headerRow}>
-        <Text style={styles.muted}>Cepat! Ketuk warna yang sesuai nama</Text>
-        <Text style={styles.score}>{score}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Cepat! Ketuk warna yang sesuai nama</Text>
+        <Text style={[styles.score, isArtDeco && deco.score]}>{score}</Text>
       </View>
 
       {running ? (
         <>
-          <Text style={styles.targetName}>{round.target.name}</Text>
+          <Text style={[styles.targetName, isArtDeco && deco.targetName]}>{round.target.name}</Text>
           <View style={styles.grid}>
             {round.options.map((c) => (
-              <Pressable key={c.hex} onPress={() => pick(c.hex)} style={[styles.swatch, { backgroundColor: c.hex }]} />
+              // Gameplay data -- the swatch colors being matched/guessed are not theme
+              // chrome, so they stay literal in both themes.
+              <Pressable
+                key={c.hex}
+                onPress={() => pick(c.hex)}
+                style={[styles.swatch, { backgroundColor: c.hex }, isArtDeco && deco.swatch]}
+              />
             ))}
           </View>
         </>
       ) : (
         <View style={styles.center}>
-          {gameOver && <Text style={styles.resultText}>Salah! Skor akhir {score}</Text>}
+          {gameOver && <Text style={[styles.resultText, isArtDeco && deco.resultText]}>Salah! Skor akhir {score}</Text>}
           <GameButton onPress={start}>{gameOver ? 'Main Lagi' : 'Mulai'}</GameButton>
         </View>
       )}
@@ -146,5 +155,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  score: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+  },
+  targetName: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.display,
+  },
+  // Shape only -- the swatch's fill color is gameplay data and stays literal;
+  // this just matches Art Deco's sharp-cornered, no-rounding motif.
+  swatch: {
+    borderRadius: artDeco.radius.none,
+  },
+  resultText: {
+    color: artDeco.color.ruby,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
   },
 });

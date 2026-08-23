@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -32,6 +34,7 @@ function randomEmptyCell(snake: Point[]): Point {
 }
 
 export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [snake, setSnake] = useState<Point[]>([{ x: 6, y: 6 }]);
   const [food, setFood] = useState<Point>(() => randomEmptyCell([{ x: 6, y: 6 }]));
   const [dir, setDir] = useState<Dir>('right');
@@ -107,34 +110,30 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       <View style={styles.headerRow}>
-        <Text style={styles.muted}>Geser layar atau tombol di bawah</Text>
-        <Text style={styles.score}>{snake.length}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Geser layar atau tombol di bawah</Text>
+        <Text style={[styles.score, isArtDeco && deco.score]}>{snake.length}</Text>
       </View>
 
       <GestureDetector gesture={swipe}>
-        <View style={styles.grid}>
+        <View style={[styles.grid, isArtDeco && deco.grid]}>
           {Array.from({ length: SIZE * SIZE }, (_, i) => {
             const x = i % SIZE;
             const y = Math.floor(i / SIZE);
             const isHead = snake[0].x === x && snake[0].y === y;
             const isBody = !isHead && snake.some((s) => s.x === x && s.y === y);
             const isFood = food.x === x && food.y === y;
-            return (
-              <View
-                key={i}
-                style={[
-                  styles.cell,
-                  isHead ? styles.head : isBody ? styles.body : isFood ? styles.food : styles.empty,
-                ]}
-              />
-            );
+            const base = isHead ? styles.head : isBody ? styles.body : isFood ? styles.food : styles.empty;
+            const decoOverride = isHead ? deco.head : isBody ? deco.body : isFood ? deco.food : null;
+            return <View key={i} style={[styles.cell, base, isArtDeco && decoOverride]} />;
           })}
         </View>
       </GestureDetector>
 
       {!running && (
         <View style={styles.center}>
-          {gameOver && <Text style={styles.resultText}>Game over — panjang akhir {snake.length}</Text>}
+          {gameOver && (
+            <Text style={[styles.resultText, isArtDeco && deco.resultText]}>Game over — panjang akhir {snake.length}</Text>
+          )}
           <GameButton onPress={reset}>{gameOver ? 'Main Lagi' : 'Mulai'}</GameButton>
         </View>
       )}
@@ -143,20 +142,20 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
         <View style={styles.dpad}>
           <View style={styles.dpadRow}>
             <View style={styles.dpadSpacer} />
-            <Pressable onPress={() => changeDir('up')} style={styles.dpadButton}>
-              <Text style={styles.dpadText}>▲</Text>
+            <Pressable onPress={() => changeDir('up')} style={[styles.dpadButton, isArtDeco && deco.dpadButton]}>
+              <Text style={[styles.dpadText, isArtDeco && deco.dpadText]}>▲</Text>
             </Pressable>
             <View style={styles.dpadSpacer} />
           </View>
           <View style={styles.dpadRow}>
-            <Pressable onPress={() => changeDir('left')} style={styles.dpadButton}>
-              <Text style={styles.dpadText}>◀</Text>
+            <Pressable onPress={() => changeDir('left')} style={[styles.dpadButton, isArtDeco && deco.dpadButton]}>
+              <Text style={[styles.dpadText, isArtDeco && deco.dpadText]}>◀</Text>
             </Pressable>
-            <Pressable onPress={() => changeDir('down')} style={styles.dpadButton}>
-              <Text style={styles.dpadText}>▼</Text>
+            <Pressable onPress={() => changeDir('down')} style={[styles.dpadButton, isArtDeco && deco.dpadButton]}>
+              <Text style={[styles.dpadText, isArtDeco && deco.dpadText]}>▼</Text>
             </Pressable>
-            <Pressable onPress={() => changeDir('right')} style={styles.dpadButton}>
-              <Text style={styles.dpadText}>▶</Text>
+            <Pressable onPress={() => changeDir('right')} style={[styles.dpadButton, isArtDeco && deco.dpadButton]}>
+              <Text style={[styles.dpadText, isArtDeco && deco.dpadText]}>▶</Text>
             </Pressable>
           </View>
         </View>
@@ -241,5 +240,41 @@ const styles = StyleSheet.create({
   dpadText: {
     fontSize: 14,
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  score: {
+    color: artDeco.color.gold,
+  },
+  grid: {
+    backgroundColor: artDeco.color.surface2,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  head: {
+    backgroundColor: artDeco.color.gold,
+  },
+  body: {
+    backgroundColor: artDeco.color.goldSoft,
+  },
+  food: {
+    backgroundColor: artDeco.color.ruby,
+  },
+  resultText: {
+    color: artDeco.color.ink,
+  },
+  dpadButton: {
+    backgroundColor: artDeco.color.surface2,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  dpadText: {
+    color: artDeco.color.gold,
   },
 });

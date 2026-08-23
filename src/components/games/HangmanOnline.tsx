@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useGameScores } from '../../hooks/useGameScores';
 import { useOnlineGameSession } from '../../hooks/useOnlineGameSession';
 import { ALPHABET, isWordGuessed, maskWord, MAX_WRONG, wrongGuessCount } from '../../lib/games/hangman';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -13,6 +15,7 @@ interface HangmanState {
 }
 
 export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const { data: session, isLoading, userId, startGame, joinGame, updateSession } = useOnlineGameSession(
     coupleId,
     'hangman',
@@ -25,8 +28,8 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
 
   if (isLoading) {
     return (
-      <GameCard>
-        <Text style={styles.muted}>Memuat...</Text>
+      <GameCard style={isArtDeco && deco.card}>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Memuat...</Text>
       </GameCard>
     );
   }
@@ -43,20 +46,20 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
 
   if (noActiveGame) {
     return (
-      <GameCard>
+      <GameCard style={isArtDeco && deco.card}>
         {session?.status === 'finished' && (
-          <Text style={styles.text}>
-            Kata terakhir: <Text style={styles.bold}>{(session.state as HangmanState).word}</Text>
+          <Text style={[styles.text, isArtDeco && deco.text]}>
+            Kata terakhir: <Text style={[styles.bold, isArtDeco && deco.text]}>{(session.state as HangmanState).word}</Text>
           </Text>
         )}
-        <Text style={styles.muted}>Kamu jadi penentu kata — pasanganmu yang menebak.</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Kamu jadi penentu kata — pasanganmu yang menebak.</Text>
         <View style={styles.inputRow}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, isArtDeco && deco.input]}
             value={wordInput}
             onChangeText={setWordInput}
             placeholder="Ketik kata rahasia"
-            placeholderTextColor="#767676"
+            placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
             autoCapitalize="characters"
           />
           <GameButton onPress={handleStart} disabled={!wordInput.trim()} loading={starting}>
@@ -79,8 +82,8 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
 
   if (waitingForPartner) {
     return (
-      <GameCard>
-        <Text style={styles.text}>Pasangan menyiapkan kata rahasia. Gabung buat nebak!</Text>
+      <GameCard style={isArtDeco && deco.card}>
+        <Text style={[styles.text, isArtDeco && deco.text]}>Pasangan menyiapkan kata rahasia. Gabung buat nebak!</Text>
         <GameButton onPress={handleJoin} loading={joining}>
           Gabung sebagai Penebak
         </GameButton>
@@ -89,8 +92,8 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
   }
   if (waitingForOpponentToJoin) {
     return (
-      <GameCard>
-        <Text style={styles.muted}>Menunggu pasangan bergabung sebagai penebak...</Text>
+      <GameCard style={isArtDeco && deco.card}>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Menunggu pasangan bergabung sebagai penebak...</Text>
       </GameCard>
     );
   }
@@ -122,15 +125,21 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
     }
   }
 
-  return (
-    <GameCard>
-      <Text style={styles.muted}>{isGuesser ? 'Tebak kata dari pasanganmu' : 'Pasangan sedang menebak kata darimu'}</Text>
-      <Text style={styles.hint}>Kesempatan salah: {MAX_WRONG - wrong} tersisa</Text>
+  const wonOrLostDecoStyle = won ? deco.resultWon : lost ? deco.resultLost : undefined;
 
-      <Text style={styles.wordDisplay}>{won || lost ? state.word : maskWord(state.word, state.guessed)}</Text>
+  return (
+    <GameCard style={isArtDeco && deco.card}>
+      <Text style={[styles.muted, isArtDeco && deco.muted]}>
+        {isGuesser ? 'Tebak kata dari pasanganmu' : 'Pasangan sedang menebak kata darimu'}
+      </Text>
+      <Text style={[styles.hint, isArtDeco && deco.hint]}>Kesempatan salah: {MAX_WRONG - wrong} tersisa</Text>
+
+      <Text style={[styles.wordDisplay, isArtDeco && deco.wordDisplay]}>
+        {won || lost ? state.word : maskWord(state.word, state.guessed)}
+      </Text>
 
       {(won || lost) && (
-        <Text style={styles.resultText}>
+        <Text style={[styles.resultText, isArtDeco && wonOrLostDecoStyle]}>
           {won
             ? isGuesser
               ? 'Kamu berhasil menebak! 🎉'
@@ -151,9 +160,25 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
                 key={letter}
                 onPress={() => guess(letter)}
                 disabled={used}
-                style={[styles.letter, isHit && styles.letterHit, used && !isHit && styles.letterMiss]}
+                style={[
+                  styles.letter,
+                  isArtDeco && deco.letter,
+                  isHit && styles.letterHit,
+                  isArtDeco && isHit && deco.letterHit,
+                  used && !isHit && styles.letterMiss,
+                  isArtDeco && used && !isHit && deco.letterMiss,
+                ]}
               >
-                <Text style={[styles.letterText, isHit && styles.letterHitText, used && !isHit && styles.letterMissText]}>
+                <Text
+                  style={[
+                    styles.letterText,
+                    isArtDeco && deco.letterText,
+                    isHit && styles.letterHitText,
+                    isArtDeco && isHit && deco.letterHitText,
+                    used && !isHit && styles.letterMissText,
+                    isArtDeco && used && !isHit && deco.letterMissText,
+                  ]}
+                >
                   {letter}
                 </Text>
               </Pressable>
@@ -243,5 +268,60 @@ const styles = StyleSheet.create({
   },
   letterMissText: {
     color: '#f87171',
+  },
+});
+
+const deco = StyleSheet.create({
+  card: {
+    backgroundColor: artDeco.color.surface,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  muted: {
+    color: artDeco.color.muted,
+  },
+  hint: {
+    color: artDeco.color.faint,
+  },
+  text: {
+    color: artDeco.color.ink,
+  },
+  input: {
+    borderColor: artDeco.color.line,
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface2,
+    color: artDeco.color.ink,
+  },
+  wordDisplay: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+  },
+  resultWon: {
+    color: artDeco.color.go,
+  },
+  resultLost: {
+    color: artDeco.color.ruby,
+  },
+  letter: {
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface2,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  letterHit: {
+    borderColor: artDeco.color.go,
+  },
+  letterMiss: {
+    borderColor: artDeco.color.ruby,
+  },
+  letterText: {
+    color: artDeco.color.ink,
+  },
+  letterHitText: {
+    color: artDeco.color.go,
+  },
+  letterMissText: {
+    color: artDeco.color.ruby,
   },
 });

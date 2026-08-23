@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { supabase } from '../../lib/supabase';
 import { useGameScores } from '../../hooks/useGameScores';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -22,6 +24,7 @@ function shuffledDeck(): CardState[] {
 }
 
 export function MemoryMatchGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [deck, setDeck] = useState<CardState[]>(shuffledDeck);
   const [flipped, setFlipped] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -85,8 +88,8 @@ export function MemoryMatchGame({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       <View style={styles.statsRow}>
-        <Text style={styles.muted}>Langkah: {moves}</Text>
-        <Text style={styles.muted}>Waktu: {seconds}s</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Langkah: {moves}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Waktu: {seconds}s</Text>
       </View>
 
       <View style={styles.grid}>
@@ -97,7 +100,12 @@ export function MemoryMatchGame({ coupleId }: { coupleId?: string | null }) {
               key={card.id}
               onPress={() => handleFlip(i)}
               disabled={isFaceUp}
-              style={[styles.tile, isFaceUp && styles.tileFaceUp]}
+              style={[
+                styles.tile,
+                isArtDeco && deco.tile,
+                isFaceUp && styles.tileFaceUp,
+                isArtDeco && isFaceUp && deco.tileFaceUp,
+              ]}
             >
               <Text style={styles.tileSymbol}>{isFaceUp ? card.symbol : ''}</Text>
             </Pressable>
@@ -106,7 +114,11 @@ export function MemoryMatchGame({ coupleId }: { coupleId?: string | null }) {
       </View>
 
       <View style={styles.center}>
-        {won && <Text style={styles.resultText}>Selesai dalam {moves} langkah, {seconds} detik! 🎉</Text>}
+        {won && (
+          <Text style={[styles.resultText, isArtDeco && deco.resultText]}>
+            Selesai dalam {moves} langkah, {seconds} detik! 🎉
+          </Text>
+        )}
         <GameButton variant="secondary" onPress={reset}>
           {won ? 'Main Lagi' : 'Acak Ulang'}
         </GameButton>
@@ -158,5 +170,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  tile: {
+    borderRadius: artDeco.radius.none,
+    borderColor: artDeco.color.lineSoft,
+    backgroundColor: artDeco.color.surface2,
+  },
+  tileFaceUp: {
+    backgroundColor: artDeco.color.goldSoft,
+  },
+  resultText: {
+    color: artDeco.color.ink,
   },
 });

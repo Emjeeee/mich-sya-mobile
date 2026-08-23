@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { hasBatteryOptimizationExemption, requestBatteryOptimizationExemption } from 'ble-ring';
 
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
+
 // Unlike RemoteControlAccess/RemoteControlPanel, this isn't gated to one
 // account -- every background feature (push ring/torch/remote control, the
 // BLE scan foreground service, "Cari Pasangan" background location) depends
@@ -13,6 +16,7 @@ import { hasBatteryOptimizationExemption, requestBatteryOptimizationExemption } 
 // separate "autostart manager" toggle, which has no public API to check or
 // request at all.
 export default function BatteryOptimizationNotice() {
+  const { isArtDeco } = useAppTheme();
   const [exempted, setExempted] = useState<boolean | null>(null);
 
   const refresh = useCallback(() => {
@@ -41,17 +45,20 @@ export default function BatteryOptimizationNotice() {
     <View style={styles.container}>
       {!exempted && (
         <>
-          <Text style={styles.label}>
+          <Text style={[styles.label, isArtDeco && deco.label]}>
             Supaya bunyikan HP/senter/atur jarak jauh tetap jalan walau HP ini tidak dibuka lama, izinkan MichSya
             berjalan tanpa batas hemat baterai.
           </Text>
-          <Pressable style={styles.button} onPress={() => requestBatteryOptimizationExemption()}>
-            <Text style={styles.buttonText}>Izinkan</Text>
+          <Pressable
+            style={[styles.button, isArtDeco && deco.button]}
+            onPress={() => requestBatteryOptimizationExemption()}
+          >
+            <Text style={[styles.buttonText, isArtDeco && deco.buttonText]}>Izinkan</Text>
           </Pressable>
         </>
       )}
       {isVivo && (
-        <Text style={styles.vivoHint}>
+        <Text style={[styles.vivoHint, isArtDeco && deco.vivoHint]}>
           HP Vivo punya pengaturan tambahan yang tidak bisa diminta otomatis: buka i Manager (atau Pengaturan) →
           Manajemen Baterai/App Manager → cari MichSya → aktifkan "Autostart"/"Latar belakang otomatis", supaya fitur
           jarak jauh tetap bekerja walau aplikasi ditutup.
@@ -85,5 +92,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#767676',
     fontStyle: 'italic',
+  },
+});
+
+const deco = StyleSheet.create({
+  label: {
+    color: artDeco.color.muted,
+  },
+  button: {
+    borderColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  buttonText: {
+    color: artDeco.color.gold,
+  },
+  vivoHint: {
+    color: artDeco.color.faint,
   },
 });

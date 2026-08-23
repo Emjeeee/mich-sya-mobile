@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { WOULD_YOU_RATHER } from '../../lib/games/wordBanks';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -14,6 +16,7 @@ function pickPair(excludeIndex?: number) {
 }
 
 export function WouldYouRatherGame() {
+  const { isArtDeco } = useAppTheme();
   const [index, setIndex] = useState(() => pickPair());
   const [picked, setPicked] = useState<{ you: 'A' | 'B' | null; partner: 'A' | 'B' | null }>({
     you: null,
@@ -27,27 +30,51 @@ export function WouldYouRatherGame() {
   }
 
   return (
-    <GameCard>
-      <Text style={styles.muted}>Pilih duluan diam-diam, terus bareng-bareng buka pilihan</Text>
+    <GameCard style={isArtDeco && deco.card}>
+      <Text style={[styles.muted, isArtDeco && deco.muted]}>Pilih duluan diam-diam, terus bareng-bareng buka pilihan</Text>
 
       <View style={styles.optionsGrid}>
         {(['A', 'B'] as const).map((opt) => (
           <View key={opt} style={styles.optionBlock}>
-            <Text style={styles.optionText}>{opt === 'A' ? pair.optionA : pair.optionB}</Text>
+            <Text style={[styles.optionText, isArtDeco && deco.optionText]}>{opt === 'A' ? pair.optionA : pair.optionB}</Text>
             <View style={styles.pickRow}>
               <Pressable
                 onPress={() => setPicked((p) => ({ ...p, you: opt }))}
-                style={[styles.pickButton, picked.you === opt && styles.pickButtonYou]}
+                style={[
+                  styles.pickButton,
+                  isArtDeco && deco.pickButton,
+                  picked.you === opt && styles.pickButtonYou,
+                  isArtDeco && picked.you === opt && deco.pickButtonYou,
+                ]}
               >
-                <Text style={[styles.pickButtonText, picked.you === opt && styles.pickButtonTextActive]}>
+                <Text
+                  style={[
+                    styles.pickButtonText,
+                    isArtDeco && deco.pickButtonText,
+                    picked.you === opt && styles.pickButtonTextActive,
+                    isArtDeco && picked.you === opt && deco.pickButtonYouTextActive,
+                  ]}
+                >
                   Pilihanku
                 </Text>
               </Pressable>
               <Pressable
                 onPress={() => setPicked((p) => ({ ...p, partner: opt }))}
-                style={[styles.pickButton, picked.partner === opt && styles.pickButtonPartner]}
+                style={[
+                  styles.pickButton,
+                  isArtDeco && deco.pickButton,
+                  picked.partner === opt && styles.pickButtonPartner,
+                  isArtDeco && picked.partner === opt && deco.pickButtonPartner,
+                ]}
               >
-                <Text style={[styles.pickButtonText, picked.partner === opt && styles.pickButtonTextActive]}>
+                <Text
+                  style={[
+                    styles.pickButtonText,
+                    isArtDeco && deco.pickButtonText,
+                    picked.partner === opt && styles.pickButtonTextActive,
+                    isArtDeco && picked.partner === opt && deco.pickButtonPartnerTextActive,
+                  ]}
+                >
                   Pilihan Pasangan
                 </Text>
               </Pressable>
@@ -57,7 +84,7 @@ export function WouldYouRatherGame() {
       </View>
 
       {picked.you && picked.partner && (
-        <Text style={styles.matchText}>
+        <Text style={[styles.matchText, isArtDeco && deco.matchText]}>
           {picked.you === picked.partner ? 'Sama! Cocok banget 💗' : 'Beda pilihan — seru buat didiskusiin!'}
         </Text>
       )}
@@ -117,5 +144,47 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  card: {
+    backgroundColor: artDeco.color.surface,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  muted: {
+    color: artDeco.color.muted,
+  },
+  optionText: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifRegular,
+  },
+  pickButton: {
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface2,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  pickButtonYou: {
+    backgroundColor: artDeco.color.gold,
+    borderColor: artDeco.color.gold,
+  },
+  pickButtonPartner: {
+    backgroundColor: artDeco.color.ruby,
+    borderColor: artDeco.color.ruby,
+  },
+  pickButtonText: {
+    color: artDeco.color.ink,
+  },
+  pickButtonYouTextActive: {
+    color: artDeco.color.black,
+  },
+  pickButtonPartnerTextActive: {
+    color: artDeco.color.white,
+  },
+  matchText: {
+    color: artDeco.color.ink,
   },
 });

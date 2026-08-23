@@ -4,6 +4,9 @@ import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useJourneyMap, type JourneyPin, type RoutePoint } from '../hooks/useJourneyMap';
+import { artDeco } from '../theme/artDecoTokens';
+import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { useAppTheme } from '../theme/ThemeContext';
 
 interface JourneyMapModalProps {
   visible: boolean;
@@ -68,26 +71,28 @@ function buildMapHtml(pins: JourneyPin[], route: RoutePoint[]): string {
 
 export default function JourneyMapModal({ visible, coupleId, onClose }: JourneyMapModalProps) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const { pins, route, loading } = useJourneyMap(coupleId);
   const html = useMemo(() => buildMapHtml(pins, route), [pins, route]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.container}>
+      <View style={[styles.container, isArtDeco && deco.container]}>
+        {isArtDeco && <ArtDecoBackground />}
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <Text style={styles.heading}>Journey Map</Text>
+          <Text style={[styles.heading, isArtDeco && deco.heading]}>Journey Map</Text>
           <Pressable onPress={onClose}>
-            <Text style={styles.closeText}>Tutup</Text>
+            <Text style={[styles.closeText, isArtDeco && deco.closeText]}>Tutup</Text>
           </Pressable>
         </View>
 
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator />
+            <ActivityIndicator color={isArtDeco ? artDeco.color.gold : undefined} />
           </View>
         ) : pins.length === 0 && route.length === 0 ? (
           <View style={styles.center}>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, isArtDeco && deco.emptyText]}>
               Belum ada journey map. Tambahkan lewat notifikasi yang muncul saat kalian
               berlama-lama di satu tempat selagi kencan aktif!
             </Text>
@@ -133,5 +138,21 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#767676',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  heading: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+  },
+  closeText: {
+    color: artDeco.color.muted,
+  },
+  emptyText: {
+    color: artDeco.color.muted,
   },
 });

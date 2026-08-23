@@ -5,6 +5,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { addRandomTile, emptyGrid, isGameOver, move, type Grid } from '../../lib/games/game2048';
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -24,6 +26,22 @@ const TILE_COLORS: Record<number, { bg: string; text: string }> = {
   2048: { bg: '#4f0624', text: '#fff' },
 };
 
+// Gold/emerald/ruby-toned equivalent of TILE_COLORS, only used when
+// isArtDeco -- the original palette above is never touched.
+const DECO_TILE_COLORS: Record<number, { bg: string; text: string }> = {
+  2: { bg: artDeco.color.surface2, text: artDeco.color.ink },
+  4: { bg: artDeco.color.goldSoft, text: artDeco.color.ink },
+  8: { bg: artDeco.color.emerald, text: artDeco.color.ink },
+  16: { bg: artDeco.color.emeraldStrong, text: artDeco.color.white },
+  32: { bg: artDeco.color.rubySoft, text: artDeco.color.ink },
+  64: { bg: artDeco.color.ruby, text: artDeco.color.white },
+  128: { bg: artDeco.color.rubyStrong, text: artDeco.color.white },
+  256: { bg: artDeco.color.gold, text: artDeco.color.black },
+  512: { bg: artDeco.color.goldStrong, text: artDeco.color.black },
+  1024: { bg: artDeco.color.line, text: artDeco.color.black },
+  2048: { bg: artDeco.color.white, text: artDeco.color.black },
+};
+
 function startingGrid(): Grid {
   const g = emptyGrid();
   addRandomTile(g);
@@ -32,6 +50,7 @@ function startingGrid(): Grid {
 }
 
 export function Game2048({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [grid, setGrid] = useState<Grid>(startingGrid);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -78,21 +97,35 @@ export function Game2048({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       <View style={styles.headerRow}>
-        <Text style={styles.muted}>Geser layar buat gerakin kotak</Text>
-        <Text style={styles.score}>{score}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Geser layar buat gerakin kotak</Text>
+        <Text style={[styles.score, isArtDeco && deco.score]}>{score}</Text>
       </View>
 
       <GestureDetector gesture={swipe}>
         <View style={styles.grid}>
           {grid.flat().map((value, i) => {
             const colors = TILE_COLORS[value];
+            const decoColors = DECO_TILE_COLORS[value];
             return (
               <View
                 key={i}
-                style={[styles.tile, colors ? { backgroundColor: colors.bg } : styles.emptyTile]}
+                style={[
+                  styles.tile,
+                  isArtDeco && deco.tile,
+                  colors ? { backgroundColor: colors.bg } : styles.emptyTile,
+                  isArtDeco && (decoColors ? { backgroundColor: decoColors.bg } : deco.emptyTile),
+                ]}
               >
                 {value !== 0 && (
-                  <Text style={[styles.tileText, colors && { color: colors.text }]}>{value}</Text>
+                  <Text
+                    style={[
+                      styles.tileText,
+                      colors && { color: colors.text },
+                      isArtDeco && decoColors && { color: decoColors.text },
+                    ]}
+                  >
+                    {value}
+                  </Text>
                 )}
               </View>
             );
@@ -100,7 +133,7 @@ export function Game2048({ coupleId }: { coupleId?: string | null }) {
         </View>
       </GestureDetector>
 
-      {gameOver && <Text style={styles.resultText}>Game selesai — skor akhir {score}</Text>}
+      {gameOver && <Text style={[styles.resultText, isArtDeco && deco.resultText]}>Game selesai — skor akhir {score}</Text>}
 
       <GameButton variant="secondary" onPress={reset}>
         {gameOver ? 'Main Lagi' : 'Acak Ulang'}
@@ -153,5 +186,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  score: {
+    color: artDeco.color.gold,
+  },
+  tile: {
+    borderRadius: artDeco.radius.none,
+  },
+  emptyTile: {
+    backgroundColor: artDeco.color.surface2,
+  },
+  resultText: {
+    color: artDeco.color.ink,
   },
 });

@@ -13,6 +13,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
+
 interface EndDateModalProps {
   visible: boolean;
   loading: boolean;
@@ -29,6 +32,7 @@ export default function EndDateModal({
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
 
   const handleSubmit = () => {
     onSubmit({ title: title.trim(), summary: summary.trim() });
@@ -37,25 +41,25 @@ export default function EndDateModal({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <KeyboardAvoidingView
-        style={styles.backdrop}
+        style={[styles.backdrop, isArtDeco && deco.backdrop]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }, isArtDeco && deco.sheet]}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.heading}>Akhiri kencan</Text>
+            <Text style={[styles.heading, isArtDeco && deco.heading]}>Akhiri kencan</Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, isArtDeco && deco.input]}
               placeholder="Judul kencan (opsional)"
-              placeholderTextColor="#767676"
+              placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
               value={title}
               onChangeText={setTitle}
             />
 
             <TextInput
-              style={[styles.input, styles.multiline]}
+              style={[styles.input, styles.multiline, isArtDeco && deco.input]}
               placeholder="Kemana saja, ngapain saja?"
-              placeholderTextColor="#767676"
+              placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
               value={summary}
               onChangeText={setSummary}
               multiline
@@ -63,18 +67,18 @@ export default function EndDateModal({
             />
 
             <View style={styles.row}>
-              <Pressable style={[styles.button, styles.cancelButton]} onPress={onCancel}>
-                <Text style={styles.cancelText}>Batal</Text>
+              <Pressable style={[styles.button, styles.cancelButton, isArtDeco && deco.cancelButton]} onPress={onCancel}>
+                <Text style={[styles.cancelText, isArtDeco && deco.cancelText]}>Batal</Text>
               </Pressable>
               <Pressable
-                style={[styles.button, styles.submitButton]}
+                style={[styles.button, styles.submitButton, isArtDeco && deco.submitButton]}
                 onPress={handleSubmit}
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
                 ) : (
-                  <Text style={styles.submitText}>Selesai</Text>
+                  <Text style={[styles.submitText, isArtDeco && deco.submitText]}>Selesai</Text>
                 )}
               </Pressable>
             </View>
@@ -143,5 +147,43 @@ const styles = StyleSheet.create({
   submitText: {
     color: '#fff',
     fontWeight: '600',
+  },
+});
+
+const deco = StyleSheet.create({
+  backdrop: {
+    backgroundColor: artDeco.color.overlay,
+  },
+  sheet: {
+    backgroundColor: artDeco.color.surface,
+    borderTopLeftRadius: artDeco.radius.none,
+    borderTopRightRadius: artDeco.radius.none,
+    borderTopWidth: 2,
+    borderColor: artDeco.color.line,
+  },
+  heading: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  input: {
+    backgroundColor: artDeco.color.surface2,
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+    color: artDeco.color.ink,
+  },
+  cancelButton: {
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+  },
+  cancelText: {
+    color: artDeco.color.muted,
+  },
+  submitButton: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  submitText: {
+    color: artDeco.color.black,
+    fontFamily: artDeco.font.serifBold,
   },
 });

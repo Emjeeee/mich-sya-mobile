@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -13,9 +15,19 @@ const COLORS = [
   { key: 3, color: '#6E5A50' },
 ];
 
+// Gold/emerald/ruby-toned equivalent, keyed the same as COLORS, only used
+// when isArtDeco -- the original palette above is never touched.
+const DECO_PAD_COLORS: Record<number, string> = {
+  0: artDeco.color.ruby,
+  1: artDeco.color.emeraldStrong,
+  2: artDeco.color.gold,
+  3: artDeco.color.surface2,
+};
+
 type Phase = 'idle' | 'playing' | 'userTurn' | 'gameOver';
 
 export function SimonSaysGame({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const [sequence, setSequence] = useState<number[]>([]);
   const [userStep, setUserStep] = useState(0);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -84,8 +96,8 @@ export function SimonSaysGame({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       <View style={styles.headerRow}>
-        <Text style={styles.muted}>Ingat & ulangi urutan warnanya</Text>
-        <Text style={styles.round}>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Ingat & ulangi urutan warnanya</Text>
+        <Text style={[styles.round, isArtDeco && deco.round]}>
           Ronde {Math.max(0, sequence.length - (phase === 'userTurn' || phase === 'gameOver' ? 0 : 1))}
         </Text>
       </View>
@@ -98,7 +110,11 @@ export function SimonSaysGame({ coupleId }: { coupleId?: string | null }) {
             disabled={phase !== 'userTurn'}
             style={[
               styles.pad,
-              { backgroundColor: c.color, opacity: activeIndex === c.key ? 1 : 0.4 },
+              isArtDeco && deco.pad,
+              {
+                backgroundColor: isArtDeco ? DECO_PAD_COLORS[c.key] : c.color,
+                opacity: activeIndex === c.key ? 1 : 0.4,
+              },
             ]}
           />
         ))}
@@ -108,12 +124,14 @@ export function SimonSaysGame({ coupleId }: { coupleId?: string | null }) {
         {phase === 'idle' && <GameButton onPress={start}>Mulai</GameButton>}
         {phase === 'gameOver' && (
           <>
-            <Text style={styles.resultText}>Salah urutan — sampai ronde {sequence.length - 1}</Text>
+            <Text style={[styles.resultText, isArtDeco && deco.resultText]}>
+              Salah urutan — sampai ronde {sequence.length - 1}
+            </Text>
             <GameButton onPress={start}>Main Lagi</GameButton>
           </>
         )}
-        {phase === 'userTurn' && <Text style={styles.muted}>Giliran kamu...</Text>}
-        {phase === 'playing' && <Text style={styles.muted}>Perhatikan urutannya...</Text>}
+        {phase === 'userTurn' && <Text style={[styles.muted, isArtDeco && deco.muted]}>Giliran kamu...</Text>}
+        {phase === 'playing' && <Text style={[styles.muted, isArtDeco && deco.muted]}>Perhatikan urutannya...</Text>}
       </View>
     </GameCard>
   );
@@ -158,5 +176,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  round: {
+    color: artDeco.color.gold,
+  },
+  pad: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  resultText: {
+    color: artDeco.color.ink,
   },
 });

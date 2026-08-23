@@ -1,10 +1,17 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Cell } from '../../lib/tictactoe';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 
 const MARK_COLOR: Record<Exclude<Cell, ''>, string> = {
   x: '#e11d74',
   o: '#3b82f6',
+};
+
+const DECO_MARK_COLOR: Record<Exclude<Cell, ''>, string> = {
+  x: artDeco.color.gold,
+  o: artDeco.color.ruby,
 };
 
 export function TicTacToeBoard({
@@ -16,6 +23,7 @@ export function TicTacToeBoard({
   onCellClick?: (index: number) => void;
   disabled?: boolean;
 }) {
+  const { isArtDeco } = useAppTheme();
   return (
     <View style={styles.grid}>
       {board.map((cell, i) => (
@@ -23,9 +31,15 @@ export function TicTacToeBoard({
           key={i}
           disabled={disabled || cell !== ''}
           onPress={() => onCellClick?.(i)}
-          style={styles.cell}
+          style={[styles.cell, isArtDeco && deco.cell]}
         >
-          <Text style={[styles.mark, cell !== '' && { color: MARK_COLOR[cell as Exclude<Cell, ''>] }]}>
+          <Text
+            style={[
+              styles.mark,
+              cell !== '' && { color: MARK_COLOR[cell as Exclude<Cell, ''>] },
+              isArtDeco && cell !== '' && { color: DECO_MARK_COLOR[cell as Exclude<Cell, ''>] },
+            ]}
+          >
             {cell === 'x' ? '✕' : cell === 'o' ? '○' : ''}
           </Text>
         </Pressable>
@@ -55,5 +69,14 @@ const styles = StyleSheet.create({
   mark: {
     fontSize: 32,
     fontWeight: '700',
+  },
+});
+
+const deco = StyleSheet.create({
+  cell: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
   },
 });

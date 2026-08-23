@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
 import { checkWinner, dropDisc, EMPTY_BOARD, type Cell } from '../../lib/games/connectFour';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { ConnectFourBoard } from './ConnectFourBoard';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
 export function ConnectFourLocal() {
+  const { isArtDeco } = useAppTheme();
   const [board, setBoard] = useState<Cell[]>(EMPTY_BOARD);
   const [turn, setTurn] = useState<'x' | 'o'>('x');
 
@@ -27,7 +30,7 @@ export function ConnectFourLocal() {
 
   return (
     <GameCard>
-      <Text style={styles.text}>
+      <Text style={[styles.text, isArtDeco && deco.text]}>
         {result
           ? result === 'draw'
             ? 'Seri!'
@@ -47,5 +50,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#767676',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  text: {
+    color: artDeco.color.muted,
   },
 });

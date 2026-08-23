@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { friendlyError } from '../lib/friendlyError';
 import { uploadCouplePhoto } from '../lib/storage';
 import { supabase } from '../lib/supabase';
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
 
 interface AddWishlistModalProps {
   visible: boolean;
@@ -27,6 +29,7 @@ interface AddWishlistModalProps {
 
 export default function AddWishlistModal({ visible, coupleId, onClose }: AddWishlistModalProps) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -105,54 +108,54 @@ export default function AddWishlistModal({ visible, coupleId, onClose }: AddWish
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
-        style={styles.backdrop}
+        style={[styles.backdrop, isArtDeco && deco.backdrop]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }, isArtDeco && deco.sheet]}>
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text style={styles.heading}>Tambah wishlist</Text>
+            <Text style={[styles.heading, isArtDeco && deco.heading]}>Tambah wishlist</Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, isArtDeco && deco.input]}
               placeholder="Mau ngapain / kemana?"
-              placeholderTextColor="#767676"
+              placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
               value={title}
               onChangeText={setTitle}
             />
 
             <TextInput
-              style={[styles.input, styles.multiline]}
+              style={[styles.input, styles.multiline, isArtDeco && deco.input]}
               placeholder="Detail (opsional)"
-              placeholderTextColor="#767676"
+              placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
               value={description}
               onChangeText={setDescription}
               multiline
               textAlignVertical="top"
             />
 
-            <Pressable style={styles.pickButton} onPress={pickImage}>
-              <Text style={styles.pickButtonText}>
+            <Pressable style={[styles.pickButton, isArtDeco && deco.pickButton]} onPress={pickImage}>
+              <Text style={[styles.pickButtonText, isArtDeco && deco.pickButtonText]}>
                 {asset ? 'Ganti gambar' : 'Tambah gambar (opsional)'}
               </Text>
             </Pressable>
 
-            {asset && <Image source={{ uri: asset.uri }} style={styles.preview} />}
+            {asset && <Image source={{ uri: asset.uri }} style={[styles.preview, isArtDeco && deco.preview]} />}
 
-            {error && <Text style={styles.error}>{error}</Text>}
+            {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}
 
             <View style={styles.row}>
-              <Pressable style={[styles.button, styles.cancelButton]} onPress={handleClose}>
-                <Text style={styles.cancelText}>Batal</Text>
+              <Pressable style={[styles.button, styles.cancelButton, isArtDeco && deco.cancelButton]} onPress={handleClose}>
+                <Text style={[styles.cancelText, isArtDeco && deco.cancelText]}>Batal</Text>
               </Pressable>
               <Pressable
-                style={[styles.button, styles.submitButton]}
+                style={[styles.button, styles.submitButton, isArtDeco && deco.submitButton]}
                 onPress={handleSave}
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
                 ) : (
-                  <Text style={styles.submitText}>Simpan</Text>
+                  <Text style={[styles.submitText, isArtDeco && deco.submitText]}>Simpan</Text>
                 )}
               </Pressable>
             </View>
@@ -244,5 +247,56 @@ const styles = StyleSheet.create({
   submitText: {
     color: '#fff',
     fontWeight: '600',
+  },
+});
+
+const deco = StyleSheet.create({
+  backdrop: {
+    backgroundColor: artDeco.color.overlay,
+  },
+  sheet: {
+    backgroundColor: artDeco.color.surface,
+    borderTopLeftRadius: artDeco.radius.none,
+    borderTopRightRadius: artDeco.radius.none,
+    borderTopWidth: 2,
+    borderColor: artDeco.color.line,
+  },
+  heading: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  input: {
+    backgroundColor: artDeco.color.surface2,
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+    color: artDeco.color.ink,
+  },
+  pickButton: {
+    borderColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  pickButtonText: {
+    color: artDeco.color.gold,
+  },
+  preview: {
+    borderRadius: artDeco.radius.none,
+  },
+  error: {
+    color: artDeco.color.stop,
+  },
+  cancelButton: {
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+  },
+  cancelText: {
+    color: artDeco.color.muted,
+  },
+  submitButton: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  submitText: {
+    color: artDeco.color.black,
+    fontFamily: artDeco.font.serifBold,
   },
 });

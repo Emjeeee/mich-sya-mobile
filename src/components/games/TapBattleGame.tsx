@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -9,6 +11,7 @@ const DURATION = 10;
 type Phase = 'idle' | 'countdown' | 'playing' | 'done';
 
 export function TapBattleGame() {
+  const { isArtDeco } = useAppTheme();
   const [phase, setPhase] = useState<Phase>('idle');
   const [countdown, setCountdown] = useState(3);
   const [timeLeft, setTimeLeft] = useState(DURATION);
@@ -45,29 +48,29 @@ export function TapBattleGame() {
 
   return (
     <GameCard>
-      <Text style={styles.muted}>Siapa paling banyak tap dalam {DURATION} detik?</Text>
+      <Text style={[styles.muted, isArtDeco && deco.muted]}>Siapa paling banyak tap dalam {DURATION} detik?</Text>
 
       {phase === 'idle' && <GameButton onPress={start}>Mulai</GameButton>}
 
-      {phase === 'countdown' && <Text style={styles.countdown}>{countdown || 'GO!'}</Text>}
+      {phase === 'countdown' && <Text style={[styles.countdown, isArtDeco && deco.countdown]}>{countdown || 'GO!'}</Text>}
 
       {(phase === 'playing' || phase === 'done') && (
         <>
-          {phase === 'playing' && <Text style={styles.timer}>Sisa waktu: {timeLeft}s</Text>}
+          {phase === 'playing' && <Text style={[styles.timer, isArtDeco && deco.timer]}>Sisa waktu: {timeLeft}s</Text>}
           <View style={styles.tapRow}>
             <Pressable
               onPress={() => phase === 'playing' && setTaps((t) => ({ ...t, p1: t.p1 + 1 }))}
-              style={[styles.tapButton, styles.tapButtonP1]}
+              style={[styles.tapButton, styles.tapButtonP1, isArtDeco && deco.tapButton, isArtDeco && deco.tapButtonP1]}
             >
-              <Text style={[styles.tapCount, styles.p1Color]}>{taps.p1}</Text>
-              <Text style={styles.tapLabel}>Pemain 1</Text>
+              <Text style={[styles.tapCount, styles.p1Color, isArtDeco && deco.p1Color]}>{taps.p1}</Text>
+              <Text style={[styles.tapLabel, isArtDeco && deco.tapLabel]}>Pemain 1</Text>
             </Pressable>
             <Pressable
               onPress={() => phase === 'playing' && setTaps((t) => ({ ...t, p2: t.p2 + 1 }))}
-              style={[styles.tapButton, styles.tapButtonP2]}
+              style={[styles.tapButton, styles.tapButtonP2, isArtDeco && deco.tapButton, isArtDeco && deco.tapButtonP2]}
             >
-              <Text style={[styles.tapCount, styles.p2Color]}>{taps.p2}</Text>
-              <Text style={styles.tapLabel}>Pemain 2</Text>
+              <Text style={[styles.tapCount, styles.p2Color, isArtDeco && deco.p2Color]}>{taps.p2}</Text>
+              <Text style={[styles.tapLabel, isArtDeco && deco.tapLabel]}>Pemain 2</Text>
             </Pressable>
           </View>
         </>
@@ -75,7 +78,7 @@ export function TapBattleGame() {
 
       {phase === 'done' && (
         <View style={styles.center}>
-          <Text style={styles.resultText}>{winner ? `${winner} menang! 🎉` : 'Seri!'}</Text>
+          <Text style={[styles.resultText, isArtDeco && deco.resultText]}>{winner ? `${winner} menang! 🎉` : 'Seri!'}</Text>
           <GameButton onPress={start}>Main Lagi</GameButton>
         </View>
       )}
@@ -141,5 +144,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  countdown: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+  },
+  timer: {
+    color: artDeco.color.muted,
+  },
+  tapButton: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  tapButtonP1: {
+    backgroundColor: artDeco.color.surface,
+    borderColor: artDeco.color.gold,
+  },
+  tapButtonP2: {
+    backgroundColor: artDeco.color.surface2,
+    borderColor: artDeco.color.ruby,
+  },
+  p1Color: {
+    color: artDeco.color.gold,
+  },
+  p2Color: {
+    color: artDeco.color.ruby,
+  },
+  tapLabel: {
+    color: artDeco.color.muted,
+  },
+  resultText: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
   },
 });

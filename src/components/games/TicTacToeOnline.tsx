@@ -4,11 +4,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useOnlineGameSession } from '../../hooks/useOnlineGameSession';
 import { useGameScores } from '../../hooks/useGameScores';
 import { checkWinner, EMPTY_BOARD, type Cell } from '../../lib/tictactoe';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 import { TicTacToeBoard } from './TicTacToeBoard';
 
 export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const { data: session, isLoading, userId, startGame, joinGame, updateSession } = useOnlineGameSession(
     coupleId,
     'tictactoe',
@@ -21,7 +24,7 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
   if (isLoading) {
     return (
       <GameCard>
-        <Text style={styles.muted}>Memuat...</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Memuat...</Text>
       </GameCard>
     );
   }
@@ -38,13 +41,13 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
     return (
       <GameCard>
         {session?.status === 'finished' && (
-          <Text style={styles.text}>
+          <Text style={[styles.text, isArtDeco && deco.text]}>
             {session.winner === 'draw'
               ? 'Game terakhir seri.'
               : `${session.winner === 'x' ? (session.player_x === userId ? 'Kamu' : 'Pasangan') : session.player_o === userId ? 'Kamu' : 'Pasangan'} menang di game terakhir.`}
           </Text>
         )}
-        <Text style={styles.muted}>Belum ada game aktif. Mulai satu untuk main bareng pasangan.</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Belum ada game aktif. Mulai satu untuk main bareng pasangan.</Text>
         <GameButton onPress={handleStart} loading={starting}>
           Mulai Game Baru
         </GameButton>
@@ -65,7 +68,7 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
   if (waitingForPartner) {
     return (
       <GameCard>
-        <Text style={styles.text}>Pasangan membuat game baru. Gabung yuk!</Text>
+        <Text style={[styles.text, isArtDeco && deco.text]}>Pasangan membuat game baru. Gabung yuk!</Text>
         <GameButton onPress={handleJoin} loading={joining}>
           Gabung sebagai Pemain 2
         </GameButton>
@@ -76,7 +79,7 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
   if (waitingForOpponentToJoin) {
     return (
       <GameCard>
-        <Text style={styles.muted}>Menunggu pasangan bergabung ke game ini...</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Menunggu pasangan bergabung ke game ini...</Text>
       </GameCard>
     );
   }
@@ -109,19 +112,21 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
 
   return (
     <GameCard>
-      <Text style={styles.muted}>
-        Kamu bermain sebagai <Text style={styles.bold}>{mySymbol === 'x' ? '✕' : '○'}</Text>
+      <Text style={[styles.muted, isArtDeco && deco.muted]}>
+        Kamu bermain sebagai <Text style={[styles.bold, isArtDeco && deco.bold]}>{mySymbol === 'x' ? '✕' : '○'}</Text>
       </Text>
 
       <TicTacToeBoard board={board} disabled={!isMyTurn || !!result} onCellClick={handleCellClick} />
 
       <View style={styles.footer}>
         {result ? (
-          <Text style={styles.resultText}>
+          <Text style={[styles.resultText, isArtDeco && deco.resultText]}>
             {result === 'draw' ? 'Seri!' : result === mySymbol ? 'Kamu menang! 🎉' : 'Pasangan menang.'}
           </Text>
         ) : (
-          <Text style={styles.muted}>{isMyTurn ? 'Giliran kamu' : 'Menunggu giliran pasangan...'}</Text>
+          <Text style={[styles.muted, isArtDeco && deco.muted]}>
+            {isMyTurn ? 'Giliran kamu' : 'Menunggu giliran pasangan...'}
+          </Text>
         )}
         {result && (
           <GameButton variant="secondary" onPress={handleStart} loading={starting}>
@@ -156,5 +161,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  text: {
+    color: artDeco.color.ink,
+  },
+  bold: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+  },
+  resultText: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
   },
 });

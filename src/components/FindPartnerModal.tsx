@@ -29,6 +29,9 @@ import {
   type TorchPattern,
   type TorchPatternKind,
 } from '../lib/torchPattern';
+import { artDeco } from '../theme/artDecoTokens';
+import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { useAppTheme } from '../theme/ThemeContext';
 
 // Excludes 'stop' -- it's a control action (see the dedicated "Matikan
 // senter pasangan" button below), not a selectable blink-pattern chip.
@@ -42,6 +45,7 @@ interface FindPartnerModalProps {
 
 export default function FindPartnerModal({ visible, coupleId, onClose }: FindPartnerModalProps) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const {
     isSharing,
     myLocation,
@@ -105,11 +109,12 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 16 }, isArtDeco && deco.container]}>
+        {isArtDeco && <ArtDecoBackground />}
         <View style={styles.header}>
-          <Text style={styles.heading}>Cari Pasangan</Text>
+          <Text style={[styles.heading, isArtDeco && deco.heading]}>Cari Pasangan</Text>
           <Pressable onPress={handleClose}>
-            <Text style={styles.closeText}>Tutup</Text>
+            <Text style={[styles.closeText, isArtDeco && deco.closeText]}>Tutup</Text>
           </Pressable>
         </View>
 
@@ -118,10 +123,10 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           showsVerticalScrollIndicator={false}
         >
-          {error && <Text style={styles.error}>{error}</Text>}
+          {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}
           {needsBackgroundLocationSettings && (
-            <Pressable style={styles.settingsButton} onPress={() => Linking.openSettings()}>
-              <Text style={styles.settingsButtonText}>Buka Pengaturan</Text>
+            <Pressable style={[styles.settingsButton, isArtDeco && deco.settingsButton]} onPress={() => Linking.openSettings()}>
+              <Text style={[styles.settingsButtonText, isArtDeco && deco.settingsButtonText]}>Buka Pengaturan</Text>
             </Pressable>
           )}
 
@@ -132,24 +137,32 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
           <View style={styles.actions}>
             {isSharing ? (
-              <Pressable style={[styles.button, styles.stopButton]} onPress={stopFinding}>
-                <Text style={styles.stopButtonText}>Berhenti berbagi lokasi</Text>
+              <Pressable style={[styles.button, styles.stopButton, isArtDeco && deco.stopButton]} onPress={stopFinding}>
+                <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText]}>Berhenti berbagi lokasi</Text>
               </Pressable>
             ) : (
-              <Pressable style={[styles.button, styles.startButton]} onPress={startFinding} disabled={starting}>
+              <Pressable
+                style={[styles.button, styles.startButton, isArtDeco && deco.startButton]}
+                onPress={startFinding}
+                disabled={starting}
+              >
                 {starting ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
                 ) : (
-                  <Text style={styles.startButtonText}>Mulai cari pasangan</Text>
+                  <Text style={[styles.startButtonText, isArtDeco && deco.startButtonText]}>Mulai cari pasangan</Text>
                 )}
               </Pressable>
             )}
 
-            <Pressable style={[styles.button, styles.ringButton]} onPress={handleRing} disabled={ringing}>
+            <Pressable
+              style={[styles.button, styles.ringButton, isArtDeco && deco.ringButton]}
+              onPress={handleRing}
+              disabled={ringing}
+            >
               {ringing ? (
-                <ActivityIndicator color="#e11d74" />
+                <ActivityIndicator color={isArtDeco ? artDeco.color.gold : '#e11d74'} />
               ) : (
-                <Text style={styles.ringButtonText}>🔊 Bunyikan HP pasangan</Text>
+                <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText]}>🔊 Bunyikan HP pasangan</Text>
               )}
             </Pressable>
 
@@ -164,9 +177,21 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                   <Pressable
                     key={kind}
                     onPress={() => setTorchKind(kind)}
-                    style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
+                    style={[
+                      styles.torchChip,
+                      isArtDeco && deco.torchChip,
+                      torchKind === kind && styles.torchChipActive,
+                      torchKind === kind && isArtDeco && deco.torchChipActive,
+                    ]}
                   >
-                    <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
+                    <Text
+                      style={[
+                        styles.torchChipText,
+                        isArtDeco && deco.torchChipText,
+                        torchKind === kind && styles.torchChipTextActive,
+                        torchKind === kind && isArtDeco && deco.torchChipTextActive,
+                      ]}
+                    >
                       {TORCH_PRESET_LABELS[kind as Exclude<TorchPatternKind, 'custom' | 'stop'>]}
                     </Text>
                   </Pressable>
@@ -177,9 +202,21 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                   <Pressable
                     key={kind}
                     onPress={() => setTorchKind(kind)}
-                    style={[styles.torchChip, torchKind === kind && styles.torchChipActive]}
+                    style={[
+                      styles.torchChip,
+                      isArtDeco && deco.torchChip,
+                      torchKind === kind && styles.torchChipActive,
+                      torchKind === kind && isArtDeco && deco.torchChipActive,
+                    ]}
                   >
-                    <Text style={[styles.torchChipText, torchKind === kind && styles.torchChipTextActive]}>
+                    <Text
+                      style={[
+                        styles.torchChipText,
+                        isArtDeco && deco.torchChipText,
+                        torchKind === kind && styles.torchChipTextActive,
+                        torchKind === kind && isArtDeco && deco.torchChipTextActive,
+                      ]}
+                    >
                       {kind === 'custom' ? 'Custom' : TORCH_PRESET_LABELS[kind]}
                     </Text>
                   </Pressable>
@@ -193,18 +230,18 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
             {torchKind === 'custom' && (
               <View style={styles.customRow}>
                 <View style={styles.customField}>
-                  <Text style={styles.customLabel}>Nyala (ms)</Text>
+                  <Text style={[styles.customLabel, isArtDeco && deco.customLabel]}>Nyala (ms)</Text>
                   <TextInput
-                    style={styles.customInput}
+                    style={[styles.customInput, isArtDeco && deco.customInput]}
                     keyboardType="number-pad"
                     value={customOnMs}
                     onChangeText={setCustomOnMs}
                   />
                 </View>
                 <View style={styles.customField}>
-                  <Text style={styles.customLabel}>Mati (ms)</Text>
+                  <Text style={[styles.customLabel, isArtDeco && deco.customLabel]}>Mati (ms)</Text>
                   <TextInput
-                    style={styles.customInput}
+                    style={[styles.customInput, isArtDeco && deco.customInput]}
                     keyboardType="number-pad"
                     value={customOffMs}
                     onChangeText={setCustomOffMs}
@@ -215,31 +252,31 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
             <View style={styles.torchButtonRow}>
               <Pressable
-                style={[styles.button, styles.ringButton, styles.torchButtonHalf]}
+                style={[styles.button, styles.ringButton, styles.torchButtonHalf, isArtDeco && deco.ringButton]}
                 onPress={handleTorch}
                 disabled={torching}
               >
                 {torching ? (
-                  <ActivityIndicator color="#e11d74" />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.gold : '#e11d74'} />
                 ) : (
-                  <Text style={styles.ringButtonText}>🔦 Nyalain</Text>
+                  <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText]}>🔦 Nyalain</Text>
                 )}
               </Pressable>
               <Pressable
-                style={[styles.button, styles.stopButton, styles.torchButtonHalf]}
+                style={[styles.button, styles.stopButton, styles.torchButtonHalf, isArtDeco && deco.stopButton]}
                 onPress={handleStopTorch}
                 disabled={stoppingTorch}
               >
                 {stoppingTorch ? (
-                  <ActivityIndicator color="#e11d74" />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.gold : '#e11d74'} />
                 ) : (
-                  <Text style={styles.stopButtonText}>⏹️ Matikan</Text>
+                  <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText]}>⏹️ Matikan</Text>
                 )}
               </Pressable>
             </View>
           </View>
 
-          <Text style={styles.hint}>
+          <Text style={[styles.hint, isArtDeco && deco.hint]}>
             Lokasi tetap dibagikan meski layar ini ditutup atau app diminimize -- otomatis
             berhenti setelah 30 menit, atau tekan "Berhenti berbagi lokasi" kapan saja.
           </Text>
@@ -384,5 +421,77 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#767676',
     fontSize: 12,
+  },
+});
+
+const deco = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  heading: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+  },
+  closeText: {
+    color: artDeco.color.muted,
+  },
+  error: {
+    color: artDeco.color.stop,
+  },
+  settingsButton: {
+    borderColor: artDeco.color.stop,
+    borderRadius: artDeco.radius.none,
+  },
+  settingsButtonText: {
+    color: artDeco.color.stop,
+  },
+  startButton: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  startButtonText: {
+    color: artDeco.color.black,
+    fontFamily: artDeco.font.serifBold,
+  },
+  stopButton: {
+    borderColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  stopButtonText: {
+    color: artDeco.color.gold,
+  },
+  ringButton: {
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+  },
+  ringButtonText: {
+    color: artDeco.color.gold,
+  },
+  torchChip: {
+    backgroundColor: artDeco.color.goldSoft,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  torchChipActive: {
+    backgroundColor: artDeco.color.gold,
+  },
+  torchChipText: {
+    color: artDeco.color.ink2,
+  },
+  torchChipTextActive: {
+    color: artDeco.color.black,
+  },
+  customLabel: {
+    color: artDeco.color.muted,
+  },
+  customInput: {
+    backgroundColor: artDeco.color.surface2,
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+    color: artDeco.color.ink,
+  },
+  hint: {
+    color: artDeco.color.faint,
   },
 });

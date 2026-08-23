@@ -13,6 +13,9 @@ import {
 import { captureRef } from 'react-native-view-shot';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
+
 interface DateRecapModalProps {
   visible: boolean;
   title: string;
@@ -31,6 +34,7 @@ export default function DateRecapModal({
   onClose,
 }: DateRecapModalProps) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const cardRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
 
@@ -49,14 +53,14 @@ export default function DateRecapModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
+      <View style={[styles.backdrop, isArtDeco && deco.backdrop]}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }, isArtDeco && deco.sheet]}>
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text style={styles.heading}>Bagikan recap kencan ini?</Text>
+            <Text style={[styles.heading, isArtDeco && deco.heading]}>Bagikan recap kencan ini?</Text>
 
-            <View ref={cardRef} collapsable={false} style={styles.card}>
-              <Text style={styles.cardTitle}>{title}</Text>
-              <Text style={styles.cardStat}>
+            <View ref={cardRef} collapsable={false} style={[styles.card, isArtDeco && deco.card]}>
+              <Text style={[styles.cardTitle, isArtDeco && deco.cardTitle]}>{title}</Text>
+              <Text style={[styles.cardStat, isArtDeco && deco.cardStat]}>
                 {durationLabel}
                 {distanceLabel ? ` · ${distanceLabel}` : ''}
               </Text>
@@ -64,27 +68,27 @@ export default function DateRecapModal({
               {photoUrls.length > 0 && (
                 <View style={styles.grid}>
                   {photoUrls.slice(0, 4).map((url) => (
-                    <Image key={url} source={{ uri: url }} style={styles.gridPhoto} />
+                    <Image key={url} source={{ uri: url }} style={[styles.gridPhoto, isArtDeco && deco.gridPhoto]} />
                   ))}
                 </View>
               )}
 
-              <Text style={styles.cardBrand}>MichSya 💕</Text>
+              <Text style={[styles.cardBrand, isArtDeco && deco.cardBrand]}>MichSya 💕</Text>
             </View>
 
             <View style={styles.row}>
-              <Pressable style={[styles.button, styles.cancelButton]} onPress={onClose}>
-                <Text style={styles.cancelText}>Tutup</Text>
+              <Pressable style={[styles.button, styles.cancelButton, isArtDeco && deco.cancelButton]} onPress={onClose}>
+                <Text style={[styles.cancelText, isArtDeco && deco.cancelText]}>Tutup</Text>
               </Pressable>
               <Pressable
-                style={[styles.button, styles.shareButton]}
+                style={[styles.button, styles.shareButton, isArtDeco && deco.shareButton]}
                 onPress={handleShare}
                 disabled={sharing}
               >
                 {sharing ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
                 ) : (
-                  <Text style={styles.shareText}>Bagikan</Text>
+                  <Text style={[styles.shareText, isArtDeco && deco.shareText]}>Bagikan</Text>
                 )}
               </Pressable>
             </View>
@@ -177,5 +181,56 @@ const styles = StyleSheet.create({
   shareText: {
     color: '#fff',
     fontWeight: '600',
+  },
+});
+
+const deco = StyleSheet.create({
+  backdrop: {
+    backgroundColor: artDeco.color.overlay,
+  },
+  sheet: {
+    backgroundColor: artDeco.color.surface,
+    borderTopLeftRadius: artDeco.radius.none,
+    borderTopRightRadius: artDeco.radius.none,
+    borderTopWidth: 2,
+    borderColor: artDeco.color.line,
+  },
+  heading: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  card: {
+    backgroundColor: artDeco.color.surface2,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  cardTitle: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+  },
+  cardStat: {
+    color: artDeco.color.muted,
+  },
+  gridPhoto: {
+    borderRadius: artDeco.radius.none,
+  },
+  cardBrand: {
+    color: artDeco.color.faint,
+  },
+  cancelButton: {
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+  },
+  cancelText: {
+    color: artDeco.color.muted,
+  },
+  shareButton: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  shareText: {
+    color: artDeco.color.black,
+    fontFamily: artDeco.font.serifBold,
   },
 });

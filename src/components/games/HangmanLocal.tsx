@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ALPHABET, isWordGuessed, maskWord, MAX_WRONG, wrongGuessCount } from '../../lib/games/hangman';
 import { WORD_BANK } from '../../lib/games/wordBanks';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -11,6 +13,7 @@ function randomWord() {
 }
 
 export function HangmanLocal() {
+  const { isArtDeco } = useAppTheme();
   const [word, setWord] = useState(randomWord);
   const [guessed, setGuessed] = useState<string[]>([]);
 
@@ -29,14 +32,21 @@ export function HangmanLocal() {
   }
 
   return (
-    <GameCard>
-      <Text style={styles.muted}>Main bareng, tebak kata ini sama-sama</Text>
-      <Text style={styles.hint}>Kesempatan salah: {MAX_WRONG - wrong} tersisa</Text>
+    <GameCard style={isArtDeco && deco.card}>
+      <Text style={[styles.muted, isArtDeco && deco.muted]}>Main bareng, tebak kata ini sama-sama</Text>
+      <Text style={[styles.hint, isArtDeco && deco.hint]}>Kesempatan salah: {MAX_WRONG - wrong} tersisa</Text>
 
-      <Text style={styles.wordDisplay}>{won || lost ? word : maskWord(word, guessed)}</Text>
+      <Text style={[styles.wordDisplay, isArtDeco && deco.wordDisplay]}>{won || lost ? word : maskWord(word, guessed)}</Text>
 
       {(won || lost) && (
-        <Text style={styles.resultText}>{won ? 'Berhasil! 🎉' : `Kalah — kata tadi "${word}"`}</Text>
+        <Text
+          style={[
+            styles.resultText,
+            isArtDeco && (won ? deco.resultWon : deco.resultLost),
+          ]}
+        >
+          {won ? 'Berhasil! 🎉' : `Kalah — kata tadi "${word}"`}
+        </Text>
       )}
 
       <View style={styles.grid}>
@@ -48,9 +58,25 @@ export function HangmanLocal() {
               key={letter}
               onPress={() => guess(letter)}
               disabled={used || won || lost}
-              style={[styles.letter, isHit && styles.letterHit, used && !isHit && styles.letterMiss]}
+              style={[
+                styles.letter,
+                isArtDeco && deco.letter,
+                isHit && styles.letterHit,
+                isArtDeco && isHit && deco.letterHit,
+                used && !isHit && styles.letterMiss,
+                isArtDeco && used && !isHit && deco.letterMiss,
+              ]}
             >
-              <Text style={[styles.letterText, isHit && styles.letterHitText, used && !isHit && styles.letterMissText]}>
+              <Text
+                style={[
+                  styles.letterText,
+                  isArtDeco && deco.letterText,
+                  isHit && styles.letterHitText,
+                  isArtDeco && isHit && deco.letterHitText,
+                  used && !isHit && styles.letterMissText,
+                  isArtDeco && used && !isHit && deco.letterMissText,
+                ]}
+              >
                 {letter}
               </Text>
             </Pressable>
@@ -121,5 +147,51 @@ const styles = StyleSheet.create({
   },
   letterMissText: {
     color: '#f87171',
+  },
+});
+
+const deco = StyleSheet.create({
+  card: {
+    backgroundColor: artDeco.color.surface,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  muted: {
+    color: artDeco.color.muted,
+  },
+  hint: {
+    color: artDeco.color.faint,
+  },
+  wordDisplay: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+  },
+  resultWon: {
+    color: artDeco.color.go,
+  },
+  resultLost: {
+    color: artDeco.color.ruby,
+  },
+  letter: {
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface2,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  letterHit: {
+    borderColor: artDeco.color.go,
+  },
+  letterMiss: {
+    borderColor: artDeco.color.ruby,
+  },
+  letterText: {
+    color: artDeco.color.ink,
+  },
+  letterHitText: {
+    color: artDeco.color.go,
+  },
+  letterMissText: {
+    color: artDeco.color.ruby,
   },
 });

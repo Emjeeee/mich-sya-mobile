@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useOnlineGameSession } from '../../hooks/useOnlineGameSession';
 import { TRUTH_OR_DARE, type TruthOrDare } from '../../lib/games/wordBanks';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -21,6 +23,7 @@ function pickPrompt(type: 'truth' | 'dare', exclude?: TruthOrDare | null) {
 const INITIAL_STATE: TodState = { picker: 'x', current: null, truths: 0, dares: 0 };
 
 export function TruthOrDareOnline({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const { data: session, isLoading, userId, startGame, joinGame, updateSession } = useOnlineGameSession(
     coupleId,
     'truthordare',
@@ -31,8 +34,8 @@ export function TruthOrDareOnline({ coupleId }: { coupleId?: string | null }) {
 
   if (isLoading) {
     return (
-      <GameCard>
-        <Text style={styles.muted}>Memuat...</Text>
+      <GameCard style={isArtDeco && deco.card}>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Memuat...</Text>
       </GameCard>
     );
   }
@@ -47,8 +50,8 @@ export function TruthOrDareOnline({ coupleId }: { coupleId?: string | null }) {
 
   if (noActiveGame) {
     return (
-      <GameCard>
-        <Text style={styles.muted}>
+      <GameCard style={isArtDeco && deco.card}>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>
           Gantian pilih Truth atau Dare untuk diri sendiri — pertanyaan/tantangannya cuma muncul di layar
           pasanganmu, biar dia yang bacain ke kamu.
         </Text>
@@ -71,8 +74,8 @@ export function TruthOrDareOnline({ coupleId }: { coupleId?: string | null }) {
 
   if (waitingForPartner) {
     return (
-      <GameCard>
-        <Text style={styles.text}>Pasangan memulai sesi baru. Gabung yuk!</Text>
+      <GameCard style={isArtDeco && deco.card}>
+        <Text style={[styles.text, isArtDeco && deco.text]}>Pasangan memulai sesi baru. Gabung yuk!</Text>
         <GameButton onPress={handleJoin} loading={joining}>
           Gabung
         </GameButton>
@@ -81,8 +84,8 @@ export function TruthOrDareOnline({ coupleId }: { coupleId?: string | null }) {
   }
   if (waitingForOpponentToJoin) {
     return (
-      <GameCard>
-        <Text style={styles.muted}>Menunggu pasangan bergabung...</Text>
+      <GameCard style={isArtDeco && deco.card}>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Menunggu pasangan bergabung...</Text>
       </GameCard>
     );
   }
@@ -115,21 +118,21 @@ export function TruthOrDareOnline({ coupleId }: { coupleId?: string | null }) {
   }
 
   return (
-    <GameCard>
+    <GameCard style={isArtDeco && deco.card}>
       {(state.truths > 0 || state.dares > 0) && (
-        <Text style={styles.counter}>
+        <Text style={[styles.counter, isArtDeco && deco.counter]}>
           🤔 {state.truths} Truth · 🔥 {state.dares} Dare
         </Text>
       )}
 
       {isPicker ? (
         state.current ? (
-          <Text style={styles.muted}>
+          <Text style={[styles.muted, isArtDeco && deco.muted]}>
             Menunggu pasangan membacakan {state.current.type === 'truth' ? 'pertanyaannya' : 'tantangannya'}...
           </Text>
         ) : (
           <>
-            <Text style={styles.muted}>Giliranmu — pilih Truth atau Dare</Text>
+            <Text style={[styles.muted, isArtDeco && deco.muted]}>Giliranmu — pilih Truth atau Dare</Text>
             <View style={styles.buttonRow}>
               <GameButton onPress={() => choose('truth')}>🤔 Truth</GameButton>
               <GameButton variant="secondary" onPress={() => choose('dare')}>
@@ -140,15 +143,17 @@ export function TruthOrDareOnline({ coupleId }: { coupleId?: string | null }) {
         )
       ) : state.current ? (
         <>
-          <View style={styles.promptBox}>
-            <Text style={styles.promptLabel}>{state.current.type === 'truth' ? 'Truth' : 'Dare'} untuk pasangan</Text>
-            <Text style={styles.promptText}>{state.current.text}</Text>
+          <View style={[styles.promptBox, isArtDeco && deco.promptBox]}>
+            <Text style={[styles.promptLabel, isArtDeco && deco.promptLabel]}>
+              {state.current.type === 'truth' ? 'Truth' : 'Dare'} untuk pasangan
+            </Text>
+            <Text style={[styles.promptText, isArtDeco && deco.promptText]}>{state.current.text}</Text>
           </View>
-          <Text style={styles.hint}>Bacakan ini ke pasangan, lalu lanjut kalau sudah selesai.</Text>
+          <Text style={[styles.hint, isArtDeco && deco.hint]}>Bacakan ini ke pasangan, lalu lanjut kalau sudah selesai.</Text>
           <GameButton onPress={finishRound}>Lanjut ke Giliran Berikutnya</GameButton>
         </>
       ) : (
-        <Text style={styles.muted}>Menunggu pasangan memilih Truth atau Dare...</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Menunggu pasangan memilih Truth atau Dare...</Text>
       )}
 
       <GameButton variant="secondary" onPress={endSession}>
@@ -203,5 +208,40 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#767676',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  card: {
+    backgroundColor: artDeco.color.surface,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  muted: {
+    color: artDeco.color.muted,
+  },
+  text: {
+    color: artDeco.color.ink,
+  },
+  hint: {
+    color: artDeco.color.faint,
+  },
+  counter: {
+    color: artDeco.color.muted,
+  },
+  promptBox: {
+    backgroundColor: artDeco.color.surface2,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.line,
+  },
+  promptLabel: {
+    color: artDeco.color.gold,
+    letterSpacing: artDeco.letterSpacingEyebrow,
+  },
+  promptText: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifRegular,
   },
 });

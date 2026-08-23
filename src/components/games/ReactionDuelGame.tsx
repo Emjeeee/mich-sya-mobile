@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
 type Phase = 'idle' | 'waiting' | 'go' | 'roundEnd';
 
 export function ReactionDuelGame() {
+  const { isArtDeco } = useAppTheme();
   const [phase, setPhase] = useState<Phase>('idle');
   const [wins, setWins] = useState({ p1: 0, p2: 0 });
   const [roundMessage, setRoundMessage] = useState('');
@@ -49,37 +52,45 @@ export function ReactionDuelGame() {
   return (
     <GameCard>
       <View style={styles.scoreRow}>
-        <Text style={styles.muted}>Pemain 1: {wins.p1}</Text>
-        <Text style={styles.muted}>Pemain 2: {wins.p2}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Pemain 1: {wins.p1}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Pemain 2: {wins.p2}</Text>
       </View>
 
       {matchWinner ? (
         <View style={styles.center}>
-          <Text style={styles.resultText}>{matchWinner} menang pertandingan! 🎉</Text>
+          <Text style={[styles.resultText, isArtDeco && deco.resultText]}>{matchWinner} menang pertandingan! 🎉</Text>
           <GameButton onPress={resetMatch}>Main Lagi</GameButton>
         </View>
       ) : phase === 'idle' ? (
         <View style={styles.center}>
-          <Text style={styles.muted}>Pegang HP berdua — begitu layar hijau, siapa duluan tap area-nya menang.</Text>
+          <Text style={[styles.muted, isArtDeco && deco.muted]}>
+            Pegang HP berdua — begitu layar hijau, siapa duluan tap area-nya menang.
+          </Text>
           <GameButton onPress={startRound}>Mulai Ronde</GameButton>
         </View>
       ) : (
         <>
           <View style={styles.tapRow}>
-            <Pressable onPress={() => tap('p1')} style={[styles.tapButton, phase === 'go' && styles.tapButtonGo]}>
-              <Text style={[styles.tapLabel, phase === 'go' && styles.tapLabelGo]}>Pemain 1</Text>
+            <Pressable
+              onPress={() => tap('p1')}
+              style={[styles.tapButton, isArtDeco && deco.tapButton, phase === 'go' && styles.tapButtonGo, phase === 'go' && isArtDeco && deco.tapButtonGo]}
+            >
+              <Text style={[styles.tapLabel, isArtDeco && deco.tapLabel, phase === 'go' && styles.tapLabelGo]}>Pemain 1</Text>
             </Pressable>
-            <Pressable onPress={() => tap('p2')} style={[styles.tapButton, phase === 'go' && styles.tapButtonGo]}>
-              <Text style={[styles.tapLabel, phase === 'go' && styles.tapLabelGo]}>Pemain 2</Text>
+            <Pressable
+              onPress={() => tap('p2')}
+              style={[styles.tapButton, isArtDeco && deco.tapButton, phase === 'go' && styles.tapButtonGo, phase === 'go' && isArtDeco && deco.tapButtonGo]}
+            >
+              <Text style={[styles.tapLabel, isArtDeco && deco.tapLabel, phase === 'go' && styles.tapLabelGo]}>Pemain 2</Text>
             </Pressable>
           </View>
-          <Text style={styles.muted}>
+          <Text style={[styles.muted, isArtDeco && deco.muted]}>
             {phase === 'waiting' && 'Tunggu sampai hijau...'}
             {phase === 'go' && 'TAP SEKARANG!'}
           </Text>
           {phase === 'roundEnd' && (
             <View style={styles.center}>
-              <Text style={styles.text}>{roundMessage}</Text>
+              <Text style={[styles.text, isArtDeco && deco.text]}>{roundMessage}</Text>
               <GameButton variant="secondary" onPress={startRound}>
                 Ronde Berikutnya
               </GameButton>
@@ -139,5 +150,34 @@ const styles = StyleSheet.create({
   },
   tapLabelGo: {
     color: '#fff',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  text: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  resultText: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
+  },
+  tapButton: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+  },
+  tapButtonGo: {
+    backgroundColor: artDeco.color.go,
+    borderColor: artDeco.color.goldStrong,
+  },
+  tapLabel: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
   },
 });

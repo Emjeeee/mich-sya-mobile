@@ -24,6 +24,10 @@ import PhoneNumberModal from '../components/PhoneNumberModal';
 import SwipeToConfirm from '../components/SwipeToConfirm';
 import { Pixel } from '../components/ui/pixel-icons';
 import WishlistListModal from '../components/WishlistListModal';
+import { artDeco } from '../theme/artDecoTokens';
+import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { ThemeSwitcherSheet } from '../theme/components/ThemeSwitcherSheet';
+import { useAppTheme } from '../theme/ThemeContext';
 import { useCoupleStats } from '../hooks/useCoupleStats';
 import { useDateSession } from '../hooks/useDateSession';
 import { useNextSchedule } from '../hooks/useNextSchedule';
@@ -56,16 +60,19 @@ function ActionButton({
   label: string;
   onPress: () => void;
 }) {
+  const { isArtDeco } = useAppTheme();
   return (
-    <Pressable style={styles.actionButton} onPress={onPress}>
+    <Pressable style={[styles.actionButton, isArtDeco && deco.actionButton]} onPress={onPress}>
       {typeof icon === 'number' ? <Image source={icon} style={styles.actionButtonIcon} /> : icon}
-      <Text style={styles.actionButtonText}>{label}</Text>
+      <Text style={[styles.actionButtonText, isArtDeco && deco.actionButtonText]}>{label}</Text>
     </Pressable>
   );
 }
 
 export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
+  const [showThemeSheet, setShowThemeSheet] = useState(false);
   const { coupleId, session, loading, starting, ending, error, startSession, endSession } =
     useDateSession();
   const { nextSchedule, daysUntil } = useNextSchedule(coupleId);
@@ -226,45 +233,56 @@ export default function HomeScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 16 }, isArtDeco && deco.container]}>
+      {isArtDeco && <ArtDecoBackground />}
+
+      <Pressable
+        style={[themeButtonStyles.button, { top: insets.top + 8 }, isArtDeco && themeButtonStyles.buttonDeco]}
+        onPress={() => setShowThemeSheet(true)}
+      >
+        <Text style={[themeButtonStyles.icon, isArtDeco && themeButtonStyles.iconDeco]}>
+          {isArtDeco ? '◆' : '🎨'}
+        </Text>
+      </Pressable>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 16 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.center}>
-          <Text style={styles.title}>MichSya</Text>
+          <Text style={[styles.title, isArtDeco && deco.title]}>MichSya</Text>
 
-          {error && <Text style={styles.error}>{error}</Text>}
+          {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}
 
           {session ? (
             <>
-              <Text style={styles.status}>Kencan sedang berlangsung</Text>
-              <Text style={styles.timer}>{elapsed}</Text>
+              <Text style={[styles.status, isArtDeco && deco.status]}>Kencan sedang berlangsung</Text>
+              <Text style={[styles.timer, isArtDeco && deco.timer]}>{elapsed}</Text>
               <SwipeToConfirm
                 key={swipeResetKey}
                 label="Geser untuk akhiri kencan"
-                color="#e11d74"
+                color={isArtDeco ? artDeco.color.gold : '#e11d74'}
                 onConfirm={() => setShowEndModal(true)}
                 loading={ending}
               />
             </>
           ) : (
             <>
-              <Text style={styles.status}>Belum ada kencan aktif</Text>
+              <Text style={[styles.status, isArtDeco && deco.status]}>Belum ada kencan aktif</Text>
               <SwipeToConfirm
                 label="Geser untuk mulai kencan"
-                color="#e11d74"
+                color={isArtDeco ? artDeco.color.gold : '#e11d74'}
                 onConfirm={startSession}
                 loading={starting}
               />
               {nextSchedule && daysUntil !== null && (
-                <Text style={styles.hintLine}>
+                <Text style={[styles.hintLine, isArtDeco && deco.hintLine]}>
                   {daysUntil <= 0 ? 'Hari ini' : `${daysUntil} hari lagi`}: {nextSchedule.title}
                 </Text>
               )}
               {stats && (
-                <Text style={styles.hintLine}>
+                <Text style={[styles.hintLine, isArtDeco && deco.hintLine]}>
                   {stats.totalMemories} kenangan · {stats.datesThisMonth} kencan bulan ini
                 </Text>
               )}
@@ -288,23 +306,32 @@ export default function HomeScreen({ navigation }: Props) {
         )}
 
         {coupleId && (
-          <Text style={styles.momenHint}>
+          <Text style={[styles.momenHint, isArtDeco && deco.momenHint]}>
             Momen = catat momen spontan sekali tap, tanpa foto/tulisan — otomatis masuk ke Kenangan.
           </Text>
         )}
 
-        {quickMemoryNotice && <Text style={styles.noticeText}>{quickMemoryNotice}</Text>}
+        {quickMemoryNotice && (
+          <Text style={[styles.noticeText, isArtDeco && deco.noticeText]}>{quickMemoryNotice}</Text>
+        )}
 
         {coupleId && (
           <Pressable onPress={() => setShowPhoneNumberModal(true)}>
-            <Text style={styles.phoneNumberLink}>📱 Atur nomor HP (cadangan SMS untuk Bunyikan)</Text>
+            <Text style={[styles.phoneNumberLink, isArtDeco && deco.phoneNumberLink]}>
+              📱 Atur nomor HP (cadangan SMS untuk Bunyikan)
+            </Text>
           </Pressable>
         )}
 
-        <Pressable style={styles.signOutButton} onPress={() => supabase.auth.signOut()}>
-          <Text style={styles.signOutText}>Keluar</Text>
+        <Pressable
+          style={[styles.signOutButton, isArtDeco && deco.signOutButton]}
+          onPress={() => supabase.auth.signOut()}
+        >
+          <Text style={[styles.signOutText, isArtDeco && deco.signOutText]}>Keluar</Text>
         </Pressable>
       </ScrollView>
+
+      <ThemeSwitcherSheet visible={showThemeSheet} onClose={() => setShowThemeSheet(false)} />
 
       <EndDateModal
         visible={showEndModal}
@@ -469,5 +496,82 @@ const styles = StyleSheet.create({
   signOutText: {
     color: '#e11d74',
     fontWeight: '600',
+  },
+});
+
+const deco = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  title: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+    fontSize: 28,
+    letterSpacing: artDeco.letterSpacingWide,
+  },
+  status: {
+    color: artDeco.color.ink2,
+    fontFamily: artDeco.font.serifRegular,
+  },
+  timer: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  error: {
+    color: artDeco.color.stop,
+  },
+  hintLine: {
+    color: artDeco.color.muted,
+  },
+  noticeText: {
+    color: artDeco.color.gold,
+  },
+  momenHint: {
+    color: artDeco.color.faint,
+  },
+  phoneNumberLink: {
+    color: artDeco.color.goldStrong,
+  },
+  actionButton: {
+    backgroundColor: artDeco.color.goldSoft,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  actionButtonText: {
+    color: artDeco.color.goldStrong,
+  },
+  signOutButton: {
+    borderRadius: artDeco.radius.none,
+    borderColor: artDeco.color.line,
+  },
+  signOutText: {
+    color: artDeco.color.gold,
+  },
+});
+
+const themeButtonStyles = StyleSheet.create({
+  button: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  buttonDeco: {
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+  },
+  icon: {
+    fontSize: 16,
+  },
+  iconDeco: {
+    color: artDeco.color.gold,
   },
 });

@@ -1,10 +1,17 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { COLS, ROWS, type Cell } from '../../lib/games/connectFour';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 
 const MARK_COLOR: Record<Exclude<Cell, ''>, string> = {
   x: '#e11d74',
   o: '#eab308',
+};
+
+const DECO_MARK_COLOR: Record<Exclude<Cell, ''>, string> = {
+  x: artDeco.color.gold,
+  o: artDeco.color.ruby,
 };
 
 export function ConnectFourBoard({
@@ -16,8 +23,9 @@ export function ConnectFourBoard({
   onColumnClick?: (col: number) => void;
   disabled?: boolean;
 }) {
+  const { isArtDeco } = useAppTheme();
   return (
-    <View style={styles.board}>
+    <View style={[styles.board, isArtDeco && deco.board]}>
       {Array.from({ length: COLS }, (_, col) => (
         <Pressable key={col} disabled={disabled} onPress={() => onColumnClick?.(col)} style={styles.column}>
           {Array.from({ length: ROWS }, (_, row) => {
@@ -25,7 +33,12 @@ export function ConnectFourBoard({
             return (
               <View
                 key={row}
-                style={[styles.disc, cell ? { backgroundColor: MARK_COLOR[cell as Exclude<Cell, ''>] } : styles.discEmpty]}
+                style={[
+                  styles.disc,
+                  cell ? { backgroundColor: MARK_COLOR[cell as Exclude<Cell, ''>] } : styles.discEmpty,
+                  isArtDeco && deco.disc,
+                  isArtDeco && (cell ? { backgroundColor: DECO_MARK_COLOR[cell as Exclude<Cell, ''>] } : deco.discEmpty),
+                ]}
               />
             );
           })}
@@ -56,5 +69,20 @@ const styles = StyleSheet.create({
   },
   discEmpty: {
     backgroundColor: '#fff',
+  },
+});
+
+const deco = StyleSheet.create({
+  board: {
+    backgroundColor: artDeco.color.surface,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  disc: {
+    borderRadius: artDeco.radius.none,
+  },
+  discEmpty: {
+    backgroundColor: artDeco.color.bgAlt,
   },
 });

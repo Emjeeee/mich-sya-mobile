@@ -14,6 +14,9 @@ import { Leaderboard } from '../components/games/Leaderboard';
 import { GAMES } from '../lib/games/registry';
 import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
+import { artDeco } from '../theme/artDecoTokens';
+import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { useAppTheme } from '../theme/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 
@@ -21,6 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 // GameShell.tsx (header, Local/Online toggle, leaderboard visibility rule).
 export default function GameScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const { gameKey, coupleId } = route.params;
   const game = GAMES.find((g) => g.key === gameKey);
   const [mode, setMode] = useState<'local' | 'online'>('local');
@@ -32,8 +36,9 @@ export default function GameScreen({ navigation, route }: Props) {
 
   if (!game) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.muted}>Game tidak ditemukan.</Text>
+      <View style={[styles.container, isArtDeco && deco.container]}>
+        {isArtDeco && <ArtDecoBackground />}
+        <Text style={[styles.muted, isArtDeco && deco.backLink]}>Game tidak ditemukan.</Text>
       </View>
     );
   }
@@ -51,15 +56,16 @@ export default function GameScreen({ navigation, route }: Props) {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, isArtDeco && deco.container]}
       contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
     >
+      {isArtDeco && <ArtDecoBackground />}
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()}>
-          <Text style={styles.backLink}>‹ Arcade Room</Text>
+          <Text style={[styles.backLink, isArtDeco && deco.backLink]}>‹ Arcade Room</Text>
         </Pressable>
-        <Text style={styles.title}>{game.title}</Text>
-        <Text style={styles.subtitle}>{game.description}</Text>
+        <Text style={[styles.title, isArtDeco && deco.title]}>{game.title}</Text>
+        <Text style={[styles.subtitle, isArtDeco && deco.subtitle]}>{game.description}</Text>
       </View>
 
       {showOnline && (
@@ -68,9 +74,21 @@ export default function GameScreen({ navigation, route }: Props) {
             <Pressable
               key={m}
               onPress={() => setMode(m)}
-              style={[styles.modeButton, mode === m && styles.modeButtonActive]}
+              style={[
+                styles.modeButton,
+                isArtDeco && deco.modeButton,
+                mode === m && styles.modeButtonActive,
+                isArtDeco && mode === m && deco.modeButtonActive,
+              ]}
             >
-              <Text style={[styles.modeButtonText, mode === m && styles.modeButtonTextActive]}>
+              <Text
+                style={[
+                  styles.modeButtonText,
+                  isArtDeco && deco.modeButtonText,
+                  mode === m && styles.modeButtonTextActive,
+                  isArtDeco && mode === m && deco.modeButtonTextActive,
+                ]}
+              >
                 {m === 'local' ? '📱 Satu HP' : '🌐 Online'}
               </Text>
             </Pressable>
@@ -87,8 +105,8 @@ export default function GameScreen({ navigation, route }: Props) {
       </View>
 
       {showLeaderboard && (
-        <View style={styles.leaderboardCard}>
-          <Text style={styles.leaderboardTitle}>Papan Skor</Text>
+        <View style={[styles.leaderboardCard, isArtDeco && deco.leaderboardCard]}>
+          <Text style={[styles.leaderboardTitle, isArtDeco && deco.leaderboardTitle]}>Papan Skor</Text>
           <Leaderboard
             coupleId={coupleId}
             userId={userId}
@@ -170,5 +188,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     marginBottom: 10,
+  },
+});
+
+const deco = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  backLink: {
+    color: artDeco.color.muted,
+  },
+  title: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+    letterSpacing: artDeco.letterSpacingWide,
+  },
+  subtitle: {
+    color: artDeco.color.muted,
+    fontFamily: artDeco.font.serifRegular,
+  },
+  modeButton: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+  },
+  modeButtonActive: {
+    backgroundColor: artDeco.color.gold,
+  },
+  modeButtonText: {
+    color: artDeco.color.ink,
+  },
+  modeButtonTextActive: {
+    color: artDeco.color.black,
+  },
+  leaderboardCard: {
+    backgroundColor: artDeco.color.surface,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  leaderboardTitle: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
   },
 });

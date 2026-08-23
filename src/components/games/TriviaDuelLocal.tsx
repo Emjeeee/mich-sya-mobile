@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TRIVIA_QUESTIONS } from '../../lib/games/wordBanks';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -13,6 +15,7 @@ function randomQuestion(excludeQuestion?: string) {
 }
 
 export function TriviaDuelLocal() {
+  const { isArtDeco } = useAppTheme();
   const [question, setQuestion] = useState(randomQuestion);
   const [scores, setScores] = useState({ p1: 0, p2: 0 });
   const [turn, setTurn] = useState<'p1' | 'p2'>('p1');
@@ -41,21 +44,21 @@ export function TriviaDuelLocal() {
 
   if (winner) {
     return (
-      <GameCard>
-        <Text style={styles.resultText}>{winner} menang! 🎉</Text>
+      <GameCard style={isArtDeco && deco.card}>
+        <Text style={[styles.resultText, isArtDeco && deco.resultText]}>{winner} menang! 🎉</Text>
         <GameButton onPress={reset}>Main Lagi</GameButton>
       </GameCard>
     );
   }
 
   return (
-    <GameCard>
+    <GameCard style={isArtDeco && deco.card}>
       <View style={styles.scoreRow}>
-        <Text style={styles.muted}>Pemain 1: {scores.p1}</Text>
-        <Text style={styles.muted}>Pemain 2: {scores.p2}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Pemain 1: {scores.p1}</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Pemain 2: {scores.p2}</Text>
       </View>
-      <Text style={styles.turnText}>Giliran {turn === 'p1' ? 'Pemain 1' : 'Pemain 2'}</Text>
-      <Text style={styles.question}>{question.question}</Text>
+      <Text style={[styles.turnText, isArtDeco && deco.turnText]}>Giliran {turn === 'p1' ? 'Pemain 1' : 'Pemain 2'}</Text>
+      <Text style={[styles.question, isArtDeco && deco.question]}>{question.question}</Text>
 
       <View style={styles.optionsGrid}>
         {question.options.map((opt, i) => {
@@ -66,9 +69,25 @@ export function TriviaDuelLocal() {
               key={opt}
               onPress={() => answer(i)}
               disabled={selected !== null}
-              style={[styles.option, isCorrect && styles.optionCorrect, isWrongPick && styles.optionWrong]}
+              style={[
+                styles.option,
+                isArtDeco && deco.option,
+                isCorrect && styles.optionCorrect,
+                isArtDeco && isCorrect && deco.optionCorrect,
+                isWrongPick && styles.optionWrong,
+                isArtDeco && isWrongPick && deco.optionWrong,
+              ]}
             >
-              <Text style={[styles.optionText, isCorrect && styles.optionCorrectText, isWrongPick && styles.optionWrongText]}>
+              <Text
+                style={[
+                  styles.optionText,
+                  isArtDeco && deco.optionText,
+                  isCorrect && styles.optionCorrectText,
+                  isArtDeco && isCorrect && deco.optionCorrectText,
+                  isWrongPick && styles.optionWrongText,
+                  isArtDeco && isWrongPick && deco.optionWrongText,
+                ]}
+              >
                 {opt}
               </Text>
             </Pressable>
@@ -135,5 +154,50 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  card: {
+    backgroundColor: artDeco.color.surface,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+  },
+  muted: {
+    color: artDeco.color.muted,
+  },
+  turnText: {
+    color: artDeco.color.gold,
+  },
+  question: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifRegular,
+  },
+  option: {
+    borderColor: artDeco.color.line,
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface2,
+  },
+  optionCorrect: {
+    borderColor: artDeco.color.go,
+    backgroundColor: artDeco.color.surface2,
+  },
+  optionWrong: {
+    borderColor: artDeco.color.ruby,
+    backgroundColor: artDeco.color.surface2,
+  },
+  optionText: {
+    color: artDeco.color.ink,
+  },
+  optionCorrectText: {
+    color: artDeco.color.go,
+  },
+  optionWrongText: {
+    color: artDeco.color.ruby,
+  },
+  resultText: {
+    color: artDeco.color.go,
+    fontFamily: artDeco.font.serifBold,
   },
 });

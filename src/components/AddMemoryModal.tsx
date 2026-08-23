@@ -23,6 +23,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { enqueuePendingMemory, flushPendingMemories, type PendingMemory } from '../lib/offlineQueue';
 import { saveMemoryNow } from '../lib/memoryUpload';
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
 
 interface AddMemoryModalProps {
   visible: boolean;
@@ -32,6 +34,7 @@ interface AddMemoryModalProps {
 
 export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemoryModalProps) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const [assets, setAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [voiceNoteUri, setVoiceNoteUri] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -153,41 +156,53 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
-        style={styles.backdrop}
+        style={[styles.backdrop, isArtDeco && deco.backdrop]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }, isArtDeco && deco.sheet]}>
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text style={styles.heading}>Tambah kenangan</Text>
+            <Text style={[styles.heading, isArtDeco && deco.heading]}>Tambah kenangan</Text>
 
             <View style={styles.pickRow}>
-              <Pressable style={[styles.pickButton, styles.pickButtonThird]} onPress={captureMedia}>
-                <Text style={styles.pickButtonText}>Kamera</Text>
+              <Pressable
+                style={[styles.pickButton, styles.pickButtonThird, isArtDeco && deco.pickButton]}
+                onPress={captureMedia}
+              >
+                <Text style={[styles.pickButtonText, isArtDeco && deco.pickButtonText]}>Kamera</Text>
               </Pressable>
-              <Pressable style={[styles.pickButton, styles.pickButtonThird]} onPress={pickMedia}>
-                <Text style={styles.pickButtonText}>Galeri</Text>
+              <Pressable
+                style={[styles.pickButton, styles.pickButtonThird, isArtDeco && deco.pickButton]}
+                onPress={pickMedia}
+              >
+                <Text style={[styles.pickButtonText, isArtDeco && deco.pickButtonText]}>Galeri</Text>
               </Pressable>
               <Pressable
                 style={[
                   styles.pickButton,
                   styles.pickButtonThird,
+                  isArtDeco && deco.pickButton,
                   recorderState.isRecording && styles.pickButtonRecording,
+                  recorderState.isRecording && isArtDeco && deco.pickButtonRecording,
                 ]}
                 onPress={toggleRecording}
               >
-                <Text style={styles.pickButtonText}>
+                <Text style={[styles.pickButtonText, isArtDeco && deco.pickButtonText]}>
                   {recorderState.isRecording ? '⏺ Stop' : '🎤 Rekam'}
                 </Text>
               </Pressable>
             </View>
 
             {voiceNoteUri && (
-              <Text style={styles.hint}>🎤 Catatan suara terekam ({Math.round(recorderState.durationMillis / 1000)}s)</Text>
+              <Text style={[styles.hint, isArtDeco && deco.hint]}>
+                🎤 Catatan suara terekam ({Math.round(recorderState.durationMillis / 1000)}s)
+              </Text>
             )}
 
             {assets.length > 0 && (
               <>
-                <Text style={styles.hint}>{assets.length} media dipilih -- ketuk untuk hapus</Text>
+                <Text style={[styles.hint, isArtDeco && deco.hint]}>
+                  {assets.length} media dipilih -- ketuk untuk hapus
+                </Text>
                 <ScrollView horizontal style={styles.previewRow}>
                   {assets.map((asset) => (
                     <Pressable
@@ -196,7 +211,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
                         setAssets((prev) => prev.filter((item) => item.uri !== asset.uri))
                       }
                     >
-                      <Image source={{ uri: asset.uri }} style={styles.preview} />
+                      <Image source={{ uri: asset.uri }} style={[styles.preview, isArtDeco && deco.preview]} />
                     </Pressable>
                   ))}
                 </ScrollView>
@@ -204,39 +219,39 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
             )}
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, isArtDeco && deco.input]}
               placeholder="Judul (opsional)"
-              placeholderTextColor="#767676"
+              placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
               value={title}
               onChangeText={setTitle}
             />
 
             <TextInput
-              style={[styles.input, styles.multiline]}
+              style={[styles.input, styles.multiline, isArtDeco && deco.input]}
               placeholder="Ceritain hari ini gimana... (opsional kalau udah rekam suara)"
-              placeholderTextColor="#767676"
+              placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
               value={story}
               onChangeText={setStory}
               multiline
               textAlignVertical="top"
             />
 
-            {error && <Text style={styles.error}>{error}</Text>}
-            {notice && <Text style={styles.notice}>{notice}</Text>}
+            {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}
+            {notice && <Text style={[styles.notice, isArtDeco && deco.notice]}>{notice}</Text>}
 
             <View style={styles.row}>
-              <Pressable style={[styles.button, styles.cancelButton]} onPress={handleClose}>
-                <Text style={styles.cancelText}>Batal</Text>
+              <Pressable style={[styles.button, styles.cancelButton, isArtDeco && deco.cancelButton]} onPress={handleClose}>
+                <Text style={[styles.cancelText, isArtDeco && deco.cancelText]}>Batal</Text>
               </Pressable>
               <Pressable
-                style={[styles.button, styles.submitButton]}
+                style={[styles.button, styles.submitButton, isArtDeco && deco.submitButton]}
                 onPress={handleSave}
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
                 ) : (
-                  <Text style={styles.submitText}>Simpan</Text>
+                  <Text style={[styles.submitText, isArtDeco && deco.submitText]}>Simpan</Text>
                 )}
               </Pressable>
             </View>
@@ -352,5 +367,65 @@ const styles = StyleSheet.create({
   submitText: {
     color: '#fff',
     fontWeight: '600',
+  },
+});
+
+const deco = StyleSheet.create({
+  backdrop: {
+    backgroundColor: artDeco.color.overlay,
+  },
+  sheet: {
+    backgroundColor: artDeco.color.surface,
+    borderTopLeftRadius: artDeco.radius.none,
+    borderTopRightRadius: artDeco.radius.none,
+    borderTopWidth: 2,
+    borderColor: artDeco.color.line,
+  },
+  heading: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  pickButton: {
+    borderColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  pickButtonRecording: {
+    backgroundColor: artDeco.color.rubySoft,
+  },
+  pickButtonText: {
+    color: artDeco.color.gold,
+  },
+  hint: {
+    color: artDeco.color.muted,
+  },
+  preview: {
+    borderRadius: artDeco.radius.none,
+  },
+  input: {
+    backgroundColor: artDeco.color.surface2,
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+    color: artDeco.color.ink,
+  },
+  error: {
+    color: artDeco.color.stop,
+  },
+  notice: {
+    color: artDeco.color.warn,
+  },
+  cancelButton: {
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+  },
+  cancelText: {
+    color: artDeco.color.muted,
+  },
+  submitButton: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  submitText: {
+    color: artDeco.color.black,
+    fontFamily: artDeco.font.serifBold,
   },
 });

@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
+
 const KNOB_SIZE = 56;
 const TRACK_PADDING = 4;
 const CONFIRM_THRESHOLD = 0.7;
@@ -29,6 +32,7 @@ export default function SwipeToConfirm({
   disabled = false,
   loading = false,
 }: SwipeToConfirmProps) {
+  const { isArtDeco } = useAppTheme();
   const [trackWidth, setTrackWidth] = useState(0);
   const pan = useRef(new Animated.Value(0)).current;
   const maxTranslateRef = useRef(0);
@@ -78,7 +82,12 @@ export default function SwipeToConfirm({
 
   return (
     <View
-      style={[styles.track, { borderColor: color }, isLocked && styles.trackDisabled]}
+      style={[
+        styles.track,
+        { borderColor: color },
+        isArtDeco && deco.track,
+        isLocked && styles.trackDisabled,
+      ]}
       onLayout={handleLayout}
     >
       <Animated.Text style={[styles.label, { color, opacity: labelOpacity }]}>
@@ -89,12 +98,17 @@ export default function SwipeToConfirm({
         style={[
           styles.knob,
           { backgroundColor: color, transform: [{ translateX: pan }] },
+          isArtDeco && deco.knob,
         ]}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
         ) : (
-          <Ionicons name="chevron-forward" size={24} color="#fff" />
+          <Ionicons
+            name="chevron-forward"
+            size={24}
+            color={isArtDeco ? artDeco.color.black : '#fff'}
+          />
         )}
       </Animated.View>
     </View>
@@ -127,5 +141,15 @@ const styles = StyleSheet.create({
     borderRadius: KNOB_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+});
+
+const deco = StyleSheet.create({
+  track: {
+    borderRadius: artDeco.radius.none,
+    backgroundColor: artDeco.color.surface,
+  },
+  knob: {
+    borderRadius: artDeco.radius.none,
   },
 });

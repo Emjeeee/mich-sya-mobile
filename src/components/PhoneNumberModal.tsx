@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { friendlyError } from '../lib/friendlyError';
 import { getMyPhoneNumber, savePhoneNumber } from '../lib/push';
 import { supabase } from '../lib/supabase';
+import { artDeco } from '../theme/artDecoTokens';
+import { useAppTheme } from '../theme/ThemeContext';
 
 interface PhoneNumberModalProps {
   visible: boolean;
@@ -42,6 +44,7 @@ function normalizePhoneInput(text: string): string {
 
 export default function PhoneNumberModal({ visible, coupleId, onClose }: PhoneNumberModalProps) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,32 +78,40 @@ export default function PhoneNumberModal({ visible, coupleId, onClose }: PhoneNu
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'android' ? 'height' : 'padding'}
-        style={styles.backdrop}
+        style={[styles.backdrop, isArtDeco && deco.backdrop]}
       >
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
-          <Text style={styles.heading}>Nomor HP kamu</Text>
-          <Text style={styles.subtitle}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }, isArtDeco && deco.sheet]}>
+          <Text style={[styles.heading, isArtDeco && deco.heading]}>Nomor HP kamu</Text>
+          <Text style={[styles.subtitle, isArtDeco && deco.subtitle]}>
             Dipakai sebagai cadangan "Bunyikan HP" lewat SMS, untuk saat pasangan ada sinyal tapi
             tidak ada internet.
           </Text>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, isArtDeco && deco.input]}
             placeholder="+62812xxxxxxx"
-            placeholderTextColor="#767676"
+            placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
             keyboardType="phone-pad"
             value={phoneNumber}
             onChangeText={(text) => setPhoneNumber(normalizePhoneInput(text))}
           />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text> : null}
 
           <View style={styles.row}>
-            <Pressable style={[styles.button, styles.cancelButton]} onPress={onClose}>
-              <Text style={styles.cancelText}>Tutup</Text>
+            <Pressable style={[styles.button, styles.cancelButton, isArtDeco && deco.cancelButton]} onPress={onClose}>
+              <Text style={[styles.cancelText, isArtDeco && deco.cancelText]}>Tutup</Text>
             </Pressable>
-            <Pressable style={[styles.button, styles.saveButton]} onPress={handleSave} disabled={saving}>
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Simpan</Text>}
+            <Pressable
+              style={[styles.button, styles.saveButton, isArtDeco && deco.saveButton]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
+              ) : (
+                <Text style={[styles.saveText, isArtDeco && deco.saveText]}>Simpan</Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -171,5 +182,49 @@ const styles = StyleSheet.create({
   saveText: {
     color: '#fff',
     fontWeight: '600',
+  },
+});
+
+const deco = StyleSheet.create({
+  backdrop: {
+    backgroundColor: artDeco.color.overlay,
+  },
+  sheet: {
+    backgroundColor: artDeco.color.surface,
+    borderTopLeftRadius: artDeco.radius.none,
+    borderTopRightRadius: artDeco.radius.none,
+    borderTopWidth: 2,
+    borderColor: artDeco.color.line,
+  },
+  heading: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+  },
+  subtitle: {
+    color: artDeco.color.muted,
+  },
+  input: {
+    backgroundColor: artDeco.color.surface2,
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+    color: artDeco.color.ink,
+  },
+  error: {
+    color: artDeco.color.stop,
+  },
+  cancelButton: {
+    borderColor: artDeco.color.lineSoft,
+    borderRadius: artDeco.radius.none,
+  },
+  cancelText: {
+    color: artDeco.color.muted,
+  },
+  saveButton: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
+  },
+  saveText: {
+    color: artDeco.color.black,
+    fontFamily: artDeco.font.serifBold,
   },
 });

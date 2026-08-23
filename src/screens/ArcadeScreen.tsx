@@ -5,22 +5,36 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pixel } from '../components/ui/pixel-icons';
 import { GAMES } from '../lib/games/registry';
 import type { RootStackParamList } from '../navigation/types';
+import { artDeco } from '../theme/artDecoTokens';
+import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { DiamondMarker } from '../theme/components/DiamondMarker';
+import { useAppTheme } from '../theme/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Arcade'>;
 
 // Ports the web app's ArcadePage.tsx -- a grid of every game in the registry.
 export default function ArcadeScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const { isArtDeco } = useAppTheme();
   const { coupleId } = route.params;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 },
+        isArtDeco && deco.container,
+      ]}
+    >
+      {isArtDeco && <ArtDecoBackground />}
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()}>
-          <Text style={styles.backLink}>‹ Kembali</Text>
+          <Text style={[styles.backLink, isArtDeco && deco.backLink]}>‹ Kembali</Text>
         </Pressable>
-        <Text style={styles.title}>Arcade Room</Text>
-        <Text style={styles.subtitle}>{GAMES.length} mini game buat seru-seruan berdua</Text>
+        <Text style={[styles.title, isArtDeco && deco.title]}>Arcade Room</Text>
+        <Text style={[styles.subtitle, isArtDeco && deco.subtitle]}>
+          {GAMES.length} mini game buat seru-seruan berdua
+        </Text>
       </View>
 
       <FlatList
@@ -29,20 +43,24 @@ export default function ArcadeScreen({ navigation, route }: Props) {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <Pressable
-            style={styles.card}
+            style={[styles.card, isArtDeco && deco.card]}
             onPress={() => navigation.navigate('Game', { gameKey: item.key, coupleId })}
           >
-            <Pixel name={item.icon} size={32} />
+            {isArtDeco ? <DiamondMarker size={10} /> : <Pixel name={item.icon} size={32} />}
             <View style={styles.cardText}>
               <View style={styles.cardTitleRow}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={[styles.cardTitle, isArtDeco && deco.cardTitle]}>{item.title}</Text>
                 {item.hasOnline && (
-                  <View style={styles.onlineBadge}>
-                    <Text style={styles.onlineBadgeText}>ONLINE</Text>
+                  <View style={[styles.onlineBadge, isArtDeco && deco.onlineBadge]}>
+                    <Text style={[styles.onlineBadgeText, isArtDeco && deco.onlineBadgeText]}>
+                      ONLINE
+                    </Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.cardDescription}>{item.description}</Text>
+              <Text style={[styles.cardDescription, isArtDeco && deco.cardDescription]}>
+                {item.description}
+              </Text>
             </View>
           </Pressable>
         )}
@@ -116,5 +134,45 @@ const styles = StyleSheet.create({
   cardDescription: {
     fontSize: 13,
     color: '#767676',
+  },
+});
+
+const deco = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  backLink: {
+    color: artDeco.color.muted,
+  },
+  title: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+    letterSpacing: artDeco.letterSpacingWide,
+  },
+  subtitle: {
+    color: artDeco.color.muted,
+    fontFamily: artDeco.font.serifRegular,
+  },
+  card: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+  },
+  cardTitle: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  cardDescription: {
+    color: artDeco.color.muted,
+  },
+  onlineBadge: {
+    backgroundColor: artDeco.color.rubySoft,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.ruby,
+  },
+  onlineBadgeText: {
+    color: artDeco.color.rubyStrong,
   },
 });

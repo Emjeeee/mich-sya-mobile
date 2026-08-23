@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import { useOnlineGameSession } from '../../hooks/useOnlineGameSession';
+import { artDeco } from '../../theme/artDecoTokens';
+import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
 
@@ -25,6 +27,7 @@ const SETTLE_MS = 3000;
 const INITIAL_STATE: TapBattleState = { startedAt: null, p1Taps: 0, p2Taps: 0 };
 
 export function TapBattleOnline({ coupleId }: { coupleId?: string | null }) {
+  const { isArtDeco } = useAppTheme();
   const { data: session, isLoading, userId, startGame, joinGame, updateSession } = useOnlineGameSession(
     coupleId,
     'tapbattle',
@@ -98,7 +101,7 @@ export function TapBattleOnline({ coupleId }: { coupleId?: string | null }) {
   if (isLoading) {
     return (
       <GameCard>
-        <Text style={styles.muted}>Memuat...</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Memuat...</Text>
       </GameCard>
     );
   }
@@ -112,7 +115,7 @@ export function TapBattleOnline({ coupleId }: { coupleId?: string | null }) {
   if (!session) {
     return (
       <GameCard>
-        <Text style={styles.muted}>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>
           Siapa paling banyak tap dalam {PLAY_MS / 1000} detik — kamu cuma lihat hitungan kamu sendiri
           sampai waktu habis.
         </Text>
@@ -135,7 +138,7 @@ export function TapBattleOnline({ coupleId }: { coupleId?: string | null }) {
   if (waitingForPartner) {
     return (
       <GameCard>
-        <Text style={styles.text}>Pasangan memulai ronde baru. Gabung yuk!</Text>
+        <Text style={[styles.text, isArtDeco && deco.text]}>Pasangan memulai ronde baru. Gabung yuk!</Text>
         <GameButton onPress={handleJoin} loading={joining}>
           Gabung
         </GameButton>
@@ -145,7 +148,7 @@ export function TapBattleOnline({ coupleId }: { coupleId?: string | null }) {
   if (waitingForOpponentToJoin) {
     return (
       <GameCard>
-        <Text style={styles.muted}>Menunggu pasangan bergabung...</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Menunggu pasangan bergabung...</Text>
       </GameCard>
     );
   }
@@ -166,27 +169,29 @@ export function TapBattleOnline({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       {phase === 'countdown' && (
-        <Text style={styles.countdown}>{Math.max(1, Math.ceil((COUNTDOWN_MS - elapsed) / 1000))}</Text>
+        <Text style={[styles.countdown, isArtDeco && deco.countdown]}>
+          {Math.max(1, Math.ceil((COUNTDOWN_MS - elapsed) / 1000))}
+        </Text>
       )}
 
       {phase === 'playing' && (
         <>
-          <Text style={styles.timer}>
+          <Text style={[styles.timer, isArtDeco && deco.timer]}>
             Sisa waktu: {Math.max(0, Math.ceil((COUNTDOWN_MS + PLAY_MS - elapsed) / 1000))}s
           </Text>
-          <Pressable onPress={() => setMyTaps((t) => t + 1)} style={styles.tapButton}>
-            <Text style={styles.tapCount}>{myTaps}</Text>
-            <Text style={styles.tapLabel}>ketukanmu</Text>
+          <Pressable onPress={() => setMyTaps((t) => t + 1)} style={[styles.tapButton, isArtDeco && deco.tapButton]}>
+            <Text style={[styles.tapCount, isArtDeco && deco.tapCount]}>{myTaps}</Text>
+            <Text style={[styles.tapLabel, isArtDeco && deco.tapLabel]}>ketukanmu</Text>
           </Pressable>
         </>
       )}
 
       {phase === 'done' && (
         <View style={styles.center}>
-          <Text style={styles.resultText}>
+          <Text style={[styles.resultText, isArtDeco && deco.resultText]}>
             Kamu: {myTaps} · Pasangan: {opponentTaps}
           </Text>
-          <Text style={styles.muted}>
+          <Text style={[styles.muted, isArtDeco && deco.muted]}>
             {myTaps === opponentTaps ? 'Seri!' : myTaps > opponentTaps ? 'Kamu menang! 🎉' : 'Pasangan menang.'}
           </Text>
           <GameButton onPress={restart}>Main Lagi</GameButton>
@@ -244,5 +249,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#333',
+  },
+});
+
+const deco = StyleSheet.create({
+  muted: {
+    color: artDeco.color.muted,
+  },
+  text: {
+    color: artDeco.color.ink,
+    fontFamily: artDeco.font.serifBold,
+  },
+  countdown: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.display,
+  },
+  timer: {
+    color: artDeco.color.muted,
+  },
+  tapButton: {
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1.5,
+    borderColor: artDeco.color.line,
+    backgroundColor: artDeco.color.surface,
+  },
+  tapCount: {
+    color: artDeco.color.gold,
+  },
+  tapLabel: {
+    color: artDeco.color.muted,
+  },
+  resultText: {
+    color: artDeco.color.gold,
+    fontFamily: artDeco.font.serifBold,
+    letterSpacing: artDeco.letterSpacingWide,
   },
 });
