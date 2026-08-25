@@ -31,10 +31,6 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
           console.warn('[michsya] getVolumeState() threw:', err);
           return null;
         });
-        // Temporary diagnostic -- see remoteControl.ts. Confirms whether the
-        // native read itself already comes back wrong, before it's even sent
-        // anywhere.
-        console.log('[michsya] getVolumeState() raw result', volumeState);
         if (coupleId) reportRemoteControlAccessStatus(coupleId, value, volumeState).catch(() => {});
       })
       .catch(() => setGranted(false));
