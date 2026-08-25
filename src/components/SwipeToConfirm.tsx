@@ -8,8 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
+import { Pixel } from './ui/pixel-icons';
 import { artDeco } from '../theme/artDecoTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
@@ -104,8 +103,8 @@ export default function SwipeToConfirm({
         {loading ? (
           <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
         ) : (
-          <Ionicons
-            name="chevron-forward"
+          <Pixel
+            name="chevronRight"
             size={24}
             color={isArtDeco ? artDeco.color.black : '#fff'}
           />

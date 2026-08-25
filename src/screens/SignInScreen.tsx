@@ -11,8 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
+import { Pixel } from '../components/ui/pixel-icons';
 import { friendlyError } from '../lib/friendlyError';
 import { supabase } from '../lib/supabase';
 import { artDeco } from '../theme/artDecoTokens';
@@ -108,8 +107,8 @@ export default function SignInScreen() {
             onPress={() => setShowPassword((prev) => !prev)}
             hitSlop={8}
           >
-            <Ionicons
-              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+            <Pixel
+              name={showPassword ? 'eyeOff' : 'eye'}
               size={20}
               color={isArtDeco ? artDeco.color.gold : '#666'}
             />

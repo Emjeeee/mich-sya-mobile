@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import Svg, { Polygon } from 'react-native-svg';
 
+import { Pixel } from './ui/pixel-icons';
 import { bearingDegrees, distanceMeters, formatDistance, proximityStatus } from '../lib/geo';
 import { artDeco } from '../theme/artDecoTokens';
 import { useAppTheme } from '../theme/ThemeContext';
@@ -76,7 +76,7 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
     return (
       <View style={styles.container}>
         <View style={[styles.compassCircle, styles.compassCircleIdle, isArtDeco && deco.compassCircle, isArtDeco && deco.compassCircleIdle]}>
-          <Ionicons name="compass-outline" size={56} color={isArtDeco ? artDeco.color.gold : '#f3c9d9'} />
+          <Pixel name="compass" size={56} color={isArtDeco ? artDeco.color.gold : '#f3c9d9'} />
         </View>
         <Text style={[styles.waitingText, isArtDeco && deco.waitingText]}>
           Menunggu pasangan buka Cari Pasangan juga...

@@ -82,6 +82,9 @@ const ICONS = {
   dots: def(['........', '........', 'XX.XX.XX', 'XX.XX.XX', '........', '........', '........', '........']),
   chevronLeft: def(['....XX..', '...XX...', '..XX....', '.XX.....', '..XX....', '...XX...', '....XX..', '........']),
   chevronRight: def(['..XX....', '...XX...', '....XX..', '.....XX.', '....XX..', '...XX...', '..XX....', '........']),
+  eye: def(['........', '..XXXX..', '.X....X.', 'X..XX..X', 'X..XX..X', '.X....X.', '..XXXX..', '........']),
+  eyeOff: def(['.......X', '..XXXXX.', '.X...XX.', 'X..XX..X', 'X..XX..X', '.XX...X.', '.XXXXX..', 'X.......']),
+  compass: def(['...XX...', '..X..X..', '.X....X.', 'X..XX..X', 'X..XX..X', '.X....X.', '..X..X..', '...XX...']),
   sun: def(
     ['X.X..X.X', '.X.XX.X.', '..XXXX..', 'XXXXXXXX', 'XXXXXXXX', '..XXXX..', '.X.XX.X.', 'X.X..X.X'],
     { X: '#fbbf24' }
@@ -222,3 +225,6 @@ export const AttachIcon = make('attach');
 export const SendIcon = make('send');
 export const SearchIcon = make('search');
 export const PaletteIcon = make('palette');
+export const EyeIcon = make('eye');
+export const EyeOffIcon = make('eyeOff');
+export const CompassIcon = make('compass');
