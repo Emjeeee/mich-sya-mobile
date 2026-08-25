@@ -55,11 +55,12 @@ export default function GameScreen({ navigation, route }: Props) {
     (game.scoreMode === 'score' || (game.scoreMode === 'wins' && (!showOnline || mode === 'online')));
 
   return (
-    <ScrollView
-      style={[styles.container, isArtDeco && deco.container]}
-      contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
-    >
+    <View style={styles.screenWrapper}>
       {isArtDeco && <ArtDecoBackground />}
+      <ScrollView
+        style={[styles.container, isArtDeco && deco.container]}
+        contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
+      >
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()}>
           <Text style={[styles.backLink, isArtDeco && deco.backLink]}>‹ Arcade Room</Text>
@@ -117,11 +118,22 @@ export default function GameScreen({ navigation, route }: Props) {
           />
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Wraps the ScrollView so ArtDecoBackground (position: absolute, fills its
+  // nearest parent) can cover the full screen frame -- rendering it as a
+  // direct child of the ScrollView instead confined it to the scrollable
+  // *content* view, which is inset by container's paddingHorizontal and only
+  // as tall as the content, leaving white gaps left/right/bottom whenever
+  // the background didn't reach the actual screen edges. Purely structural,
+  // identical flex:1-in-flex:1 nesting when isArtDeco is false.
+  screenWrapper: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
