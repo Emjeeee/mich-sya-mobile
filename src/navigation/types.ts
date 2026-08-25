@@ -3,4 +3,5 @@ export type RootStackParamList = {
   Home: undefined;
   Arcade: { coupleId: string };
   Game: { gameKey: string; coupleId: string };
+  AdvancedSettings: { coupleId: string };
 };

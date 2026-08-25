@@ -5,6 +5,10 @@ const BUCKET = 'couple-photos';
 // Client-side cap before upload -- mirrors the CHAT_MEDIA_LIMITS pattern from the
 // web repo's src/lib/storage.ts, applied here for date-session/memory video uploads.
 const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
+// A ringtone-length MP3 is a few hundred KB to a few MB -- this is just a
+// sanity cap so someone doesn't upload a full album track that both devices
+// then have to download every time it changes (see AdvancedSettingsScreen.tsx).
+const MAX_SOUND_SIZE_BYTES = 10 * 1024 * 1024;
 
 function extensionFromUri(uri: string, fallback: string): string {
   const match = /\.([a-zA-Z0-9]+)$/.exec(uri.split('?')[0]);
@@ -16,11 +20,12 @@ function extensionFromUri(uri: string, fallback: string): string {
 // signed URL only when actually displaying the file).
 export async function uploadCouplePhoto(
   coupleId: string,
-  folder: 'gallery' | 'memories' | 'wishlist' | 'journey',
+  folder: 'gallery' | 'memories' | 'wishlist' | 'journey' | 'sounds',
   uri: string,
   contentType: string
 ): Promise<string> {
-  const ext = extensionFromUri(uri, contentType.includes('video') ? 'mp4' : 'jpg');
+  const defaultExt = contentType.includes('video') ? 'mp4' : contentType.includes('audio') ? 'mp3' : 'jpg';
+  const ext = extensionFromUri(uri, defaultExt);
   const path = `${coupleId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const response = await fetch(uri);
@@ -29,6 +34,11 @@ export async function uploadCouplePhoto(
   if (contentType.includes('video') && arrayBuffer.byteLength > MAX_VIDEO_SIZE_BYTES) {
     throw new Error(
       `Video terlalu besar (maks ${MAX_VIDEO_SIZE_BYTES / (1024 * 1024)}MB). Coba video yang lebih pendek.`
+    );
+  }
+  if (contentType.includes('audio') && arrayBuffer.byteLength > MAX_SOUND_SIZE_BYTES) {
+    throw new Error(
+      `File suara terlalu besar (maks ${MAX_SOUND_SIZE_BYTES / (1024 * 1024)}MB). Coba file yang lebih kecil.`
     );
   }
 

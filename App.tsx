@@ -12,10 +12,12 @@ import type { Session } from '@supabase/supabase-js';
 import { startBleRingListener } from './src/lib/bleRing';
 import { flushPendingMemories } from './src/lib/offlineQueue';
 import { checkOnThisDayNow } from './src/lib/onThisDay';
+import { syncRingCustomizationToDevice } from './src/lib/ringCustomization';
 import { subscribeRingSignal } from './src/lib/ringSignal';
 import { supabase } from './src/lib/supabase';
 import { refreshWidget } from './src/lib/widget';
 import type { RootStackParamList } from './src/navigation/types';
+import AdvancedSettingsScreen from './src/screens/AdvancedSettingsScreen';
 import ArcadeScreen from './src/screens/ArcadeScreen';
 import GameScreen from './src/screens/GameScreen';
 import RingAlertScreen from './src/screens/RingAlertScreen';
@@ -70,12 +72,18 @@ function AppInner() {
     flushPendingMemories();
     checkOnThisDayNow();
     refreshWidget().catch(() => {});
+    // Runs for BOTH accounts (unlike RemoteControlAccess/Panel, which are
+    // gated to one side each) -- quiet hours and a custom ringtone apply to
+    // whichever device is being rung, regardless of who set them. See
+    // src/lib/ringCustomization.ts.
+    syncRingCustomizationToDevice().catch(() => {});
 
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         flushPendingMemories();
         checkOnThisDayNow();
         refreshWidget().catch(() => {});
+        syncRingCustomizationToDevice().catch(() => {});
       }
     });
     return () => subscription.remove();
@@ -135,6 +143,7 @@ function AppInner() {
                 <Stack.Screen name="Home" component={HomeScreen} />
                 <Stack.Screen name="Arcade" component={ArcadeScreen} />
                 <Stack.Screen name="Game" component={GameScreen} />
+                <Stack.Screen name="AdvancedSettings" component={AdvancedSettingsScreen} />
               </>
             ) : (
               <Stack.Screen name="SignIn" component={SignInScreen} />

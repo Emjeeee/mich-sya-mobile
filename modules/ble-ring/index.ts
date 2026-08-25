@@ -111,6 +111,21 @@ interface BleRingModuleType {
   hasBatteryOptimizationExemption(): Promise<boolean>;
   /** Launches the direct system dialog to request the exemption above -- one tap, unlike a generic Settings screen. */
   requestBatteryOptimizationExemption(): Promise<boolean>;
+  /**
+   * Points RingReactor/BatteryAlertReactor at a locally-downloaded custom
+   * ringtone file (or clears the override with `null`) -- see
+   * AdvancedSettingsScreen.tsx. JS downloads the file itself (native code
+   * has no network access at trigger time); this only records the resulting
+   * local path.
+   */
+  setCustomRingtonePath(path: string | null): Promise<boolean>;
+  /**
+   * Syncs the couple-wide "quiet hours" window (minutes-since-midnight, both
+   * null disables it) down into this device's local prefs so ring/battery-
+   * alert sound can be suppressed without a network round trip at trigger
+   * time. See AdvancedSettingsScreen.tsx.
+   */
+  setQuietHours(startMinutes: number | null, endMinutes: number | null): Promise<boolean>;
 }
 
 export const BleRingModule = requireNativeModule<BleRingModuleType>('BleRing');
@@ -139,3 +154,6 @@ export const setStreamVolume = (stream: 'ring' | 'notification' | 'media' | 'ala
 export const getVolumeState = () => BleRingModule.getVolumeState();
 export const hasBatteryOptimizationExemption = () => BleRingModule.hasBatteryOptimizationExemption();
 export const requestBatteryOptimizationExemption = () => BleRingModule.requestBatteryOptimizationExemption();
+export const setCustomRingtonePath = (path: string | null) => BleRingModule.setCustomRingtonePath(path);
+export const setQuietHours = (startMinutes: number | null, endMinutes: number | null) =>
+  BleRingModule.setQuietHours(startMinutes, endMinutes);

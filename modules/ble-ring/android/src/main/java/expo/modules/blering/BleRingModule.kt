@@ -53,6 +53,20 @@ class BleRingModule : Module() {
       promise.resolve(RingPreferences.isSilent(context))
     }
 
+    // Couple-wide settings synced down from Supabase (see
+    // AdvancedSettingsScreen.tsx, mjonathann.03-only) into this device's own
+    // local RingPreferences, so RingReactor/BatteryAlertReactor can read them
+    // synchronously with zero JS/network dependency at trigger time.
+    AsyncFunction("setCustomRingtonePath") { path: String?, promise: Promise ->
+      RingPreferences.setCustomRingtonePath(context, path)
+      promise.resolve(true)
+    }
+
+    AsyncFunction("setQuietHours") { startMinutes: Int?, endMinutes: Int?, promise: Promise ->
+      RingPreferences.setQuietHours(context, startMinutes, endMinutes)
+      promise.resolve(true)
+    }
+
     AsyncFunction("startScanning") { promise: Promise ->
       ContextCompat.startForegroundService(context, Intent(context, BleRingScanService::class.java))
       promise.resolve(true)

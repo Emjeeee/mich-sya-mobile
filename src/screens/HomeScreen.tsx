@@ -36,6 +36,7 @@ import { getCurrentCoords } from '../lib/location';
 import { registerForPushNotifications } from '../lib/notifications';
 import { sendPushToPartner } from '../lib/push';
 import { ringPartner } from '../lib/ringPartner';
+import { isSilentRingEligible } from '../lib/silentRing';
 import { getSignedUrl } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { formatElapsed } from '../lib/time';
@@ -87,6 +88,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [swipeResetKey, setSwipeResetKey] = useState(0);
   const [elapsed, setElapsed] = useState('');
   const [quickMemoryNotice, setQuickMemoryNotice] = useState<string | null>(null);
+  const [advancedSettingsEligible, setAdvancedSettingsEligible] = useState(false);
   const [recap, setRecap] = useState<{
     title: string;
     durationLabel: string;
@@ -111,6 +113,12 @@ export default function HomeScreen({ navigation }: Props) {
       if (data.user) registerForPushNotifications(coupleId, data.user.id);
     });
   }, [coupleId]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setAdvancedSettingsEligible(isSilentRingEligible(data.user?.email));
+    });
+  }, []);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -302,6 +310,13 @@ export default function HomeScreen({ navigation }: Props) {
               label="Arcade"
               onPress={() => navigation.navigate('Arcade', { coupleId })}
             />
+            {advancedSettingsEligible && (
+              <ActionButton
+                icon={<Pixel name="gear" size={24} />}
+                label="Pengaturan Lanjutan"
+                onPress={() => navigation.navigate('AdvancedSettings', { coupleId })}
+              />
+            )}
           </View>
         )}
 

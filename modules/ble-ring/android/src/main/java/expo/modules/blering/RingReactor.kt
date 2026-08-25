@@ -113,6 +113,11 @@ object RingReactor {
   private fun playRingtone(context: Context) {
     if (mediaPlayer != null) return
     if (RingPreferences.isSilent(context)) return // vibrate()/notification/activity still happen
+    // "Jam jangan berisik" (AdvancedSettingsScreen.tsx, couple-wide) only
+    // mutes sound, same as isSilent() above -- vibrate()/notification/
+    // activity still happen, confirmed as the wanted behavior (still
+    // noticeable without being audible at a desk during work hours).
+    if (RingPreferences.isWithinQuietHours(context)) return
     try {
       // MediaPlayer.create()'s factory already prepares the player against
       // the default stream before returning, so a setAudioAttributes() call
@@ -131,9 +136,18 @@ object RingReactor {
           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
           .build()
       )
-      val afd = context.resources.openRawResourceFd(R.raw.marimba)
-      player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-      afd.close()
+      // A custom uploaded ringtone (see AdvancedSettingsScreen.tsx) is
+      // downloaded locally by JS ahead of time -- this can't fetch it over
+      // the network itself, since ring must work fully offline/headless.
+      // Falls back to the bundled asset if unset or the file went missing.
+      val customFile = RingPreferences.customRingtoneFile(context)
+      if (customFile != null) {
+        player.setDataSource(customFile.absolutePath)
+      } else {
+        val afd = context.resources.openRawResourceFd(R.raw.marimba)
+        player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+        afd.close()
+      }
       player.isLooping = true
       player.prepare()
       player.start()

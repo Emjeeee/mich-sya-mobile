@@ -124,6 +124,10 @@ object BatteryAlertReactor {
   private fun playSound(context: Context, thresholdPercent: Int) {
     val volume = volumeFor(thresholdPercent)
     if (mediaPlayer != null) return
+    // "Jam jangan berisik" (AdvancedSettingsScreen.tsx, couple-wide) -- see
+    // RingReactor.playRingtone()'s copy of this check for the full
+    // rationale. Vibration/notification/activity still happen.
+    if (RingPreferences.isWithinQuietHours(context)) return
     try {
       // See RingReactor.playRingtone() for why attributes are set before
       // prepare() here instead of using the MediaPlayer.create() factory --
@@ -136,9 +140,16 @@ object BatteryAlertReactor {
           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
           .build()
       )
-      val afd = context.resources.openRawResourceFd(R.raw.marimba)
-      player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-      afd.close()
+      // Same custom-ringtone override as RingReactor.playRingtone() -- one
+      // uploaded sound replaces the default for both alert types.
+      val customFile = RingPreferences.customRingtoneFile(context)
+      if (customFile != null) {
+        player.setDataSource(customFile.absolutePath)
+      } else {
+        val afd = context.resources.openRawResourceFd(R.raw.marimba)
+        player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+        afd.close()
+      }
       player.isLooping = true
       player.prepare()
       player.start()
