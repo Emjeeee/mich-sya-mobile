@@ -27,7 +27,14 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
         // other sync gap in this app. Volume state is read regardless of
         // `value` -- reading it needs no DND access, only setting ring/
         // notification does.
-        const volumeState = await getVolumeState().catch(() => null);
+        const volumeState = await getVolumeState().catch((err) => {
+          console.warn('[michsya] getVolumeState() threw:', err);
+          return null;
+        });
+        // Temporary diagnostic -- see remoteControl.ts. Confirms whether the
+        // native read itself already comes back wrong, before it's even sent
+        // anywhere.
+        console.log('[michsya] getVolumeState() raw result', volumeState);
         if (coupleId) reportRemoteControlAccessStatus(coupleId, value, volumeState).catch(() => {});
       })
       .catch(() => setGranted(false));

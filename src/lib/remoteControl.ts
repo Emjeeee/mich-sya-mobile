@@ -101,7 +101,7 @@ export async function reportRemoteControlAccessStatus(
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
   if (!userId) return;
-  await supabase.from('device_push_tokens').upsert(
+  const { error } = await supabase.from('device_push_tokens').upsert(
     {
       user_id: userId,
       couple_id: coupleId,
@@ -115,6 +115,11 @@ export async function reportRemoteControlAccessStatus(
     },
     { onConflict: 'user_id' }
   );
+  // Temporary diagnostic -- see getPartnerRemoteControlState. Confirms
+  // whether this device's actual read (volumeState, from getVolumeState())
+  // is what's really being sent to Supabase, and whether the upsert itself
+  // succeeds. Remove once root-caused.
+  console.log('[michsya] reportRemoteControlAccessStatus', { coupleId, granted, volumeState, error });
 }
 
 export interface PartnerRemoteControlState {
@@ -135,12 +140,18 @@ export async function getPartnerRemoteControlState(
   coupleId: string,
   myUserId: string
 ): Promise<PartnerRemoteControlState> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('device_push_tokens')
     .select(
       'user_id, remote_control_granted, remote_ringer_mode, remote_ring_volume_percent, remote_notification_volume_percent, remote_media_volume_percent, remote_alarm_volume_percent'
     )
     .eq('couple_id', coupleId);
+
+  // Temporary diagnostic -- volume/mode sliders were reported as always
+  // showing 0/unset on a real device despite the partner's actual phone
+  // having normal non-zero volumes, and there's no other visibility into
+  // what this query actually returns. Remove once root-caused.
+  console.log('[michsya] getPartnerRemoteControlState', { coupleId, myUserId, data, error });
 
   const partnerRow = data?.find((row) => row.user_id !== myUserId);
   if (!partnerRow) {
