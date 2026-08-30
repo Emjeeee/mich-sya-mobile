@@ -39,7 +39,7 @@ import { ringPartner } from '../lib/ringPartner';
 import { isSilentRingEligible } from '../lib/silentRing';
 import { getSignedUrl } from '../lib/storage';
 import { supabase } from '../lib/supabase';
-import { formatElapsed } from '../lib/time';
+import { formatElapsed, localDateString } from '../lib/time';
 import { refreshWidget } from '../lib/widget';
 import type { RootStackParamList } from '../navigation/types';
 import type { DateSession } from '../types/database';
@@ -152,7 +152,16 @@ export default function HomeScreen({ navigation }: Props) {
   const handleEndSubmit = async (input: { title: string; summary: string }) => {
     const endingSession = sessionRef.current;
     const durationLabel = elapsed;
-    const routeMeters = await endSession(input);
+    const { success, routeMeters } = await endSession(input);
+    // Only treat the date as actually ended -- and show the "it's over"
+    // recap -- when the update genuinely succeeded. `routeMeters` alone
+    // can't tell success from failure (a successful end with too little
+    // location data also returns null), and `endingSession` is a snapshot
+    // taken before the call, so it was always truthy regardless of outcome.
+    // On failure the modal stays open (with the hook's own `error` state
+    // shown below) so the user can retry instead of seeing a bogus "date
+    // ended" recap for a date that's still active underneath.
+    if (!success) return;
     setShowEndModal(false);
 
     const distanceLabel = routeMeters !== null ? formatDistance(routeMeters) : null;
@@ -176,7 +185,12 @@ export default function HomeScreen({ navigation }: Props) {
       .from('memories')
       .select('photo_url')
       .eq('couple_id', coupleId)
-      .eq('memory_date', endingSession.started_at.slice(0, 10))
+      // started_at is a UTC timestamp -- .slice(0,10) on the raw string
+      // grabs the UTC calendar date, which is the *previous* local day for
+      // roughly the first 5-8 hours of every WIB/WITA/WIT day, so a date
+      // session started right after local midnight could look up memories
+      // filed under the wrong day. Parse and re-derive the local date.
+      .eq('memory_date', localDateString(new Date(endingSession.started_at)))
       .not('photo_url', 'is', null)
       .limit(4);
 
@@ -213,7 +227,7 @@ export default function HomeScreen({ navigation }: Props) {
         photo_url: null,
         voice_note_url: null,
         location: coords ? `${coords.lat}, ${coords.lng}` : null,
-        memory_date: new Date().toISOString().slice(0, 10),
+        memory_date: localDateString(),
         created_by: userData.user?.id ?? null,
       });
       if (insertError) throw insertError;

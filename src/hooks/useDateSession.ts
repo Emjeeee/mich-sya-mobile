@@ -9,6 +9,7 @@ import { friendlyError } from '../lib/friendlyError';
 import { getCurrentCoords } from '../lib/location';
 import { sendPushToPartner } from '../lib/push';
 import { supabase } from '../lib/supabase';
+import { localDateString, localTimeString } from '../lib/time';
 import { refreshWidget } from '../lib/widget';
 import type { DateSession } from '../types/database';
 
@@ -21,6 +22,17 @@ function notifyPartnerOfWidgetChange(coupleId: string, myUserId: string) {
 interface EndSessionInput {
   title: string;
   summary: string;
+}
+
+// `routeMeters` alone can't distinguish "ended successfully with no route
+// data" from "the update failed" -- both are `null`. HomeScreen.tsx's
+// handleEndSubmit was showing a "date ended" recap regardless, because it
+// gated that purely on a locally-captured `sessionRef.current` snapshot
+// taken *before* calling endSession(), which is truthy whether or not the
+// call actually succeeded.
+export interface EndSessionResult {
+  success: boolean;
+  routeMeters: number | null;
 }
 
 async function computeRouteDistanceMeters(sessionId: string): Promise<number | null> {
@@ -134,9 +146,9 @@ export function useDateSession() {
   }, [coupleId]);
 
   const endSession = useCallback(
-    async ({ title, summary }: EndSessionInput): Promise<number | null> => {
+    async ({ title, summary }: EndSessionInput): Promise<EndSessionResult> => {
       const current = sessionRef.current;
-      if (!current || !coupleId) return null;
+      if (!current || !coupleId) return { success: false, routeMeters: null };
       setEnding(true);
       setError(null);
 
@@ -157,7 +169,7 @@ export function useDateSession() {
       if (updateError) {
         setError(friendlyError(updateError.message));
         setEnding(false);
-        return null;
+        return { success: false, routeMeters: null };
       }
 
       const { data: userData } = await supabase.auth.getUser();
@@ -167,8 +179,8 @@ export function useDateSession() {
         couple_id: coupleId,
         title: title || 'Kencan',
         description: summary,
-        scheduled_date: startedAt.toISOString().slice(0, 10),
-        scheduled_time: startedAt.toISOString().slice(11, 16),
+        scheduled_date: localDateString(startedAt),
+        scheduled_time: localTimeString(startedAt),
         status: 'completed',
         created_by: userData.user?.id ?? null,
       });
@@ -184,7 +196,7 @@ export function useDateSession() {
       if (userData.user) notifyPartnerOfWidgetChange(coupleId, userData.user.id);
       setSession(null);
       setEnding(false);
-      return routeMeters;
+      return { success: true, routeMeters };
     },
     [coupleId]
   );

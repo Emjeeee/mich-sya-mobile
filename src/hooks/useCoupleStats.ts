@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { supabase } from '../lib/supabase';
+import { localDateString } from '../lib/time';
 
 interface CoupleStats {
   datesThisMonth: number;
@@ -13,9 +14,13 @@ export function useCoupleStats(coupleId: string | null) {
   useEffect(() => {
     if (!coupleId) return;
 
+    // toISOString() converts back to UTC -- during the first ~5-8 hours of
+    // local time on the 1st of a month, that can roll monthStartStr back to
+    // the last day of the *previous* month, letting a late-previous-month
+    // completed schedule leak into "this month"'s count.
     const monthStart = new Date();
     monthStart.setDate(1);
-    const monthStartStr = monthStart.toISOString().slice(0, 10);
+    const monthStartStr = localDateString(monthStart);
 
     (async () => {
       const [datesResult, memoriesResult] = await Promise.all([

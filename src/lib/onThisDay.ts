@@ -4,12 +4,13 @@ import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 
 import { supabase } from './supabase';
+import { localDateString } from './time';
 
 export const ON_THIS_DAY_TASK_NAME = 'michsya-on-this-day';
 const LAST_NOTIFIED_KEY = 'michsya.onThisDayLastNotified';
 
 async function checkOnThisDay(): Promise<void> {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateString();
   const lastNotified = await AsyncStorage.getItem(LAST_NOTIFIED_KEY);
   if (lastNotified === todayStr) return;
 

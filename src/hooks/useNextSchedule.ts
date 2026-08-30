@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { supabase } from '../lib/supabase';
+import { localDateString, parseLocalDateOnly } from '../lib/time';
 import type { Schedule } from '../types/database';
 
 export function useNextSchedule(coupleId: string | null) {
@@ -14,7 +15,7 @@ export function useNextSchedule(coupleId: string | null) {
       .select('*')
       .eq('couple_id', coupleId)
       .in('status', ['planned', 'confirmed'])
-      .gte('scheduled_date', new Date().toISOString().slice(0, 10))
+      .gte('scheduled_date', localDateString())
       .order('scheduled_date', { ascending: true })
       .limit(1)
       .then(({ data }) => {
@@ -24,8 +25,11 @@ export function useNextSchedule(coupleId: string | null) {
 
   if (!nextSchedule) return { nextSchedule: null, daysUntil: null };
 
+  // scheduled_date is a plain "YYYY-MM-DD" -- new Date(string) would parse
+  // it as UTC midnight, not local midnight, throwing this off by the local
+  // UTC offset against the local-midnight comparison below.
   const daysUntil = Math.round(
-    (new Date(nextSchedule.scheduled_date).getTime() - new Date().setHours(0, 0, 0, 0)) /
+    (parseLocalDateOnly(nextSchedule.scheduled_date).getTime() - new Date().setHours(0, 0, 0, 0)) /
       (24 * 60 * 60 * 1000)
   );
 
