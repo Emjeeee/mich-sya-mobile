@@ -84,15 +84,11 @@ function WishlistRow({
 export default function WishlistListModal({ visible, coupleId, onClose }: WishlistListModalProps) {
   const insets = useSafeAreaInsets();
   const { isArtDeco } = useAppTheme();
-  const { items, loading, error, refresh, toggleDone, promoteToGoal } = useWishlist(coupleId);
+  const { items, promotedIds, loading, error, refresh, toggleDone, promoteToGoal } = useWishlist(coupleId);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [promotedIds, setPromotedIds] = useState<Set<string>>(new Set());
 
   const handlePromote = async (item: WishlistItem) => {
-    const ok = await promoteToGoal(item);
-    if (ok) {
-      setPromotedIds((prev) => new Set(prev).add(item.id));
-    }
+    await promoteToGoal(item);
   };
 
   return (

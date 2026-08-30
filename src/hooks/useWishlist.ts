@@ -6,17 +6,32 @@ import type { WishlistItem } from '../types/database';
 
 export function useWishlist(coupleId: string | null) {
   const [items, setItems] = useState<WishlistItem[]>([]);
+  // Which wishlist items already have a linked couple_goals row -- derived
+  // from actual server data, not just "did I successfully promote one this
+  // session". A component-local Set for this alone reset on every fresh
+  // mount (e.g. app restart, or the modal being remounted), so a
+  // previously-promoted item's button would show "Jadikan goal" again and
+  // re-promoting it inserted a second, duplicate couple_goals row with no
+  // de-duplication anywhere in the stack.
+  const [promotedIds, setPromotedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!coupleId) return;
     setLoading(true);
-    const { data, error: fetchError } = await supabase
-      .from('wishlist_items')
-      .select('*')
-      .eq('couple_id', coupleId)
-      .order('created_at', { ascending: false });
+    const [{ data, error: fetchError }, { data: goalsData }] = await Promise.all([
+      supabase
+        .from('wishlist_items')
+        .select('*')
+        .eq('couple_id', coupleId)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('couple_goals')
+        .select('linked_wishlist_item_id')
+        .eq('couple_id', coupleId)
+        .not('linked_wishlist_item_id', 'is', null),
+    ]);
 
     if (fetchError) {
       setError(friendlyError(fetchError.message));
@@ -24,6 +39,7 @@ export function useWishlist(coupleId: string | null) {
       setItems((data as WishlistItem[]) ?? []);
       setError(null);
     }
+    setPromotedIds(new Set((goalsData ?? []).map((g) => g.linked_wishlist_item_id as string)));
     setLoading(false);
   }, [coupleId]);
 
@@ -49,7 +65,22 @@ export function useWishlist(coupleId: string | null) {
   );
 
   const promoteToGoal = useCallback(async (item: WishlistItem) => {
-    if (!coupleId) return;
+    if (!coupleId) return false;
+
+    // Guards against the app-restart/remount case above -- doesn't fully
+    // close a true concurrent-insert race (two taps landing at the exact
+    // same instant), but that's a far narrower window than "any time the
+    // component remounts" and matches the reported failure mode.
+    const { data: existing } = await supabase
+      .from('couple_goals')
+      .select('id')
+      .eq('linked_wishlist_item_id', item.id)
+      .maybeSingle();
+    if (existing) {
+      setPromotedIds((prev) => new Set(prev).add(item.id));
+      return true;
+    }
+
     const { data: userData } = await supabase.auth.getUser();
 
     const { error: insertError } = await supabase.from('couple_goals').insert({
@@ -65,8 +96,9 @@ export function useWishlist(coupleId: string | null) {
       setError(friendlyError(insertError.message));
       return false;
     }
+    setPromotedIds((prev) => new Set(prev).add(item.id));
     return true;
   }, [coupleId]);
 
-  return { items, loading, error, refresh, toggleDone, promoteToGoal };
+  return { items, promotedIds, loading, error, refresh, toggleDone, promoteToGoal };
 }

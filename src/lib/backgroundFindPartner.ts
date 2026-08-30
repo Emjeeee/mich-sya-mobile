@@ -1,10 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as BackgroundTask from 'expo-background-task';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
 import { supabase } from './supabase';
 
 export const FIND_PARTNER_TASK_NAME = 'michsya-find-partner-location';
+// Redundant, independent enforcement of AUTO_STOP_MS below -- see its own
+// comment for why the location-task check alone isn't enough.
+const FIND_PARTNER_CAP_CHECK_TASK_NAME = 'michsya-find-partner-cap-check';
 
 const ACTIVE_FIND_KEY = 'michsya.activeFindPartner';
 const PING_INTERVAL_MS = 15 * 1000;
@@ -21,10 +25,18 @@ async function getActiveFindRef(): Promise<ActiveFindRef | null> {
   return raw ? (JSON.parse(raw) as ActiveFindRef) : null;
 }
 
+// Shared by both enforcement paths below -- stops tracking if the 30-minute
+// cap has passed, otherwise a no-op.
+async function enforceAutoStopCap(): Promise<void> {
+  const ref = await getActiveFindRef();
+  if (!ref) return;
+  if (Date.now() - ref.startedAt > AUTO_STOP_MS) {
+    await stopFindPartnerTracking(ref.coupleId, ref.userId);
+  }
+}
+
 // Defined at module scope so it survives headless (app-killed) restarts by the OS --
 // this lets "Cari Pasangan" keep sharing location even if the partner never opens the app.
-// The 30-minute cap is enforced here (not via a JS setTimeout) so it still applies
-// even if the app process itself gets killed while sharing is active.
 TaskManager.defineTask(FIND_PARTNER_TASK_NAME, async ({ data, error }) => {
   if (error) return;
 
@@ -52,6 +64,28 @@ TaskManager.defineTask(FIND_PARTNER_TASK_NAME, async ({ data, error }) => {
     { onConflict: 'couple_id,user_id' }
   );
 });
+
+// The 30-minute cap above was previously only checked inside the location
+// task, which only runs when the OS actually delivers a new fix --
+// startLocationUpdatesAsync's `distanceInterval: 10` means Android can
+// legitimately withhold a fix indefinitely if the device hasn't moved
+// ~10m, which is exactly the "waiting at a meeting point" scenario this
+// feature exists for. A stationary user could keep sharing location well
+// past the advertised 30-minute cap since the check simply never ran. This
+// periodic task enforces the same cap independently of whether any
+// location fix arrives at all -- WorkManager's minimum periodic interval
+// is ~15 minutes, so the cap is now enforced within roughly that margin
+// even in the fully-stationary case, instead of not at all.
+TaskManager.defineTask(FIND_PARTNER_CAP_CHECK_TASK_NAME, async () => {
+  try {
+    await enforceAutoStopCap();
+    return BackgroundTask.BackgroundTaskResult.Success;
+  } catch {
+    return BackgroundTask.BackgroundTaskResult.Failed;
+  }
+});
+
+BackgroundTask.registerTaskAsync(FIND_PARTNER_CAP_CHECK_TASK_NAME, { minimumInterval: 15 });
 
 export type StartFindPartnerResult = 'ok' | 'foreground-denied' | 'background-denied';
 
