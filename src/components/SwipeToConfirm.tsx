@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -36,6 +36,21 @@ export default function SwipeToConfirm({
   const pan = useRef(new Animated.Value(0)).current;
   const maxTranslateRef = useRef(0);
   const isLocked = disabled || loading;
+  const wasLoadingRef = useRef(loading);
+
+  // If the caller's onConfirm action fails (e.g. a network error), it sets
+  // `loading` back to false without the screen unmounting -- previously
+  // nothing reset `pan`, so the knob stayed visually pinned at the "done"
+  // end of the track. One caller (HomeScreen.tsx's "Akhiri kencan") worked
+  // around this with a remount-via-key trick, but "Mulai kencan" didn't, so
+  // a failed start left the knob stuck and the next touch would jump
+  // instead of tracking the finger (pan's internal value was still `max`).
+  useEffect(() => {
+    if (wasLoadingRef.current && !loading) {
+      Animated.spring(pan, { toValue: 0, useNativeDriver: false, bounciness: 8 }).start();
+    }
+    wasLoadingRef.current = loading;
+  }, [loading, pan]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const width = event.nativeEvent.layout.width;

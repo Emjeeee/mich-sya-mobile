@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { enqueuePendingMemory, flushPendingMemories, type PendingMemory } from '../lib/offlineQueue';
 import { saveMemoryNow } from '../lib/memoryUpload';
+import { localDateString } from '../lib/time';
 import { artDeco } from '../theme/artDecoTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
@@ -45,6 +46,18 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder);
+  // The modal stays mounted across opens/closes (HomeScreen.tsx just toggles
+  // `visible`), so a pending delayed-close timer from a PREVIOUS save
+  // survives if the user reopens the modal before it fires -- tracked here
+  // so handleClose can cancel it instead of letting it fire later and wipe
+  // out whatever the user is now in the middle of entering.
+  const delayedCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (delayedCloseRef.current) clearTimeout(delayedCloseRef.current);
+    };
+  }, []);
 
   const reset = () => {
     setAssets([]);
@@ -56,6 +69,15 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
   };
 
   const handleClose = () => {
+    if (delayedCloseRef.current) {
+      clearTimeout(delayedCloseRef.current);
+      delayedCloseRef.current = null;
+    }
+    // A recording left running past the modal closing keeps the mic hot
+    // indefinitely with no way for the user to know or stop it.
+    if (recorderState.isRecording) {
+      recorder.stop().catch(() => {});
+    }
     reset();
     onClose();
   };
@@ -131,7 +153,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
       coupleId,
       title: title.trim() || 'Momen hari ini',
       story: story.trim(),
-      memoryDate: new Date().toISOString().slice(0, 10),
+      memoryDate: localDateString(),
       assets: assets.map((asset) => ({
         uri: asset.uri,
         mimeType: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
@@ -147,7 +169,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
       await enqueuePendingMemory(item);
       setSaving(false);
       setNotice('Gagal upload sekarang -- disimpan, akan dicoba lagi otomatis nanti.');
-      setTimeout(handleClose, 1500);
+      delayedCloseRef.current = setTimeout(handleClose, 1500);
       return;
     }
     setSaving(false);

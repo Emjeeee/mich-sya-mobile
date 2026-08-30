@@ -26,23 +26,6 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handlePasswordChange = (text: string) => {
-    const diff = text.length - password.length;
-    if (diff > 0) {
-      // new characters were typed/pasted at the end -- append the real ones
-      setPassword(password + text.slice(-diff));
-    } else if (diff < 0) {
-      // characters were deleted from the end
-      setPassword(password.slice(0, diff));
-    }
-  };
-
-  const passwordDisplayValue = showPassword
-    ? password
-    : password.length > 0
-      ? '•'.repeat(password.length - 1) + password.slice(-1)
-      : '';
-
   const handleSignIn = async () => {
     setLoading(true);
     setError(null);
@@ -94,13 +77,22 @@ export default function SignInScreen() {
             style={[styles.passwordInput, isArtDeco && deco.passwordInput]}
             placeholder="Kata sandi"
             placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
-            secureTextEntry={false}
+            // A hand-rolled "mask all but the last typed character" scheme
+            // used to live here, reconstructing the real password from the
+            // *length delta* between renders -- it only worked for a plain
+            // append/backspace-at-the-end edit. Selecting-all-and-retyping
+            // the same length, autofill, or editing mid-string all left the
+            // displayed text and the real `password` state silently
+            // diverged (could sign in with a stale password, or corrupt it
+            // entirely). secureTextEntry is the native, byte-for-byte-
+            // correct way to mask input regardless of how it's edited.
+            secureTextEntry={!showPassword}
             autoCapitalize="none"
             autoCorrect={false}
             textContentType="password"
             autoComplete="password"
-            value={passwordDisplayValue}
-            onChangeText={handlePasswordChange}
+            value={password}
+            onChangeText={setPassword}
           />
           <Pressable
             style={styles.eyeButton}

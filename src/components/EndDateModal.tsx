@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -33,6 +33,18 @@ export default function EndDateModal({
   const [summary, setSummary] = useState('');
   const insets = useSafeAreaInsets();
   const { isArtDeco } = useAppTheme();
+
+  // This modal is mounted permanently (HomeScreen.tsx just toggles
+  // `visible`) and reused across every date session -- without this, a
+  // title/summary typed and then cancelled would still be sitting in state
+  // the next time the user opens this for a *different* date, and could get
+  // silently attached to the wrong session's recap if they don't notice.
+  useEffect(() => {
+    if (visible) {
+      setTitle('');
+      setSummary('');
+    }
+  }, [visible]);
 
   const handleSubmit = () => {
     onSubmit({ title: title.trim(), summary: summary.trim() });

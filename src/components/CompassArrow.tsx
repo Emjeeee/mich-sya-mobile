@@ -38,6 +38,15 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
   const [deviceHeading, setDeviceHeading] = useState(0);
   const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null);
   const rotation = useRef(new Animated.Value(0)).current;
+  // Tracks the cumulative, *unwrapped* rotation value actually commanded to
+  // the Animated.Value so far (can grow past 360 or below 0 -- the native
+  // `rotate` transform wraps any degree value visually, so that's fine).
+  // Needed to always animate the *shortest* path: `targetRotation` below is
+  // always normalized into [0,360), so animating straight to it with
+  // Animated.timing() means crossing the 0/360 boundary (e.g. 358 -> 3, a
+  // real ~5 turn) linearly interpolates the "long way" backwards through
+  // 357, 356, ..., 3 -- a ~355 spin the wrong direction.
+  const rotationValueRef = useRef(0);
   const recentHeadings = useRef<number[]>([]);
 
   useEffect(() => {
@@ -65,8 +74,15 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
   const targetRotation = (((bearing - deviceHeading) % 360) + 360) % 360;
 
   useEffect(() => {
+    const current = rotationValueRef.current;
+    const currentMod = ((current % 360) + 360) % 360;
+    let delta = targetRotation - currentMod;
+    if (delta > 180) delta -= 360;
+    else if (delta < -180) delta += 360;
+    const next = current + delta;
+    rotationValueRef.current = next;
     Animated.timing(rotation, {
-      toValue: targetRotation,
+      toValue: next,
       duration: 200,
       useNativeDriver: true,
     }).start();
