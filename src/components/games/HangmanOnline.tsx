@@ -25,6 +25,7 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
   const [wordInput, setWordInput] = useState('');
   const [starting, setStarting] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [guessing, setGuessing] = useState(false);
 
   if (isLoading) {
     return (
@@ -106,7 +107,14 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
   const lost = wrong >= MAX_WRONG;
 
   async function guess(letter: string) {
-    if (!session || !isGuesser || won || lost || state.guessed.includes(letter)) return;
+    // See ConnectFourOnline.tsx's copy of this guard for the full rationale
+    // -- without it, a second tap before the first updateSession() round-
+    // trip resolves both compute nextGuessed from the same pre-guess state
+    // closure, and whichever write lands last in Supabase silently
+    // overwrites the other (potentially reverting a just-won/lost game
+    // back to active and dropping the winning letter).
+    if (!session || guessing || !isGuesser || won || lost || state.guessed.includes(letter)) return;
+    setGuessing(true);
     const nextGuessed = [...state.guessed, letter];
     const nextWrong = wrongGuessCount(state.word, nextGuessed);
     const nextWon = isWordGuessed(state.word, nextGuessed);
@@ -123,6 +131,7 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
     if (finished) {
       await recordScore({ winnerUserId: nextWon ? session.player_o : session.player_x });
     }
+    setGuessing(false);
   }
 
   const wonOrLostDecoStyle = won ? deco.resultWon : lost ? deco.resultLost : undefined;
@@ -159,7 +168,7 @@ export function HangmanOnline({ coupleId }: { coupleId?: string | null }) {
               <Pressable
                 key={letter}
                 onPress={() => guess(letter)}
-                disabled={used}
+                disabled={used || guessing}
                 style={[
                   styles.letter,
                   isArtDeco && deco.letter,

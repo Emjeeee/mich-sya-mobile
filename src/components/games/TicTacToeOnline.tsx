@@ -20,6 +20,7 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
   const { recordScore } = useGameScores(coupleId, 'tictactoe');
   const [starting, setStarting] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   if (isLoading) {
     return (
@@ -90,7 +91,13 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
   const board = session.state as Cell[];
 
   async function handleCellClick(index: number) {
-    if (!session) return;
+    // See ConnectFourOnline.tsx's copy of this guard for the full
+    // rationale -- without it, a second tap before the first
+    // updateSession() round-trip resolves both compute `next` from the
+    // same pre-move board closure, and whichever write lands last in
+    // Supabase silently overwrites the other.
+    if (!session || submitting || !isMyTurn || result || board[index]) return;
+    setSubmitting(true);
     const next = [...board];
     next[index] = mySymbol;
     const outcome = checkWinner(next);
@@ -108,6 +115,7 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
       const winnerUserId = outcome === 'draw' ? null : outcome === mySymbol ? userId : nextTurn;
       await recordScore({ winnerUserId });
     }
+    setSubmitting(false);
   }
 
   return (
@@ -116,7 +124,7 @@ export function TicTacToeOnline({ coupleId }: { coupleId?: string | null }) {
         Kamu bermain sebagai <Text style={[styles.bold, isArtDeco && deco.bold]}>{mySymbol === 'x' ? '✕' : '○'}</Text>
       </Text>
 
-      <TicTacToeBoard board={board} disabled={!isMyTurn || !!result} onCellClick={handleCellClick} />
+      <TicTacToeBoard board={board} disabled={!isMyTurn || !!result || submitting} onCellClick={handleCellClick} />
 
       <View style={styles.footer}>
         {result ? (

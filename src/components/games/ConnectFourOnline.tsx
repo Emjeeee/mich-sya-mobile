@@ -20,6 +20,7 @@ export function ConnectFourOnline({ coupleId }: { coupleId?: string | null }) {
   const { recordScore } = useGameScores(coupleId, 'connectfour');
   const [starting, setStarting] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   if (isLoading) {
     return (
@@ -89,9 +90,17 @@ export function ConnectFourOnline({ coupleId }: { coupleId?: string | null }) {
   const board = session.state as Cell[];
 
   async function handleColumnClick(col: number) {
-    if (!session) return;
+    // Without this guard, a second tap landing before the first
+    // updateSession() round-trip resolves both compute `next` from the same
+    // pre-move `board` closure (the disabled prop below hasn't re-rendered
+    // yet) -- whichever write lands last in Supabase silently overwrites the
+    // other, either dropping a disc entirely or letting the same player
+    // move twice in a row with no turn in between. Same fix already applied
+    // in RockPaperScissorsOnline.tsx's `picking` state.
+    if (!session || submitting || !isMyTurn || result) return;
     const next = dropDisc(board, col, mySymbol);
     if (!next) return;
+    setSubmitting(true);
     const outcome = checkWinner(next);
     const nextTurn = isPlayerX ? session.player_o : session.player_x;
 
@@ -107,6 +116,7 @@ export function ConnectFourOnline({ coupleId }: { coupleId?: string | null }) {
         winnerUserId: outcome === 'draw' ? null : outcome === mySymbol ? userId : nextTurn,
       });
     }
+    setSubmitting(false);
   }
 
   return (
@@ -114,7 +124,7 @@ export function ConnectFourOnline({ coupleId }: { coupleId?: string | null }) {
       <Text style={[styles.muted, isArtDeco && deco.muted]}>
         Kamu bermain sebagai <Text style={[styles.bold, isArtDeco && deco.bold]}>{mySymbol === 'x' ? '● Merah muda' : '● Kuning'}</Text>
       </Text>
-      <ConnectFourBoard board={board} onColumnClick={handleColumnClick} disabled={!isMyTurn || !!result} />
+      <ConnectFourBoard board={board} onColumnClick={handleColumnClick} disabled={!isMyTurn || !!result || submitting} />
       {result ? (
         <Text style={[styles.resultText, isArtDeco && deco.resultText]}>
           {result === 'draw' ? 'Seri!' : result === mySymbol ? 'Kamu menang! 🎉' : 'Pasangan menang.'}

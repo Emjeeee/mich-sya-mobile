@@ -25,6 +25,7 @@ export function NumberGuessOnline({ coupleId }: { coupleId?: string | null }) {
   const [guess, setGuess] = useState('');
   const [starting, setStarting] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   if (isLoading) {
     return (
@@ -104,9 +105,16 @@ export function NumberGuessOnline({ coupleId }: { coupleId?: string | null }) {
   const won = state.guesses.some((g) => g.value === state.secret);
 
   async function handleGuess() {
-    if (!session || !isGuesser || won) return;
+    // See ConnectFourOnline.tsx's copy of this guard for the full rationale
+    // -- without it, a second submit before the first updateSession()
+    // round-trip resolves both compute nextGuesses from the same stale
+    // state.guesses closure, and whichever write lands last in Supabase
+    // silently overwrites the other (potentially dropping a winning guess
+    // and reverting a finished game back to active).
+    if (!session || submitting || !isGuesser || won) return;
     const value = Number(guess);
     if (!value || value < 1 || value > 100) return;
+    setSubmitting(true);
     let hint = 'Benar! 🎉';
     if (value < state.secret) hint = 'Terlalu kecil';
     else if (value > state.secret) hint = 'Terlalu besar';
@@ -123,6 +131,7 @@ export function NumberGuessOnline({ coupleId }: { coupleId?: string | null }) {
     if (nextWon) {
       await recordScore({ userId, score: nextGuesses.length });
     }
+    setSubmitting(false);
   }
 
   return (
@@ -148,7 +157,7 @@ export function NumberGuessOnline({ coupleId }: { coupleId?: string | null }) {
               placeholder="1-100"
               placeholderTextColor={isArtDeco ? artDeco.color.faint : '#767676'}
             />
-            <GameButton onPress={handleGuess}>Tebak</GameButton>
+            <GameButton onPress={handleGuess} loading={submitting}>Tebak</GameButton>
           </View>
         )
       )}

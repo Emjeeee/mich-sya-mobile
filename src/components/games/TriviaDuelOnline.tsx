@@ -35,6 +35,7 @@ export function TriviaDuelOnline({ coupleId }: { coupleId?: string | null }) {
   const { recordScore } = useGameScores(coupleId, 'trivia');
   const [starting, setStarting] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [answering, setAnswering] = useState(false);
 
   if (isLoading) {
     return (
@@ -101,7 +102,13 @@ export function TriviaDuelOnline({ coupleId }: { coupleId?: string | null }) {
   const isMyTurn = session.turn === userId;
 
   async function answer(index: number) {
-    if (!session || !isMyTurn) return;
+    // See ConnectFourOnline.tsx's copy of this guard for the full rationale
+    // -- without it, tapping a second option before the first
+    // updateSession() round-trip resolves lets the same player answer more
+    // than once per turn, and whichever write lands last in Supabase can
+    // clobber a real win with a stale "not finished" state.
+    if (!session || answering || !isMyTurn) return;
+    setAnswering(true);
     const correct = index === question.correctIndex;
     const nextState: TriviaState = isPlayerX
       ? { ...state, p1Score: state.p1Score + (correct ? 1 : 0), questionIndex: randomQuestionIndex(state.questionIndex) }
@@ -119,6 +126,7 @@ export function TriviaDuelOnline({ coupleId }: { coupleId?: string | null }) {
       status: finished ? 'finished' : 'active',
     });
     if (finished) await recordScore({ winnerUserId: userId });
+    setAnswering(false);
   }
 
   return (
@@ -133,7 +141,12 @@ export function TriviaDuelOnline({ coupleId }: { coupleId?: string | null }) {
           <Text style={[styles.question, isArtDeco && deco.question]}>{question.question}</Text>
           <View style={styles.optionsGrid}>
             {question.options.map((opt, i) => (
-              <Pressable key={opt} onPress={() => answer(i)} style={[styles.option, isArtDeco && deco.option]}>
+              <Pressable
+                key={opt}
+                onPress={() => answer(i)}
+                disabled={answering}
+                style={[styles.option, isArtDeco && deco.option]}
+              >
                 <Text style={[styles.optionText, isArtDeco && deco.optionText]}>{opt}</Text>
               </Pressable>
             ))}

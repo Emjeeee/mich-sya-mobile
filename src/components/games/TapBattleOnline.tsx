@@ -73,12 +73,37 @@ export function TapBattleOnline({ coupleId }: { coupleId?: string | null }) {
     if (myTaps === lastPushedRef.current) return;
     const id = setTimeout(() => {
       lastPushedRef.current = myTaps;
-      const nextState: TapBattleState = isPlayerX ? { ...state, p1Taps: myTaps } : { ...state, p2Taps: myTaps };
+      // Merge onto stateRef.current (read fresh when the timer actually
+      // fires), not the `state` this effect closed over when it was
+      // scheduled -- a poll can land a newer partner tap count in between,
+      // and writing the stale value back would silently revert it.
+      const fresh = stateRef.current;
+      const nextState: TapBattleState = isPlayerX ? { ...fresh, p1Taps: myTaps } : { ...fresh, p2Taps: myTaps };
       updateSession({ id: session.id, state: nextState, turn: null, winner: null, status: 'active' });
     }, PUSH_INTERVAL_MS);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myTaps, phase]);
+
+  // Both players force-push their exact final tap count the instant `phase`
+  // becomes 'done', bypassing the debounce above entirely -- otherwise
+  // whichever tap(s) landed in the last PUSH_INTERVAL_MS window before the
+  // buzzer never get flushed (the debounce's pending setTimeout is
+  // cancelled by this effect's own cleanup once `phase` changes). Both
+  // sides need this, not just player_x: player_x's settle effect below
+  // already re-derives its own count from myTapsRef, but that same
+  // protection previously only existed for player_x -- player_o's final
+  // taps had no equivalent, non-cancellable path to the server at all.
+  useEffect(() => {
+    if (!session || phase !== 'done') return;
+    const fresh = stateRef.current;
+    const finalTaps = myTapsRef.current;
+    if (finalTaps === lastPushedRef.current) return;
+    lastPushedRef.current = finalTaps;
+    const nextState: TapBattleState = isPlayerX ? { ...fresh, p1Taps: finalTaps } : { ...fresh, p2Taps: finalTaps };
+    updateSession({ id: session.id, state: nextState, turn: null, winner: null, status: 'active' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   useEffect(() => {
     if (!session || !isPlayerX || phase !== 'done' || scoreRecordedRef.current) return;

@@ -27,6 +27,7 @@ export function DiceBattleOnline({ coupleId }: { coupleId?: string | null }) {
   const { recordScore } = useGameScores(coupleId, 'dice');
   const [starting, setStarting] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [rolling, setRolling] = useState(false);
 
   if (isLoading) {
     return (
@@ -92,7 +93,14 @@ export function DiceBattleOnline({ coupleId }: { coupleId?: string | null }) {
   const isMyTurn = session.turn === userId;
 
   async function roll() {
-    if (!session) return;
+    // See ConnectFourOnline.tsx's copy of this guard for the full
+    // rationale -- without it, a second tap before the first
+    // updateSession() round-trip resolves computes nextState from the
+    // same pre-roll session closure, and whichever write lands last in
+    // Supabase silently overwrites the other (potentially erasing an
+    // already-recorded win).
+    if (!session || rolling || !isMyTurn) return;
+    setRolling(true);
     const value = rollDie();
     const nextState: DiceState = isPlayerX
       ? { ...state, p1Score: state.p1Score + value, lastRoll: value }
@@ -110,6 +118,7 @@ export function DiceBattleOnline({ coupleId }: { coupleId?: string | null }) {
       status: finished ? 'finished' : 'active',
     });
     if (finished) await recordScore({ winnerUserId: userId });
+    setRolling(false);
   }
 
   return (
@@ -127,7 +136,7 @@ export function DiceBattleOnline({ coupleId }: { coupleId?: string | null }) {
       </View>
 
       {isMyTurn ? (
-        <GameButton onPress={roll}>Lempar Dadu</GameButton>
+        <GameButton onPress={roll} loading={rolling}>Lempar Dadu</GameButton>
       ) : (
         <Text style={[styles.muted, isArtDeco && deco.muted]}>Menunggu giliran pasangan...</Text>
       )}
