@@ -285,8 +285,18 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
       setPendingGrid(null);
       if (result.perfectClear) celebratePerfectClear();
       else if (result.linesCleared >= 2) showBanner(`Kombo x${result.linesCleared}`);
-      Animated.timing(clearFlash, { toValue: 0, duration: 200, useNativeDriver: true }).start(() =>
-        setClearLines(null)
+      // `clearFlash` is one shared Animated.Value reused for every clear --
+      // a fast player starting a new line-clearing placement within this
+      // 200ms fade-out calls clearFlash.setValue(0) above to restart it for
+      // the NEW clear, which stops this animation early and fires this same
+      // callback with finished:false in the same tick as the new
+      // setClearLines() call a few lines up. Without this guard, the two
+      // setClearLines calls land in the same React batch and this stale
+      // `null` wins, wiping the new clear's just-set overlay data.
+      Animated.timing(clearFlash, { toValue: 0, duration: 200, useNativeDriver: true }).start(
+        ({ finished }) => {
+          if (finished) setClearLines(null);
+        }
       );
       if (isGameOver(result.grid, nextTray)) setGameOver(true);
     });
@@ -349,18 +359,27 @@ export function BlockBlastGame({ coupleId }: { coupleId?: string | null }) {
               const row = Math.floor(i / GRID_SIZE);
               const col = i % GRID_SIZE;
               const inFootprint = hoverFootprint?.has(`${row}-${col}`) ?? false;
+              // hoverValid/hoverFootprint are computed against `grid` (the
+              // real, already-cleared board), but `value` comes from
+              // `shownGrid` (pendingGrid during a clear flash, which still
+              // shows the pre-clear "about to be wiped" frame). During that
+              // ~90-290ms window a cell can be empty-and-droppable in
+              // `grid` while still reading as filled here -- check real
+              // occupancy first so the hover tint isn't suppressed for
+              // cells that are actually valid drop targets right now.
+              const reallyOccupied = grid[row][col] !== 0;
               return (
                 <View
                   key={i}
                   style={[
                     styles.cell,
                     { borderColor: theme.gridLine },
-                    value !== 0
-                      ? { backgroundColor: theme.blocks[value - 1] }
-                      : inFootprint
-                        ? hoverValid
-                          ? styles.hoverValid
-                          : styles.hoverInvalid
+                    !reallyOccupied && inFootprint
+                      ? hoverValid
+                        ? styles.hoverValid
+                        : styles.hoverInvalid
+                      : value !== 0
+                        ? { backgroundColor: theme.blocks[value - 1] }
                         : { backgroundColor: theme.emptyCell },
                   ]}
                 />
