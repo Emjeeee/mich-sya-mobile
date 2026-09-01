@@ -10,6 +10,7 @@ import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
 import { DiamondMarker } from '../theme/components/DiamondMarker';
 import { GlassSurface } from '../theme/components/GlassSurface';
 import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
+import { LiquidGlassRoot } from '../theme/components/LiquidGlassRoot';
 import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
@@ -22,7 +23,7 @@ export default function ArcadeScreen({ navigation, route }: Props) {
   const { coupleId } = route.params;
 
   return (
-    <View
+    <LiquidGlassRoot
       style={[
         styles.container,
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 },
@@ -91,7 +92,7 @@ export default function ArcadeScreen({ navigation, route }: Props) {
           )
         }
       />
-    </View>
+    </LiquidGlassRoot>
   );
 }
 

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Pixel } from './ui/pixel-icons';
 import { artDeco } from '../theme/artDecoTokens';
+import { useGlassBlurProps } from '../theme/components/LiquidGlassRoot';
 import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
@@ -34,6 +35,7 @@ export default function SwipeToConfirm({
   loading = false,
 }: SwipeToConfirmProps) {
   const { isArtDeco, isLiquidGlass } = useAppTheme();
+  const blurProps = useGlassBlurProps();
   const [trackWidth, setTrackWidth] = useState(0);
   const pan = useRef(new Animated.Value(0)).current;
   const maxTranslateRef = useRef(0);
@@ -115,7 +117,7 @@ export default function SwipeToConfirm({
           splitting into a separate content layer. */}
       {isLiquidGlass && (
         <>
-          <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: liquidGlass.color.glassPanelWash }]} />
         </>
       )}

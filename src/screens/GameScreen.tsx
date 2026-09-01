@@ -18,6 +18,7 @@ import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
 import { GlassSurface } from '../theme/components/GlassSurface';
 import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
+import { LiquidGlassRoot } from '../theme/components/LiquidGlassRoot';
 import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
@@ -39,11 +40,11 @@ export default function GameScreen({ navigation, route }: Props) {
 
   if (!game) {
     return (
-      <View style={[styles.container, isArtDeco && deco.container, isLiquidGlass && glass.container]}>
+      <LiquidGlassRoot style={[styles.container, isArtDeco && deco.container, isLiquidGlass && glass.container]}>
         {isArtDeco && <ArtDecoBackground />}
         {isLiquidGlass && <LiquidGlassBackground variant="warm" />}
         <Text style={[styles.muted, isArtDeco && deco.backLink]}>Game tidak ditemukan.</Text>
-      </View>
+      </LiquidGlassRoot>
     );
   }
 
@@ -59,7 +60,7 @@ export default function GameScreen({ navigation, route }: Props) {
     (game.scoreMode === 'score' || (game.scoreMode === 'wins' && (!showOnline || mode === 'online')));
 
   return (
-    <View style={styles.screenWrapper}>
+    <LiquidGlassRoot style={styles.screenWrapper}>
       {isArtDeco && <ArtDecoBackground />}
       {isLiquidGlass && <LiquidGlassBackground variant="warm" />}
       <ScrollView
@@ -145,7 +146,7 @@ export default function GameScreen({ navigation, route }: Props) {
           </View>
         ))}
       </ScrollView>
-    </View>
+    </LiquidGlassRoot>
   );
 }
 

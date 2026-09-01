@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
@@ -32,7 +32,9 @@ import {
 } from '../lib/torchPattern';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { FlashlightIcon, SpeakerIcon, StopIcon } from '../theme/components/GlassIcon';
 import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
+import { LiquidGlassRoot, useGlassBlurProps } from '../theme/components/LiquidGlassRoot';
 import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
@@ -46,13 +48,26 @@ const TORCH_PRESET_ORDER: Exclude<TorchPatternKind, 'stop'>[] = ['steady', 'slow
 // file has several buttons that each already have their own Pressable
 // structure not worth restructuring into GlassSurface.
 function GlassFill({ radius = liquidGlass.radius.control }: { radius?: number }) {
+  const blurProps = useGlassBlurProps();
   return (
     <>
-      <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+      <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
       <View
         style={[StyleSheet.absoluteFill, { backgroundColor: liquidGlass.color.glassChipWash, borderRadius: radius }]}
       />
     </>
+  );
+}
+
+// Icon + text row for a glass button's label, replacing the emoji-prefixed
+// strings the other themes use ("🔊 Bunyikan HP pasangan" etc.) with an
+// SF-Symbol-style icon (see GlassIcon.tsx).
+function GlassLabel({ icon, color, children }: { icon: ReactNode; color: string; children: ReactNode }) {
+  return (
+    <View style={styles.glassLabelRow}>
+      {icon}
+      <Text style={[styles.ringButtonText, { color }]}>{children}</Text>
+    </View>
   );
 }
 
@@ -128,7 +143,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View
+      <LiquidGlassRoot
         style={[
           styles.container,
           { paddingTop: insets.top + 16 },
@@ -211,12 +226,12 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
               {isLiquidGlass && <GlassFill />}
               {ringing ? (
                 <ActivityIndicator color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'} />
+              ) : isLiquidGlass ? (
+                <GlassLabel icon={<SpeakerIcon size={16} color={liquidGlass.color.ink2} />} color={liquidGlass.color.ink2}>
+                  Bunyikan HP pasangan
+                </GlassLabel>
               ) : (
-                <Text
-                  style={[styles.ringButtonText, isArtDeco && deco.ringButtonText, isLiquidGlass && glass.ringButtonText]}
-                >
-                  🔊 Bunyikan HP pasangan
-                </Text>
+                <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText]}>🔊 Bunyikan HP pasangan</Text>
               )}
             </Pressable>
 
@@ -331,10 +346,12 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                 {isLiquidGlass && <GlassFill />}
                 {torching ? (
                   <ActivityIndicator color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'} />
+                ) : isLiquidGlass ? (
+                  <GlassLabel icon={<FlashlightIcon size={16} color={liquidGlass.color.ink2} />} color={liquidGlass.color.ink2}>
+                    Nyalain
+                  </GlassLabel>
                 ) : (
-                  <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText, isLiquidGlass && glass.ringButtonText]}>
-                    🔦 Nyalain
-                  </Text>
+                  <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText]}>🔦 Nyalain</Text>
                 )}
               </Pressable>
               <Pressable
@@ -351,10 +368,12 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                 {isLiquidGlass && <GlassFill />}
                 {stoppingTorch ? (
                   <ActivityIndicator color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'} />
+                ) : isLiquidGlass ? (
+                  <GlassLabel icon={<StopIcon size={14} color={liquidGlass.color.accentText} />} color={liquidGlass.color.accentText}>
+                    Matikan
+                  </GlassLabel>
                 ) : (
-                  <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText, isLiquidGlass && glass.stopButtonText]}>
-                    ⏹️ Matikan
-                  </Text>
+                  <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText]}>⏹️ Matikan</Text>
                 )}
               </Pressable>
             </View>
@@ -365,7 +384,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
             berhenti setelah 30 menit, atau tekan "Berhenti berbagi lokasi" kapan saja.
           </Text>
         </ScrollView>
-      </View>
+      </LiquidGlassRoot>
     </Modal>
   );
 }
@@ -375,6 +394,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 24,
+  },
+  glassLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   header: {
     flexDirection: 'row',

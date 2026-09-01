@@ -53,6 +53,19 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
     return () => subscription.remove();
   }, [refresh]);
 
+  useEffect(() => {
+    // Catches the partner manually flipping her own ringer mode/volume
+    // while this screen happens to already be open in the foreground on
+    // her phone -- AppState-active alone only re-checks when coming back
+    // *into* the app, not while it's already sitting open. Cheap (plain
+    // getters, no permission prompts), and feeds the same realtime pipe
+    // RemoteControlPanel.tsx subscribes to on the controlling side, so a
+    // change made here shows up there within a few seconds instead of only
+    // the next time either app backgrounds/foregrounds.
+    const interval = setInterval(refresh, 5000);
+    return () => clearInterval(interval);
+  }, [refresh]);
+
   if (!eligible || granted === null || granted) return null;
 
   return (

@@ -5,6 +5,7 @@ import { isSilentRing, setSilentRing } from 'ble-ring';
 import { isSilentRingEligible } from '../lib/silentRing';
 import { supabase } from '../lib/supabase';
 import { artDeco } from '../theme/artDecoTokens';
+import { SpeakerIcon, VibrateIcon } from '../theme/components/GlassIcon';
 import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
@@ -48,18 +49,23 @@ export default function SilentRingToggle() {
             !silent && isLiquidGlass && glass.chipActive,
           ]}
         >
-          <Text
-            style={[
-              styles.chipText,
-              isArtDeco && deco.chipText,
-              isLiquidGlass && glass.chipText,
-              !silent && styles.chipTextActive,
-              !silent && isArtDeco && deco.chipTextActive,
-              !silent && isLiquidGlass && glass.chipTextActive,
-            ]}
-          >
-            🔊 Normal
-          </Text>
+          {isLiquidGlass ? (
+            <View style={glass.chipRowInner}>
+              <SpeakerIcon size={14} color={!silent ? '#fff' : liquidGlass.color.ink2} />
+              <Text style={[glass.chipText, !silent && glass.chipTextActive]}>Normal</Text>
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.chipText,
+                isArtDeco && deco.chipText,
+                !silent && styles.chipTextActive,
+                !silent && isArtDeco && deco.chipTextActive,
+              ]}
+            >
+              🔊 Normal
+            </Text>
+          )}
         </Pressable>
         <Pressable
           onPress={() => choose(true)}
@@ -72,18 +78,23 @@ export default function SilentRingToggle() {
             silent && isLiquidGlass && glass.chipActive,
           ]}
         >
-          <Text
-            style={[
-              styles.chipText,
-              isArtDeco && deco.chipText,
-              isLiquidGlass && glass.chipText,
-              silent && styles.chipTextActive,
-              silent && isArtDeco && deco.chipTextActive,
-              silent && isLiquidGlass && glass.chipTextActive,
-            ]}
-          >
-            📳 Senyap
-          </Text>
+          {isLiquidGlass ? (
+            <View style={glass.chipRowInner}>
+              <VibrateIcon size={14} color={silent ? '#fff' : liquidGlass.color.ink2} />
+              <Text style={[glass.chipText, silent && glass.chipTextActive]}>Senyap</Text>
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.chipText,
+                isArtDeco && deco.chipText,
+                silent && styles.chipTextActive,
+                silent && isArtDeco && deco.chipTextActive,
+              ]}
+            >
+              📳 Senyap
+            </Text>
+          )}
         </Pressable>
       </View>
     </View>
@@ -156,7 +167,15 @@ const glass = StyleSheet.create({
     backgroundColor: liquidGlass.color.accentDeep,
     borderColor: liquidGlass.color.accentDeep,
   },
+  chipRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
   chipText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: liquidGlass.color.ink2,
   },
   chipTextActive: {

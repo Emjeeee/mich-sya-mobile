@@ -28,7 +28,18 @@ import WishlistListModal from '../components/WishlistListModal';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
 import { GlassSurface } from '../theme/components/GlassSurface';
+import {
+  CameraIcon,
+  CompassIcon,
+  GamepadIcon,
+  HeartIcon,
+  MapPinIcon,
+  SettingsIcon,
+  SparkleIcon,
+  TargetIcon,
+} from '../theme/components/GlassIcon';
 import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
+import { LiquidGlassRoot, useGlassBlurProps } from '../theme/components/LiquidGlassRoot';
 import { ThemeSwitcherSheet } from '../theme/components/ThemeSwitcherSheet';
 import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
@@ -58,20 +69,27 @@ const ICON_HEART = require('../../assets/icons/heart.png');
 
 function ActionButton({
   icon,
+  glassIcon,
   label,
   onPress,
 }: {
   icon: number | ReactNode;
+  // SF-Symbol-style substitute shown instead of `icon` when the Liquid
+  // Glass theme is active -- the PNG/pixel-art icons stay as-is for
+  // Klasik/Art Deco. Optional so a button can skip it and keep its
+  // original icon in every theme.
+  glassIcon?: ReactNode;
   label: string;
   onPress: () => void;
 }) {
   const { isArtDeco, isLiquidGlass } = useAppTheme();
+  const resolvedIcon = isLiquidGlass && glassIcon ? glassIcon : icon;
   return (
     <Pressable
       style={[styles.actionButton, isArtDeco && deco.actionButton, isLiquidGlass && glass.actionButton]}
       onPress={onPress}
     >
-      {typeof icon === 'number' ? <Image source={icon} style={styles.actionButtonIcon} /> : icon}
+      {typeof resolvedIcon === 'number' ? <Image source={resolvedIcon} style={styles.actionButtonIcon} /> : resolvedIcon}
       <Text
         style={[styles.actionButtonText, isArtDeco && deco.actionButtonText, isLiquidGlass && glass.actionButtonText]}
       >
@@ -84,6 +102,7 @@ function ActionButton({
 export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { isArtDeco, isLiquidGlass } = useAppTheme();
+  const blurProps = useGlassBlurProps();
   const [showThemeSheet, setShowThemeSheet] = useState(false);
   const { coupleId, session, loading, starting, ending, error, startSession, endSession } =
     useDateSession();
@@ -271,19 +290,41 @@ export default function HomeScreen({ navigation }: Props) {
   // aren't duplicated between the two branches.
   const actionButtonsContent = (
     <>
-      <ActionButton icon={ICON_CAMERA} label="Kenangan" onPress={() => setShowMemoryModal(true)} />
-      <ActionButton icon={ICON_TARGET} label="Wishlist" onPress={() => setShowWishlistModal(true)} />
-      <ActionButton icon={ICON_COMPASS} label="Cari Pasangan" onPress={() => setShowFindPartnerModal(true)} />
-      <ActionButton icon={ICON_MAP} label="Journey Map" onPress={() => setShowJourneyMapModal(true)} />
-      <ActionButton icon={ICON_HEART} label="Momen" onPress={handleQuickMemory} />
+      <ActionButton
+        icon={ICON_CAMERA}
+        glassIcon={<CameraIcon size={24} />}
+        label="Kenangan"
+        onPress={() => setShowMemoryModal(true)}
+      />
+      <ActionButton
+        icon={ICON_TARGET}
+        glassIcon={<TargetIcon size={24} />}
+        label="Wishlist"
+        onPress={() => setShowWishlistModal(true)}
+      />
+      <ActionButton
+        icon={ICON_COMPASS}
+        glassIcon={<CompassIcon size={24} />}
+        label="Cari Pasangan"
+        onPress={() => setShowFindPartnerModal(true)}
+      />
+      <ActionButton
+        icon={ICON_MAP}
+        glassIcon={<MapPinIcon size={24} />}
+        label="Journey Map"
+        onPress={() => setShowJourneyMapModal(true)}
+      />
+      <ActionButton icon={ICON_HEART} glassIcon={<HeartIcon size={24} />} label="Momen" onPress={handleQuickMemory} />
       <ActionButton
         icon={<Pixel name="gamepad" size={24} />}
+        glassIcon={<GamepadIcon size={24} />}
         label="Arcade"
         onPress={() => navigation.navigate('Arcade', { coupleId: coupleId! })}
       />
       {advancedSettingsEligible && (
         <ActionButton
           icon={<Pixel name="gear" size={24} />}
+          glassIcon={<SettingsIcon size={24} />}
           label="Pengaturan Lanjutan"
           onPress={() => navigation.navigate('AdvancedSettings', { coupleId: coupleId! })}
         />
@@ -292,7 +333,12 @@ export default function HomeScreen({ navigation }: Props) {
   );
 
   return (
-    <View
+    // Always a LiquidGlassRoot (not just when isLiquidGlass) -- on Android
+    // this is what lets any BlurView elsewhere in the tree reference real
+    // pixels to blur via useGlassBlurProps(); it's an inert passthrough
+    // container otherwise (see LiquidGlassRoot.tsx), so this is safe for
+    // Klasik/Art Deco too.
+    <LiquidGlassRoot
       style={[
         styles.container,
         { paddingTop: insets.top + 16 },
@@ -314,7 +360,7 @@ export default function HomeScreen({ navigation }: Props) {
       >
         {isLiquidGlass && (
           <>
-            <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
             <View
               style={[
                 StyleSheet.absoluteFill,
@@ -323,15 +369,13 @@ export default function HomeScreen({ navigation }: Props) {
             />
           </>
         )}
-        <Text
-          style={[
-            themeButtonStyles.icon,
-            isArtDeco && themeButtonStyles.iconDeco,
-            isLiquidGlass && themeButtonStyles.iconGlass,
-          ]}
-        >
-          {isArtDeco ? '◆' : '🎨'}
-        </Text>
+        {isLiquidGlass ? (
+          <SparkleIcon size={18} />
+        ) : (
+          <Text style={[themeButtonStyles.icon, isArtDeco && themeButtonStyles.iconDeco]}>
+            {isArtDeco ? '◆' : '🎨'}
+          </Text>
+        )}
       </Pressable>
 
       <ScrollView
@@ -432,7 +476,7 @@ export default function HomeScreen({ navigation }: Props) {
         >
           {isLiquidGlass && (
             <>
-              <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+              <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
               <View
                 style={[
                   StyleSheet.absoluteFill,
@@ -508,7 +552,7 @@ export default function HomeScreen({ navigation }: Props) {
           onClose={() => setRecap(null)}
         />
       )}
-    </View>
+    </LiquidGlassRoot>
   );
 }
 
@@ -760,8 +804,5 @@ const themeButtonStyles = StyleSheet.create({
   },
   iconDeco: {
     color: artDeco.color.gold,
-  },
-  iconGlass: {
-    fontSize: 18,
   },
 });

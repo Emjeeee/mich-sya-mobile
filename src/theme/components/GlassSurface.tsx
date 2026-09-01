@@ -14,6 +14,7 @@ import { BlurView } from 'expo-blur';
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { useGlassBlurProps } from './LiquidGlassRoot';
 import { liquidGlass } from '../liquidGlassTokens';
 
 interface GlassSurfaceProps {
@@ -43,10 +44,11 @@ export function GlassSurface({
   const resolvedBorder =
     borderColor ?? (variant === 'dark' ? liquidGlass.color.glassDarkBorder : liquidGlass.color.glassPanelBorder);
   const resolvedTint = variant === 'dark' ? 'dark' : tint;
+  const blurProps = useGlassBlurProps();
 
   return (
     <View style={[styles.outer, { borderRadius: radius }, style]}>
-      <BlurView intensity={intensity} tint={resolvedTint} style={StyleSheet.absoluteFill} />
+      <BlurView intensity={intensity} tint={resolvedTint} style={StyleSheet.absoluteFill} {...blurProps} />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: resolvedWash }]} />
       <View
         pointerEvents="none"

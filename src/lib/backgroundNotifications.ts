@@ -1,8 +1,17 @@
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
-import { setRingerMode, setStreamVolume, stopTorch, triggerRing, triggerTorch } from 'ble-ring';
+import {
+  getVolumeState,
+  hasRemoteControlAccess,
+  setRingerMode,
+  setStreamVolume,
+  stopTorch,
+  triggerRing,
+  triggerTorch,
+} from 'ble-ring';
 
 import { startFindPartnerTracking } from './backgroundFindPartner';
+import { reportRemoteControlAccessStatus } from './remoteControl';
 import { notifyRingSignal } from './ringSignal';
 import { supabase } from './supabase';
 import { refreshWidget } from './widget';
@@ -85,6 +94,27 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
         await setStreamVolume(payload.stream as 'ring' | 'notification' | 'media' | 'alarm', payload.percent);
       } catch (err) {
         console.warn('[michsya] setStreamVolume() failed:', err);
+      }
+    }
+
+    if (payload.type === 'request_remote_state' && typeof payload.coupleId === 'string') {
+      // The controlling account (RemoteControlPanel.tsx) sent this right
+      // when it opened, asking for a fresh read instead of whatever this
+      // device last happened to report on its own -- same
+      // granted+volumeState shape RemoteControlAccess.tsx reports
+      // opportunistically, just triggered on demand. Writing it back
+      // through reportRemoteControlAccessStatus is what the other side's
+      // realtime subscription picks up.
+      console.log('[michsya] background task: request_remote_state payload received');
+      try {
+        const granted = await hasRemoteControlAccess();
+        const volumeState = await getVolumeState().catch((err) => {
+          console.warn('[michsya] getVolumeState() threw:', err);
+          return null;
+        });
+        await reportRemoteControlAccessStatus(payload.coupleId, granted, volumeState);
+      } catch (err) {
+        console.warn('[michsya] request_remote_state handling failed:', err);
       }
     }
 

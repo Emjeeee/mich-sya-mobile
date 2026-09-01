@@ -127,11 +127,42 @@ export interface PartnerRemoteControlState {
   alarm: number | null;
 }
 
+const EMPTY_PARTNER_STATE: PartnerRemoteControlState = {
+  granted: null,
+  mode: null,
+  ring: null,
+  notification: null,
+  media: null,
+  alarm: null,
+};
+
+// Shapes one raw `device_push_tokens` row into PartnerRemoteControlState --
+// shared by getPartnerRemoteControlState's one-shot fetch below AND
+// RemoteControlPanel.tsx's realtime subscription (a `postgres_changes`
+// payload's `.new` is the same raw row shape), so both paths parse it
+// identically instead of duplicating the field mapping.
+export function parsePartnerRow(row: Record<string, unknown> | null | undefined): PartnerRemoteControlState {
+  if (!row) return EMPTY_PARTNER_STATE;
+  const num = (v: unknown) => (typeof v === 'number' ? v : null);
+  return {
+    granted: Boolean(row.remote_control_granted),
+    mode: (row.remote_ringer_mode as 'normal' | 'vibrate' | 'silent' | null) ?? null,
+    ring: num(row.remote_ring_volume_percent),
+    notification: num(row.remote_notification_volume_percent),
+    media: num(row.remote_media_volume_percent),
+    alarm: num(row.remote_alarm_volume_percent),
+  };
+}
+
 // Read by RemoteControlPanel.tsx (the controlling account) before/while
 // showing its buttons, so it can warn instead of silently doing nothing, and
 // pre-fill the mode chip/volume sliders from the partner's last-reported
 // state. Every field is independently null if the partner's device has
-// never reported that particular piece at all.
+// never reported that particular piece at all. This is a one-shot snapshot
+// of whatever was last written -- possibly stale if the partner's device
+// hasn't reported since; pair with requestPartnerRemoteState() below to ask
+// for a fresh value, and a realtime subscription to receive it the moment
+// it lands.
 export async function getPartnerRemoteControlState(
   coupleId: string,
   myUserId: string
@@ -146,16 +177,37 @@ export async function getPartnerRemoteControlState(
   if (error) console.warn('[michsya] getPartnerRemoteControlState query failed:', error);
 
   const partnerRow = data?.find((row) => row.user_id !== myUserId);
-  if (!partnerRow) {
-    return { granted: null, mode: null, ring: null, notification: null, media: null, alarm: null };
+  return parsePartnerRow(partnerRow);
+}
+
+// Asks the partner's device to immediately re-read its own current
+// mode/volume state and report it (see backgroundNotifications.ts's
+// 'request_remote_state' handler) -- without this, opening the panel could
+// only ever show whatever her device last happened to report on its own
+// (on her app foregrounding, or periodically -- see RemoteControlAccess.tsx),
+// which may be stale by however long it's been since either of those last
+// happened. Combined with the realtime subscription in
+// RemoteControlPanel.tsx, the fresh value lands within moments of opening
+// the panel instead of needing her to background/foreground her own app.
+export async function requestPartnerRemoteState(coupleId: string | null | undefined): Promise<boolean> {
+  let userId: string | null = null;
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    userId = userData.user?.id ?? null;
+  } catch {
+    userId = null;
   }
-  const num = (v: unknown) => (typeof v === 'number' ? v : null);
-  return {
-    granted: Boolean(partnerRow.remote_control_granted),
-    mode: (partnerRow.remote_ringer_mode as 'normal' | 'vibrate' | 'silent' | null) ?? null,
-    ring: num(partnerRow.remote_ring_volume_percent),
-    notification: num(partnerRow.remote_notification_volume_percent),
-    media: num(partnerRow.remote_media_volume_percent),
-    alarm: num(partnerRow.remote_alarm_volume_percent),
-  };
+  if (!userId) return false;
+
+  let resolvedCoupleId: string | null = null;
+  try {
+    resolvedCoupleId = coupleId ?? (await resolveCoupleId());
+  } catch {
+    resolvedCoupleId = null;
+  }
+  if (!resolvedCoupleId) return false;
+
+  return sendPushToPartner(resolvedCoupleId, userId, {
+    data: { type: 'request_remote_state', coupleId: resolvedCoupleId },
+  }).catch(() => false);
 }
