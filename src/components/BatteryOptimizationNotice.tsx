@@ -3,6 +3,7 @@ import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-nat
 import { hasBatteryOptimizationExemption, requestBatteryOptimizationExemption } from 'ble-ring';
 
 import { artDeco } from '../theme/artDecoTokens';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 // Unlike RemoteControlAccess/RemoteControlPanel, this isn't gated to one
@@ -16,7 +17,7 @@ import { useAppTheme } from '../theme/ThemeContext';
 // separate "autostart manager" toggle, which has no public API to check or
 // request at all.
 export default function BatteryOptimizationNotice() {
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const [exempted, setExempted] = useState<boolean | null>(null);
 
   const refresh = useCallback(() => {
@@ -45,20 +46,22 @@ export default function BatteryOptimizationNotice() {
     <View style={styles.container}>
       {!exempted && (
         <>
-          <Text style={[styles.label, isArtDeco && deco.label]}>
+          <Text style={[styles.label, isArtDeco && deco.label, isLiquidGlass && glass.label]}>
             Supaya bunyikan HP/senter/atur jarak jauh tetap jalan walau HP ini tidak dibuka lama, izinkan MichSya
             berjalan tanpa batas hemat baterai.
           </Text>
           <Pressable
-            style={[styles.button, isArtDeco && deco.button]}
+            style={[styles.button, isArtDeco && deco.button, isLiquidGlass && glass.button]}
             onPress={() => requestBatteryOptimizationExemption()}
           >
-            <Text style={[styles.buttonText, isArtDeco && deco.buttonText]}>Izinkan</Text>
+            <Text style={[styles.buttonText, isArtDeco && deco.buttonText, isLiquidGlass && glass.buttonText]}>
+              Izinkan
+            </Text>
           </Pressable>
         </>
       )}
       {isVivo && (
-        <Text style={[styles.vivoHint, isArtDeco && deco.vivoHint]}>
+        <Text style={[styles.vivoHint, isArtDeco && deco.vivoHint, isLiquidGlass && glass.vivoHint]}>
           HP Vivo punya pengaturan tambahan yang tidak bisa diminta otomatis: buka i Manager (atau Pengaturan) →
           Manajemen Baterai/App Manager → cari MichSya → aktifkan "Autostart"/"Latar belakang otomatis", supaya fitur
           jarak jauh tetap bekerja walau aplikasi ditutup.
@@ -108,5 +111,21 @@ const deco = StyleSheet.create({
   },
   vivoHint: {
     color: artDeco.color.faint,
+  },
+});
+
+const glass = StyleSheet.create({
+  label: {
+    color: liquidGlass.color.muted,
+  },
+  button: {
+    backgroundColor: liquidGlass.color.glassChipWash,
+    borderColor: liquidGlass.color.glassChipBorder,
+  },
+  buttonText: {
+    color: liquidGlass.color.ink2,
+  },
+  vivoHint: {
+    color: liquidGlass.color.muted,
   },
 });

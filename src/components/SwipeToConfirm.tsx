@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 import { Pixel } from './ui/pixel-icons';
 import { artDeco } from '../theme/artDecoTokens';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 const KNOB_SIZE = 56;
@@ -31,7 +33,7 @@ export default function SwipeToConfirm({
   disabled = false,
   loading = false,
 }: SwipeToConfirmProps) {
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const [trackWidth, setTrackWidth] = useState(0);
   const pan = useRef(new Animated.Value(0)).current;
   const maxTranslateRef = useRef(0);
@@ -100,11 +102,24 @@ export default function SwipeToConfirm({
         styles.track,
         { borderColor: color },
         isArtDeco && deco.track,
+        isLiquidGlass && glass.track,
         isLocked && styles.trackDisabled,
       ]}
       onLayout={handleLayout}
     >
-      <Animated.Text style={[styles.label, { color, opacity: labelOpacity }]}>
+      {/* Real frosted glass behind the track -- absolute-fill siblings
+          rendered before the label/knob so they paint underneath, same
+          layering GlassSurface.tsx uses. Not using GlassSurface itself here
+          since the track's existing children (Animated label + Animated
+          knob) already share this View's padded box and don't need
+          splitting into a separate content layer. */}
+      {isLiquidGlass && (
+        <>
+          <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: liquidGlass.color.glassPanelWash }]} />
+        </>
+      )}
+      <Animated.Text style={[styles.label, { color, opacity: labelOpacity }, isLiquidGlass && glass.label]}>
         {label}
       </Animated.Text>
       <Animated.View
@@ -165,5 +180,16 @@ const deco = StyleSheet.create({
   },
   knob: {
     borderRadius: artDeco.radius.none,
+  },
+});
+
+const glass = StyleSheet.create({
+  track: {
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    borderColor: liquidGlass.color.glassPanelBorder,
+  },
+  label: {
+    color: liquidGlass.color.ink2,
   },
 });

@@ -1,11 +1,19 @@
-# Art Deco theming guide
+# Theming guide (Art Deco + Liquid Glass)
 
-This app now has TWO designs living side by side: the original ("Klasik") and
-a new Art Deco theme. The user switches between them at runtime from a
-toggle on the Home screen, persisted in AsyncStorage. **This must stay
-non-destructive**: the original look is never edited or deleted, only added
-to. If every `deco.*` style were stripped out of a file, that file must
-render pixel-identical to how it looked before this project started.
+This app now has THREE designs living side by side: the original ("Klasik"),
+Art Deco, and Liquid Glass (an iOS 26-inspired frosted-glass look, built from
+`.claude/skills/ios26-mobile-design`). The user switches between them at
+runtime from a toggle on the Home screen, persisted in AsyncStorage. **This
+must stay non-destructive**: the original look is never edited or deleted,
+only added to. If every `deco.*`/`glass.*` style were stripped out of a file,
+that file must render pixel-identical to how it looked before this project
+started.
+
+The rest of this file was written for the Art Deco pass and still applies
+verbatim to Liquid Glass -- everywhere it says `isArtDeco`/`deco`, the same
+mechanical pattern applies with `isLiquidGlass`/`glass`. The Liquid-Glass-
+specific pieces (tokens, background, the blur panel component) are
+documented in their own section near the bottom.
 
 ## The pattern
 
@@ -230,3 +238,80 @@ pattern on the `<Text>` elements.
 - [ ] No logic/behavior changed — only styling and the isArtDeco/import
       additions.
 - [ ] File still type-checks (`npx tsc --noEmit`).
+
+## Liquid Glass specifics
+
+Everything above applies unchanged with `isLiquidGlass`/`glass` in place of
+`isArtDeco`/`deco`. What's different is WHAT the override styles contain --
+Art Deco recolors/reshapes; Liquid Glass adds real blur.
+
+- **Tokens**: `src/theme/liquidGlassTokens.ts` (`liquidGlass.color.*`,
+  `.radius.*`, `.gradient.*`, `.shadow.*`) -- the equivalent of
+  `artDecoTokens.ts`.
+- **Screen background**: `<LiquidGlassBackground variant="warm" | "cool" />`
+  (`src/theme/components/LiquidGlassBackground.tsx`), mounted the exact same
+  way as `<ArtDecoBackground />` (screen-level only, inside a
+  `position:relative` wrapper, `{isLiquidGlass && <LiquidGlassBackground />}`).
+  Renders a diagonal gradient + two soft radial highlights via
+  `react-native-svg` -- glass needs "something to refract" behind it or it
+  looks dead (a flat single color).
+- **Floating glass panels**: `<GlassSurface>`
+  (`src/theme/components/GlassSurface.tsx`) wraps `expo-blur`'s `BlurView` +
+  a translucent color wash + a bright hairline border into one component.
+  Takes `style` (the outer box -- position/size/margin) and `contentStyle`
+  (padding/flex layout for the actual children) as SEPARATE props -- see
+  the comment at the top of that file for why they can't be merged (the
+  blur/wash/border layers are absolute-fill and would be inset by padding
+  otherwise, leaving a visible unblurred seam). Use this whenever you're
+  introducing a NEW wrapping surface (a dock, a card, a panel).
+- **Retrofitting an EXISTING element's background** (a button, a chip, a
+  track) instead of introducing a new wrapper: don't restructure it into
+  GlassSurface -- add the blur/wash as extra `StyleSheet.absoluteFill`
+  sibling elements rendered as the FIRST children, before the existing
+  content, same effect with a smaller diff. Every file this pass touched
+  this way (`SwipeToConfirm.tsx`, `HomeScreen.tsx`'s theme toggle and sign
+  out button, `FindPartnerModal.tsx`'s buttons via its local `GlassFill`
+  helper) follows this shape:
+  ```tsx
+  <Pressable style={[styles.button, isLiquidGlass && glass.button]}>
+    {isLiquidGlass && (
+      <>
+        <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: liquidGlass.color.glassChipWash, borderRadius: R }]} />
+      </>
+    )}
+    <Text>...</Text>
+  </Pressable>
+  ```
+  The container needs `overflow: 'hidden'` (in its `glass.*` override) for
+  the blur to respect rounded corners.
+- **The one rule that matters most**: glass is a NAVIGATION-layer material
+  (bars, floating buttons, control clusters, dock-style panels) -- never put
+  it on CONTENT (game boards, long text, lists of data). Snake's board stays
+  a solid card; its D-pad becomes a floating dark-glass control cluster.
+  Don't stack two glass surfaces directly on each other either (e.g. the
+  Home action dock's individual buttons are plain/transparent text-on-icon,
+  not their own nested glass chips, since they already sit on the shared
+  glass dock).
+- **Smaller nested chips** (mode toggles inside an already-glass panel, a
+  segmented control) often don't need real `BlurView` at all -- a flat
+  semi-opaque tint (`liquidGlass.color.glassChipWash`) is enough and avoids
+  literal glass-on-glass. See `GameScreen.tsx`'s `modeButton` or
+  `RemoteControlPanel.tsx`'s mode chips for this lighter treatment.
+- **Primary vs. secondary actions**: a primary CTA (Mulai cari pasangan)
+  gets a solid, opaque fill in `liquidGlass.color.accentDeep` -- no blur --
+  matching iOS 26's `.buttonStyle(.glassProminent)`. Secondary/tertiary
+  actions (Bunyikan HP pasangan, torch controls) get the translucent
+  `.glass`-style treatment with `BlurView`.
+- **Currently reskinned this way**: `HomeScreen.tsx`, `SwipeToConfirm.tsx`,
+  `ArcadeScreen.tsx`, `GameScreen.tsx` (the shared shell around every game --
+  header, mode toggle, leaderboard card), `GameCard.tsx` (the shared card
+  every game renders into), `SnakeGame.tsx` (deep pass: header pills +
+  dark-glass D-pad), `FindPartnerModal.tsx` and everything it renders
+  (`RemoteControlPanel.tsx`, `RemoteControlAccess.tsx`,
+  `SilentRingToggle.tsx`, `BatteryOptimizationNotice.tsx`,
+  `CompassArrow.tsx`). Every other screen/game only has Klasik + Art Deco so
+  far -- `isLiquidGlass` there is simply never true yet, which is safe
+  (falls through to the Klasik look) but not yet visually finished; extend
+  the same patterns there in a follow-up pass rather than assuming it's
+  done.

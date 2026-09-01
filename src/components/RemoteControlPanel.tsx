@@ -11,6 +11,8 @@ import {
 } from '../lib/remoteControl';
 import { supabase } from '../lib/supabase';
 import { artDeco } from '../theme/artDecoTokens';
+import { GlassSurface } from '../theme/components/GlassSurface';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 const MODES: { value: 'normal' | 'vibrate' | 'silent'; label: string }[] = [
@@ -51,7 +53,7 @@ const DEFAULT_VOLUMES: VolumeMap = { ring: 50, notification: 50, media: 50, alar
 // front, and the mode chip/volume sliders start from her phone's *actual*
 // current state instead of a blind guess.
 export default function RemoteControlPanel({ coupleId }: { coupleId: string | null }) {
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const [eligible, setEligible] = useState(false);
   const [partnerGranted, setPartnerGranted] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState(true);
@@ -158,33 +160,43 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
     flashSent(`${STREAMS.find((s) => s.value === stream)?.label ?? stream} ${rounded}% terkirim`);
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={[styles.label, isArtDeco && deco.label]}>Atur HP pasangan dari jauh</Text>
+  const content = (
+    <>
+      <View style={styles.headerRow}>
+        <Text style={[styles.label, isArtDeco && deco.label, isLiquidGlass && glass.label]}>
+          Atur HP pasangan dari jauh
+        </Text>
+        {isLiquidGlass && lastSent && <Text style={glass.sentChip}>✓ Terkirim</Text>}
+      </View>
       {checkingAccess ? (
-        <ActivityIndicator color={isArtDeco ? artDeco.color.gold : '#e11d74'} style={styles.warningRow} />
+        <ActivityIndicator
+          color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'}
+          style={styles.warningRow}
+        />
       ) : partnerGranted === false || partnerGranted === null ? (
-        <Text style={[styles.warningText, isArtDeco && deco.warningText]}>
+        <Text style={[styles.warningText, isArtDeco && deco.warningText, isLiquidGlass && glass.warningText]}>
           {partnerGranted === null
             ? 'Belum diketahui apakah pasangan sudah mengizinkan akses. Nada dering/notifikasi di bawah mungkin tidak berpengaruh (Media/Alarm tetap bisa).'
             : 'Pasangan belum mengizinkan akses di Pengaturan -- nada dering/notifikasi di bawah tidak akan berpengaruh sampai dia mengizinkannya (Media/Alarm tetap bisa).'}
         </Text>
       ) : null}
-      {lastSent && (
+      {!isLiquidGlass && lastSent && (
         <Text style={[styles.sentText, isArtDeco && deco.sentText]}>
           ✓ {lastSent} -- perubahan tidak selalu terlihat di layar pasangan.
         </Text>
       )}
 
-      <View style={styles.row}>
+      <View style={[styles.row, isLiquidGlass && glass.row]}>
         {MODES.map((m) => (
           <Pressable
             key={m.value}
             style={[
               styles.chip,
               isArtDeco && deco.chip,
+              isLiquidGlass && glass.chip,
               mode === m.value && styles.chipActive,
               mode === m.value && isArtDeco && deco.chipActive,
+              mode === m.value && isLiquidGlass && glass.chipActive,
             ]}
             onPress={() => chooseMode(m.value)}
           >
@@ -192,8 +204,10 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
               style={[
                 styles.chipText,
                 isArtDeco && deco.chipText,
+                isLiquidGlass && glass.chipText,
                 mode === m.value && styles.chipTextActive,
                 mode === m.value && isArtDeco && deco.chipTextActive,
+                mode === m.value && isLiquidGlass && glass.chipTextActive,
               ]}
             >
               {m.label}
@@ -203,10 +217,12 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
       </View>
 
       {STREAMS.map((s) => (
-        <View key={s.value}>
+        <View key={s.value} style={isLiquidGlass && glass.volumeGroup}>
           <View style={styles.volumeRow}>
-            <Text style={[styles.volumeLabel, isArtDeco && deco.volumeLabel]}>{s.label}</Text>
-            <Text style={[styles.volumeValue, isArtDeco && deco.volumeValue]}>
+            <Text style={[styles.volumeLabel, isArtDeco && deco.volumeLabel, isLiquidGlass && glass.volumeLabel]}>
+              {s.label}
+            </Text>
+            <Text style={[styles.volumeValue, isArtDeco && deco.volumeValue, isLiquidGlass && glass.volumeValue]}>
               {Math.round(volumes[s.value])}%
             </Text>
           </View>
@@ -220,19 +236,36 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
               setVolumes((prev) => ({ ...prev, [s.value]: value }));
             }}
             onSlidingComplete={(value) => commitVolume(s.value, value)}
-            minimumTrackTintColor={isArtDeco ? artDeco.color.gold : '#e11d74'}
-            maximumTrackTintColor={isArtDeco ? artDeco.color.lineSoft : '#fdeef4'}
-            thumbTintColor={isArtDeco ? artDeco.color.gold : '#e11d74'}
+            minimumTrackTintColor={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accentDeep : '#e11d74'}
+            maximumTrackTintColor={
+              isArtDeco ? artDeco.color.lineSoft : isLiquidGlass ? 'rgba(225,29,116,0.15)' : '#fdeef4'
+            }
+            thumbTintColor={isArtDeco ? artDeco.color.gold : isLiquidGlass ? '#fff' : '#e11d74'}
           />
         </View>
       ))}
-    </View>
+    </>
   );
+
+  if (isLiquidGlass) {
+    return (
+      <GlassSurface contentStyle={glass.panelContent} radius={liquidGlass.radius.panel}>
+        {content}
+      </GlassSurface>
+    );
+  }
+
+  return <View style={styles.container}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
   container: {
     gap: 8,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   label: {
     fontSize: 12,
@@ -322,5 +355,56 @@ const deco = StyleSheet.create({
   },
   volumeValue: {
     color: artDeco.color.gold,
+  },
+});
+
+const glass = StyleSheet.create({
+  panelContent: {
+    gap: 16,
+    padding: 20,
+  },
+  label: {
+    color: liquidGlass.color.muted,
+  },
+  sentChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: liquidGlass.radius.pill,
+    backgroundColor: liquidGlass.color.goSoft,
+    color: liquidGlass.color.go,
+    fontSize: 10.5,
+    fontWeight: '700',
+    overflow: 'hidden',
+  },
+  warningText: {
+    color: '#a8434a',
+  },
+  row: {
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+    borderRadius: liquidGlass.radius.control,
+    padding: 5,
+  },
+  chip: {
+    backgroundColor: 'transparent',
+  },
+  chipActive: {
+    backgroundColor: liquidGlass.color.accentDeep,
+  },
+  chipText: {
+    color: liquidGlass.color.muted,
+  },
+  chipTextActive: {
+    color: '#fff',
+  },
+  volumeGroup: {
+    marginTop: 2,
+  },
+  volumeLabel: {
+    color: liquidGlass.color.ink,
+  },
+  volumeValue: {
+    color: liquidGlass.color.accentText,
   },
 });

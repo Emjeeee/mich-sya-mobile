@@ -16,6 +16,9 @@ import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { GlassSurface } from '../theme/components/GlassSurface';
+import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
@@ -24,7 +27,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 // GameShell.tsx (header, Local/Online toggle, leaderboard visibility rule).
 export default function GameScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const { gameKey, coupleId } = route.params;
   const game = GAMES.find((g) => g.key === gameKey);
   const [mode, setMode] = useState<'local' | 'online'>('local');
@@ -36,8 +39,9 @@ export default function GameScreen({ navigation, route }: Props) {
 
   if (!game) {
     return (
-      <View style={[styles.container, isArtDeco && deco.container]}>
+      <View style={[styles.container, isArtDeco && deco.container, isLiquidGlass && glass.container]}>
         {isArtDeco && <ArtDecoBackground />}
+        {isLiquidGlass && <LiquidGlassBackground variant="warm" />}
         <Text style={[styles.muted, isArtDeco && deco.backLink]}>Game tidak ditemukan.</Text>
       </View>
     );
@@ -57,16 +61,21 @@ export default function GameScreen({ navigation, route }: Props) {
   return (
     <View style={styles.screenWrapper}>
       {isArtDeco && <ArtDecoBackground />}
+      {isLiquidGlass && <LiquidGlassBackground variant="warm" />}
       <ScrollView
-        style={[styles.container, isArtDeco && deco.container]}
+        style={[styles.container, isArtDeco && deco.container, isLiquidGlass && glass.container]}
         contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
       >
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()}>
-          <Text style={[styles.backLink, isArtDeco && deco.backLink]}>‹ Arcade Room</Text>
+          <Text style={[styles.backLink, isArtDeco && deco.backLink, isLiquidGlass && glass.backLink]}>
+            ‹ Arcade Room
+          </Text>
         </Pressable>
-        <Text style={[styles.title, isArtDeco && deco.title]}>{game.title}</Text>
-        <Text style={[styles.subtitle, isArtDeco && deco.subtitle]}>{game.description}</Text>
+        <Text style={[styles.title, isArtDeco && deco.title, isLiquidGlass && glass.title]}>{game.title}</Text>
+        <Text style={[styles.subtitle, isArtDeco && deco.subtitle, isLiquidGlass && glass.subtitle]}>
+          {game.description}
+        </Text>
       </View>
 
       {showOnline && (
@@ -78,16 +87,20 @@ export default function GameScreen({ navigation, route }: Props) {
               style={[
                 styles.modeButton,
                 isArtDeco && deco.modeButton,
+                isLiquidGlass && glass.modeButton,
                 mode === m && styles.modeButtonActive,
                 isArtDeco && mode === m && deco.modeButtonActive,
+                isLiquidGlass && mode === m && glass.modeButtonActive,
               ]}
             >
               <Text
                 style={[
                   styles.modeButtonText,
                   isArtDeco && deco.modeButtonText,
+                  isLiquidGlass && glass.modeButtonText,
                   mode === m && styles.modeButtonTextActive,
                   isArtDeco && mode === m && deco.modeButtonTextActive,
+                  isLiquidGlass && mode === m && glass.modeButtonTextActive,
                 ]}
               >
                 {m === 'local' ? '📱 Satu HP' : '🌐 Online'}
@@ -105,19 +118,32 @@ export default function GameScreen({ navigation, route }: Props) {
         )}
       </View>
 
-      {showLeaderboard && (
-        <View style={[styles.leaderboardCard, isArtDeco && deco.leaderboardCard]}>
-          <Text style={[styles.leaderboardTitle, isArtDeco && deco.leaderboardTitle]}>Papan Skor</Text>
-          <Leaderboard
-            coupleId={coupleId}
-            userId={userId}
-            gameKey={game.key}
-            mode={game.scoreMode}
-            sort={game.scoreSort}
-            unit={game.scoreUnit}
-          />
-        </View>
-      )}
+      {showLeaderboard &&
+        (isLiquidGlass ? (
+          <GlassSurface contentStyle={glass.leaderboardContent} radius={liquidGlass.radius.card}>
+            <Text style={glass.leaderboardTitle}>Papan Skor</Text>
+            <Leaderboard
+              coupleId={coupleId}
+              userId={userId}
+              gameKey={game.key}
+              mode={game.scoreMode}
+              sort={game.scoreSort}
+              unit={game.scoreUnit}
+            />
+          </GlassSurface>
+        ) : (
+          <View style={[styles.leaderboardCard, isArtDeco && deco.leaderboardCard]}>
+            <Text style={[styles.leaderboardTitle, isArtDeco && deco.leaderboardTitle]}>Papan Skor</Text>
+            <Leaderboard
+              coupleId={coupleId}
+              userId={userId}
+              gameKey={game.key}
+              mode={game.scoreMode}
+              sort={game.scoreSort}
+              unit={game.scoreUnit}
+            />
+          </View>
+        ))}
       </ScrollView>
     </View>
   );
@@ -243,5 +269,45 @@ const deco = StyleSheet.create({
   leaderboardTitle: {
     color: artDeco.color.gold,
     fontFamily: artDeco.font.serifBold,
+  },
+});
+
+const glass = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  backLink: {
+    color: liquidGlass.color.muted,
+  },
+  title: {
+    color: liquidGlass.color.accentText,
+  },
+  subtitle: {
+    color: liquidGlass.color.inkSoft,
+  },
+  modeButton: {
+    borderRadius: liquidGlass.radius.pill,
+    backgroundColor: liquidGlass.color.glassChipWash,
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+  },
+  modeButtonActive: {
+    backgroundColor: liquidGlass.color.accentDeep,
+    borderColor: liquidGlass.color.accentDeep,
+  },
+  modeButtonText: {
+    color: liquidGlass.color.ink2,
+  },
+  modeButtonTextActive: {
+    color: '#fff',
+  },
+  leaderboardContent: {
+    padding: 16,
+  },
+  leaderboardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: liquidGlass.color.accentText,
+    marginBottom: 10,
   },
 });

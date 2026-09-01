@@ -8,6 +8,9 @@ import type { RootStackParamList } from '../navigation/types';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
 import { DiamondMarker } from '../theme/components/DiamondMarker';
+import { GlassSurface } from '../theme/components/GlassSurface';
+import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Arcade'>;
@@ -15,7 +18,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Arcade'>;
 // Ports the web app's ArcadePage.tsx -- a grid of every game in the registry.
 export default function ArcadeScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const { coupleId } = route.params;
 
   return (
@@ -24,15 +27,19 @@ export default function ArcadeScreen({ navigation, route }: Props) {
         styles.container,
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 },
         isArtDeco && deco.container,
+        isLiquidGlass && glass.container,
       ]}
     >
       {isArtDeco && <ArtDecoBackground />}
+      {isLiquidGlass && <LiquidGlassBackground variant="warm" />}
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()}>
-          <Text style={[styles.backLink, isArtDeco && deco.backLink]}>‹ Kembali</Text>
+          <Text style={[styles.backLink, isArtDeco && deco.backLink, isLiquidGlass && glass.backLink]}>
+            ‹ Kembali
+          </Text>
         </Pressable>
-        <Text style={[styles.title, isArtDeco && deco.title]}>Arcade Room</Text>
-        <Text style={[styles.subtitle, isArtDeco && deco.subtitle]}>
+        <Text style={[styles.title, isArtDeco && deco.title, isLiquidGlass && glass.title]}>Arcade Room</Text>
+        <Text style={[styles.subtitle, isArtDeco && deco.subtitle, isLiquidGlass && glass.subtitle]}>
           {GAMES.length} mini game buat seru-seruan berdua
         </Text>
       </View>
@@ -41,29 +48,48 @@ export default function ArcadeScreen({ navigation, route }: Props) {
         data={GAMES}
         keyExtractor={(g) => g.key}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <Pressable
-            style={[styles.card, isArtDeco && deco.card]}
-            onPress={() => navigation.navigate('Game', { gameKey: item.key, coupleId })}
-          >
-            {isArtDeco ? <DiamondMarker size={10} /> : <Pixel name={item.icon} size={32} />}
-            <View style={styles.cardText}>
-              <View style={styles.cardTitleRow}>
-                <Text style={[styles.cardTitle, isArtDeco && deco.cardTitle]}>{item.title}</Text>
-                {item.hasOnline && (
-                  <View style={[styles.onlineBadge, isArtDeco && deco.onlineBadge]}>
-                    <Text style={[styles.onlineBadgeText, isArtDeco && deco.onlineBadgeText]}>
-                      ONLINE
-                    </Text>
+        renderItem={({ item }) =>
+          isLiquidGlass ? (
+            <Pressable onPress={() => navigation.navigate('Game', { gameKey: item.key, coupleId })}>
+              <GlassSurface contentStyle={glass.cardContent} radius={liquidGlass.radius.card}>
+                <Pixel name={item.icon} size={32} />
+                <View style={styles.cardText}>
+                  <View style={styles.cardTitleRow}>
+                    <Text style={[styles.cardTitle, glass.cardTitle]}>{item.title}</Text>
+                    {item.hasOnline && (
+                      <View style={[styles.onlineBadge, glass.onlineBadge]}>
+                        <Text style={[styles.onlineBadgeText, glass.onlineBadgeText]}>ONLINE</Text>
+                      </View>
+                    )}
                   </View>
-                )}
+                  <Text style={[styles.cardDescription, glass.cardDescription]}>{item.description}</Text>
+                </View>
+              </GlassSurface>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[styles.card, isArtDeco && deco.card]}
+              onPress={() => navigation.navigate('Game', { gameKey: item.key, coupleId })}
+            >
+              {isArtDeco ? <DiamondMarker size={10} /> : <Pixel name={item.icon} size={32} />}
+              <View style={styles.cardText}>
+                <View style={styles.cardTitleRow}>
+                  <Text style={[styles.cardTitle, isArtDeco && deco.cardTitle]}>{item.title}</Text>
+                  {item.hasOnline && (
+                    <View style={[styles.onlineBadge, isArtDeco && deco.onlineBadge]}>
+                      <Text style={[styles.onlineBadgeText, isArtDeco && deco.onlineBadgeText]}>
+                        ONLINE
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.cardDescription, isArtDeco && deco.cardDescription]}>
+                  {item.description}
+                </Text>
               </View>
-              <Text style={[styles.cardDescription, isArtDeco && deco.cardDescription]}>
-                {item.description}
-              </Text>
-            </View>
-          </Pressable>
-        )}
+            </Pressable>
+          )
+        }
       />
     </View>
   );
@@ -174,5 +200,37 @@ const deco = StyleSheet.create({
   },
   onlineBadgeText: {
     color: artDeco.color.rubyStrong,
+  },
+});
+
+const glass = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  backLink: {
+    color: liquidGlass.color.muted,
+  },
+  title: {
+    color: liquidGlass.color.accentText,
+  },
+  subtitle: {
+    color: liquidGlass.color.inkSoft,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    gap: 14,
+    padding: 16,
+  },
+  cardTitle: {
+    color: liquidGlass.color.ink2,
+  },
+  cardDescription: {
+    color: liquidGlass.color.muted,
+  },
+  onlineBadge: {
+    backgroundColor: 'rgba(59,130,246,0.16)',
+  },
+  onlineBadgeText: {
+    color: '#3b82f6',
   },
 });

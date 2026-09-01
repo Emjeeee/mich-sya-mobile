@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import * as Notifications from 'expo-notifications';
 import * as QuickActions from 'expo-quick-actions';
 
@@ -26,7 +27,10 @@ import { Pixel } from '../components/ui/pixel-icons';
 import WishlistListModal from '../components/WishlistListModal';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { GlassSurface } from '../theme/components/GlassSurface';
+import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
 import { ThemeSwitcherSheet } from '../theme/components/ThemeSwitcherSheet';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 import { useCoupleStats } from '../hooks/useCoupleStats';
 import { useDateSession } from '../hooks/useDateSession';
@@ -61,18 +65,25 @@ function ActionButton({
   label: string;
   onPress: () => void;
 }) {
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   return (
-    <Pressable style={[styles.actionButton, isArtDeco && deco.actionButton]} onPress={onPress}>
+    <Pressable
+      style={[styles.actionButton, isArtDeco && deco.actionButton, isLiquidGlass && glass.actionButton]}
+      onPress={onPress}
+    >
       {typeof icon === 'number' ? <Image source={icon} style={styles.actionButtonIcon} /> : icon}
-      <Text style={[styles.actionButtonText, isArtDeco && deco.actionButtonText]}>{label}</Text>
+      <Text
+        style={[styles.actionButtonText, isArtDeco && deco.actionButtonText, isLiquidGlass && glass.actionButtonText]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const [showThemeSheet, setShowThemeSheet] = useState(false);
   const { coupleId, session, loading, starting, ending, error, startSession, endSession } =
     useDateSession();
@@ -254,15 +265,71 @@ export default function HomeScreen({ navigation }: Props) {
     );
   }
 
+  // Rendered once, then mounted either bare (Klasik/Art Deco) or inside a
+  // single shared GlassSurface "dock" panel (Liquid Glass) -- see the
+  // `isLiquidGlass` branch below. Kept as one JSX value so the 7 buttons
+  // aren't duplicated between the two branches.
+  const actionButtonsContent = (
+    <>
+      <ActionButton icon={ICON_CAMERA} label="Kenangan" onPress={() => setShowMemoryModal(true)} />
+      <ActionButton icon={ICON_TARGET} label="Wishlist" onPress={() => setShowWishlistModal(true)} />
+      <ActionButton icon={ICON_COMPASS} label="Cari Pasangan" onPress={() => setShowFindPartnerModal(true)} />
+      <ActionButton icon={ICON_MAP} label="Journey Map" onPress={() => setShowJourneyMapModal(true)} />
+      <ActionButton icon={ICON_HEART} label="Momen" onPress={handleQuickMemory} />
+      <ActionButton
+        icon={<Pixel name="gamepad" size={24} />}
+        label="Arcade"
+        onPress={() => navigation.navigate('Arcade', { coupleId: coupleId! })}
+      />
+      {advancedSettingsEligible && (
+        <ActionButton
+          icon={<Pixel name="gear" size={24} />}
+          label="Pengaturan Lanjutan"
+          onPress={() => navigation.navigate('AdvancedSettings', { coupleId: coupleId! })}
+        />
+      )}
+    </>
+  );
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16 }, isArtDeco && deco.container]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top + 16 },
+        isArtDeco && deco.container,
+        isLiquidGlass && glass.container,
+      ]}
+    >
       {isArtDeco && <ArtDecoBackground />}
+      {isLiquidGlass && <LiquidGlassBackground variant="warm" />}
 
       <Pressable
-        style={[themeButtonStyles.button, { top: insets.top + 8 }, isArtDeco && themeButtonStyles.buttonDeco]}
+        style={[
+          themeButtonStyles.button,
+          { top: insets.top + 8 },
+          isArtDeco && themeButtonStyles.buttonDeco,
+          isLiquidGlass && themeButtonStyles.buttonGlass,
+        ]}
         onPress={() => setShowThemeSheet(true)}
       >
-        <Text style={[themeButtonStyles.icon, isArtDeco && themeButtonStyles.iconDeco]}>
+        {isLiquidGlass && (
+          <>
+            <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: liquidGlass.color.glassChipWash, borderRadius: 24 },
+              ]}
+            />
+          </>
+        )}
+        <Text
+          style={[
+            themeButtonStyles.icon,
+            isArtDeco && themeButtonStyles.iconDeco,
+            isLiquidGlass && themeButtonStyles.iconGlass,
+          ]}
+        >
           {isArtDeco ? '◆' : '🎨'}
         </Text>
       </Pressable>
@@ -273,38 +340,52 @@ export default function HomeScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.center}>
-          <Text style={[styles.title, isArtDeco && deco.title]}>MichSya</Text>
+          <Text style={[styles.title, isArtDeco && deco.title, isLiquidGlass && glass.title]}>MichSya</Text>
 
           {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}
 
           {session ? (
             <>
-              <Text style={[styles.status, isArtDeco && deco.status]}>Kencan sedang berlangsung</Text>
-              <Text style={[styles.timer, isArtDeco && deco.timer]}>{elapsed}</Text>
+              <Text style={[styles.status, isArtDeco && deco.status, isLiquidGlass && glass.status]}>
+                Kencan sedang berlangsung
+              </Text>
+              <Text style={[styles.timer, isArtDeco && deco.timer, isLiquidGlass && glass.timer]}>{elapsed}</Text>
               <SwipeToConfirm
                 key={swipeResetKey}
                 label="Geser untuk akhiri kencan"
-                color={isArtDeco ? artDeco.color.gold : '#e11d74'}
+                color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'}
                 onConfirm={() => setShowEndModal(true)}
                 loading={ending}
               />
+              {isLiquidGlass && (
+                <Pressable onPress={() => setShowEndModal(true)} disabled={ending}>
+                  <Text style={glass.tapAlt}>atau ketuk di sini untuk akhiri</Text>
+                </Pressable>
+              )}
             </>
           ) : (
             <>
-              <Text style={[styles.status, isArtDeco && deco.status]}>Belum ada kencan aktif</Text>
+              <Text style={[styles.status, isArtDeco && deco.status, isLiquidGlass && glass.status]}>
+                Belum ada kencan aktif
+              </Text>
               <SwipeToConfirm
                 label="Geser untuk mulai kencan"
-                color={isArtDeco ? artDeco.color.gold : '#e11d74'}
+                color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'}
                 onConfirm={startSession}
                 loading={starting}
               />
+              {isLiquidGlass && (
+                <Pressable onPress={startSession} disabled={starting}>
+                  <Text style={glass.tapAlt}>atau ketuk di sini untuk mulai</Text>
+                </Pressable>
+              )}
               {nextSchedule && daysUntil !== null && (
-                <Text style={[styles.hintLine, isArtDeco && deco.hintLine]}>
+                <Text style={[styles.hintLine, isArtDeco && deco.hintLine, isLiquidGlass && glass.hintLine]}>
                   {daysUntil <= 0 ? 'Hari ini' : `${daysUntil} hari lagi`}: {nextSchedule.title}
                 </Text>
               )}
               {stats && (
-                <Text style={[styles.hintLine, isArtDeco && deco.hintLine]}>
+                <Text style={[styles.hintLine, isArtDeco && deco.hintLine, isLiquidGlass && glass.hintLine]}>
                   {stats.totalMemories} kenangan · {stats.datesThisMonth} kencan bulan ini
                 </Text>
               )}
@@ -312,51 +393,57 @@ export default function HomeScreen({ navigation }: Props) {
           )}
         </View>
 
-        {coupleId && (
-          <View style={styles.actionsRow}>
-            <ActionButton icon={ICON_CAMERA} label="Kenangan" onPress={() => setShowMemoryModal(true)} />
-            <ActionButton icon={ICON_TARGET} label="Wishlist" onPress={() => setShowWishlistModal(true)} />
-            <ActionButton icon={ICON_COMPASS} label="Cari Pasangan" onPress={() => setShowFindPartnerModal(true)} />
-            <ActionButton icon={ICON_MAP} label="Journey Map" onPress={() => setShowJourneyMapModal(true)} />
-            <ActionButton icon={ICON_HEART} label="Momen" onPress={handleQuickMemory} />
-            <ActionButton
-              icon={<Pixel name="gamepad" size={24} />}
-              label="Arcade"
-              onPress={() => navigation.navigate('Arcade', { coupleId })}
-            />
-            {advancedSettingsEligible && (
-              <ActionButton
-                icon={<Pixel name="gear" size={24} />}
-                label="Pengaturan Lanjutan"
-                onPress={() => navigation.navigate('AdvancedSettings', { coupleId })}
-              />
-            )}
-          </View>
-        )}
+        {coupleId &&
+          (isLiquidGlass ? (
+            <GlassSurface
+              style={glass.dock}
+              contentStyle={[styles.actionsRow, glass.dockContent]}
+              radius={liquidGlass.radius.card}
+            >
+              {actionButtonsContent}
+            </GlassSurface>
+          ) : (
+            <View style={styles.actionsRow}>{actionButtonsContent}</View>
+          ))}
 
         {coupleId && (
-          <Text style={[styles.momenHint, isArtDeco && deco.momenHint]}>
+          <Text style={[styles.momenHint, isArtDeco && deco.momenHint, isLiquidGlass && glass.momenHint]}>
             Momen = catat momen spontan sekali tap, tanpa foto/tulisan — otomatis masuk ke Kenangan.
           </Text>
         )}
 
         {quickMemoryNotice && (
-          <Text style={[styles.noticeText, isArtDeco && deco.noticeText]}>{quickMemoryNotice}</Text>
+          <Text style={[styles.noticeText, isArtDeco && deco.noticeText, isLiquidGlass && glass.noticeText]}>
+            {quickMemoryNotice}
+          </Text>
         )}
 
         {coupleId && (
           <Pressable onPress={() => setShowPhoneNumberModal(true)}>
-            <Text style={[styles.phoneNumberLink, isArtDeco && deco.phoneNumberLink]}>
+            <Text style={[styles.phoneNumberLink, isArtDeco && deco.phoneNumberLink, isLiquidGlass && glass.phoneNumberLink]}>
               📱 Atur nomor HP (cadangan SMS untuk Bunyikan)
             </Text>
           </Pressable>
         )}
 
         <Pressable
-          style={[styles.signOutButton, isArtDeco && deco.signOutButton]}
+          style={[styles.signOutButton, isArtDeco && deco.signOutButton, isLiquidGlass && glass.signOutButton]}
           onPress={() => supabase.auth.signOut()}
         >
-          <Text style={[styles.signOutText, isArtDeco && deco.signOutText]}>Keluar</Text>
+          {isLiquidGlass && (
+            <>
+              <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: liquidGlass.color.glassChipWash, borderRadius: liquidGlass.radius.chip },
+                ]}
+              />
+            </>
+          )}
+          <Text style={[styles.signOutText, isArtDeco && deco.signOutText, isLiquidGlass && glass.signOutText]}>
+            Keluar
+          </Text>
         </Pressable>
       </ScrollView>
 
@@ -579,6 +666,68 @@ const deco = StyleSheet.create({
   },
 });
 
+const glass = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  title: {
+    color: liquidGlass.color.accentText,
+  },
+  status: {
+    color: liquidGlass.color.ink2,
+  },
+  timer: {
+    color: liquidGlass.color.ink,
+  },
+  hintLine: {
+    color: liquidGlass.color.inkSoft,
+  },
+  tapAlt: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: '600',
+    color: liquidGlass.color.accentText,
+    textDecorationLine: 'underline',
+    textAlign: 'center',
+  },
+  // The dock's own box (position/size); actionsRow (padding + flex-wrap
+  // layout) is passed separately as GlassSurface's `contentStyle` so the
+  // blur/wash/border layers aren't inset by that padding -- see
+  // GlassSurface.tsx's header comment.
+  dock: {
+    marginBottom: 16,
+  },
+  dockContent: {
+    padding: 18,
+  },
+  actionButton: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+  },
+  actionButtonText: {
+    color: liquidGlass.color.ink2,
+  },
+  noticeText: {
+    color: liquidGlass.color.accentText,
+  },
+  momenHint: {
+    color: liquidGlass.color.muted,
+  },
+  phoneNumberLink: {
+    color: liquidGlass.color.accentText,
+  },
+  signOutButton: {
+    overflow: 'hidden',
+    borderRadius: liquidGlass.radius.chip,
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+    backgroundColor: 'transparent',
+  },
+  signOutText: {
+    color: liquidGlass.color.ink2,
+  },
+});
+
 const themeButtonStyles = StyleSheet.create({
   button: {
     position: 'absolute',
@@ -597,10 +746,22 @@ const themeButtonStyles = StyleSheet.create({
     borderColor: artDeco.color.line,
     backgroundColor: artDeco.color.surface,
   },
+  buttonGlass: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+    backgroundColor: 'transparent',
+  },
   icon: {
     fontSize: 16,
   },
   iconDeco: {
     color: artDeco.color.gold,
+  },
+  iconGlass: {
+    fontSize: 18,
   },
 });

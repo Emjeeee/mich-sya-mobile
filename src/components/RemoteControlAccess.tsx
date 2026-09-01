@@ -6,6 +6,7 @@ import { isSilentRingEligible } from '../lib/silentRing';
 import { reportRemoteControlAccessStatus } from '../lib/remoteControl';
 import { supabase } from '../lib/supabase';
 import { artDeco } from '../theme/artDecoTokens';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 // Only ever visible for the *other* account (not mjonathann.03 -- reusing
@@ -14,7 +15,7 @@ import { useAppTheme } from '../theme/ThemeContext';
 // Disturb access", which RemoteControlPanel.tsx's mode/volume buttons need
 // to actually work on this device. See src/lib/remoteControl.ts.
 export default function RemoteControlAccess({ coupleId }: { coupleId: string | null }) {
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const [eligible, setEligible] = useState(false);
   const [granted, setGranted] = useState<boolean | null>(null);
 
@@ -56,9 +57,16 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, isArtDeco && deco.label]}>Izinkan pasangan atur mode HP kamu dari jauh</Text>
-      <Pressable style={[styles.button, isArtDeco && deco.button]} onPress={() => requestRemoteControlAccess()}>
-        <Text style={[styles.buttonText, isArtDeco && deco.buttonText]}>Izinkan di Pengaturan</Text>
+      <Text style={[styles.label, isArtDeco && deco.label, isLiquidGlass && glass.label]}>
+        Izinkan pasangan atur mode HP kamu dari jauh
+      </Text>
+      <Pressable
+        style={[styles.button, isArtDeco && deco.button, isLiquidGlass && glass.button]}
+        onPress={() => requestRemoteControlAccess()}
+      >
+        <Text style={[styles.buttonText, isArtDeco && deco.buttonText, isLiquidGlass && glass.buttonText]}>
+          Izinkan di Pengaturan
+        </Text>
       </Pressable>
     </View>
   );
@@ -96,5 +104,18 @@ const deco = StyleSheet.create({
   },
   buttonText: {
     color: artDeco.color.gold,
+  },
+});
+
+const glass = StyleSheet.create({
+  label: {
+    color: liquidGlass.color.muted,
+  },
+  button: {
+    backgroundColor: liquidGlass.color.glassChipWash,
+    borderColor: liquidGlass.color.glassChipBorder,
+  },
+  buttonText: {
+    color: liquidGlass.color.ink2,
   },
 });

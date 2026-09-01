@@ -5,6 +5,7 @@ import { isSilentRing, setSilentRing } from 'ble-ring';
 import { isSilentRingEligible } from '../lib/silentRing';
 import { supabase } from '../lib/supabase';
 import { artDeco } from '../theme/artDecoTokens';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 // Only ever visible for one specific account (see silentRing.ts) -- lets
@@ -12,7 +13,7 @@ import { useAppTheme } from '../theme/ThemeContext';
 // sound (normal) or vibration only (senyap), across all 3 trigger channels.
 // Not a general user-facing setting for every account.
 export default function SilentRingToggle() {
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const [eligible, setEligible] = useState(false);
   const [silent, setSilent] = useState<boolean | null>(null);
 
@@ -34,18 +35,27 @@ export default function SilentRingToggle() {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, isArtDeco && deco.label]}>Mode bunyikan HP kamu</Text>
+      <Text style={[styles.label, isArtDeco && deco.label, isLiquidGlass && glass.label]}>Mode bunyikan HP kamu</Text>
       <View style={styles.chipRow}>
         <Pressable
           onPress={() => choose(false)}
-          style={[styles.chip, isArtDeco && deco.chip, !silent && styles.chipActive, !silent && isArtDeco && deco.chipActive]}
+          style={[
+            styles.chip,
+            isArtDeco && deco.chip,
+            isLiquidGlass && glass.chip,
+            !silent && styles.chipActive,
+            !silent && isArtDeco && deco.chipActive,
+            !silent && isLiquidGlass && glass.chipActive,
+          ]}
         >
           <Text
             style={[
               styles.chipText,
               isArtDeco && deco.chipText,
+              isLiquidGlass && glass.chipText,
               !silent && styles.chipTextActive,
               !silent && isArtDeco && deco.chipTextActive,
+              !silent && isLiquidGlass && glass.chipTextActive,
             ]}
           >
             🔊 Normal
@@ -53,14 +63,23 @@ export default function SilentRingToggle() {
         </Pressable>
         <Pressable
           onPress={() => choose(true)}
-          style={[styles.chip, isArtDeco && deco.chip, silent && styles.chipActive, silent && isArtDeco && deco.chipActive]}
+          style={[
+            styles.chip,
+            isArtDeco && deco.chip,
+            isLiquidGlass && glass.chip,
+            silent && styles.chipActive,
+            silent && isArtDeco && deco.chipActive,
+            silent && isLiquidGlass && glass.chipActive,
+          ]}
         >
           <Text
             style={[
               styles.chipText,
               isArtDeco && deco.chipText,
+              isLiquidGlass && glass.chipText,
               silent && styles.chipTextActive,
               silent && isArtDeco && deco.chipTextActive,
+              silent && isLiquidGlass && glass.chipTextActive,
             ]}
           >
             📳 Senyap
@@ -121,5 +140,26 @@ const deco = StyleSheet.create({
   },
   chipTextActive: {
     color: artDeco.color.black,
+  },
+});
+
+const glass = StyleSheet.create({
+  label: {
+    color: liquidGlass.color.muted,
+  },
+  chip: {
+    backgroundColor: liquidGlass.color.glassChipWash,
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+  },
+  chipActive: {
+    backgroundColor: liquidGlass.color.accentDeep,
+    borderColor: liquidGlass.color.accentDeep,
+  },
+  chipText: {
+    color: liquidGlass.color.ink2,
+  },
+  chipTextActive: {
+    color: '#fff',
   },
 });

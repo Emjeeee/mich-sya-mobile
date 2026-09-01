@@ -6,6 +6,7 @@ import Svg, { Polygon } from 'react-native-svg';
 import { Pixel } from './ui/pixel-icons';
 import { bearingDegrees, distanceMeters, formatDistance, proximityStatus } from '../lib/geo';
 import { artDeco } from '../theme/artDecoTokens';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 interface CompassArrowProps {
@@ -34,7 +35,7 @@ function circularMeanDegrees(samples: number[]): number {
 }
 
 export default function CompassArrow({ myLocation, partnerLocation }: CompassArrowProps) {
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const [deviceHeading, setDeviceHeading] = useState(0);
   const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null);
   const rotation = useRef(new Animated.Value(0)).current;
@@ -91,10 +92,19 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
   if (!hasPartner) {
     return (
       <View style={styles.container}>
-        <View style={[styles.compassCircle, styles.compassCircleIdle, isArtDeco && deco.compassCircle, isArtDeco && deco.compassCircleIdle]}>
+        <View
+          style={[
+            styles.compassCircle,
+            styles.compassCircleIdle,
+            isArtDeco && deco.compassCircle,
+            isArtDeco && deco.compassCircleIdle,
+            isLiquidGlass && glass.compassCircle,
+            isLiquidGlass && glass.compassCircleIdle,
+          ]}
+        >
           <Pixel name="compass" size={56} color={isArtDeco ? artDeco.color.gold : '#f3c9d9'} />
         </View>
-        <Text style={[styles.waitingText, isArtDeco && deco.waitingText]}>
+        <Text style={[styles.waitingText, isArtDeco && deco.waitingText, isLiquidGlass && glass.waitingText]}>
           Menunggu pasangan buka Cari Pasangan juga...
         </Text>
       </View>
@@ -103,11 +113,11 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
 
   return (
     <View style={styles.container}>
-      <View style={[styles.compassCircle, isArtDeco && deco.compassCircle]}>
-        <View style={[styles.tick, styles.tickTop, isArtDeco && deco.tick]} />
-        <View style={[styles.tick, styles.tickRight, isArtDeco && deco.tick]} />
-        <View style={[styles.tick, styles.tickBottom, isArtDeco && deco.tick]} />
-        <View style={[styles.tick, styles.tickLeft, isArtDeco && deco.tick]} />
+      <View style={[styles.compassCircle, isArtDeco && deco.compassCircle, isLiquidGlass && glass.compassCircle]}>
+        <View style={[styles.tick, styles.tickTop, isArtDeco && deco.tick, isLiquidGlass && glass.tick]} />
+        <View style={[styles.tick, styles.tickRight, isArtDeco && deco.tick, isLiquidGlass && glass.tick]} />
+        <View style={[styles.tick, styles.tickBottom, isArtDeco && deco.tick, isLiquidGlass && glass.tick]} />
+        <View style={[styles.tick, styles.tickLeft, isArtDeco && deco.tick, isLiquidGlass && glass.tick]} />
 
         <Animated.View
           style={[
@@ -140,13 +150,24 @@ export default function CompassArrow({ myLocation, partnerLocation }: CompassArr
           ]}
         >
           <Svg width={76} height={76} viewBox="0 0 24 24">
-            <Polygon points="12,1 19,21 12,16 5,21" fill={isArtDeco ? artDeco.color.gold : '#e11d74'} />
+            <Polygon
+              points="12,1 19,21 12,16 5,21"
+              fill={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accentDeep : '#e11d74'}
+            />
           </Svg>
         </Animated.View>
       </View>
-      <Text style={[styles.distanceText, isArtDeco && deco.distanceText]}>{formatDistance(distance!)}</Text>
-      {status && <Text style={[styles.statusText, isArtDeco && deco.statusText]}>{STATUS_LABEL[status]}</Text>}
-      <Text style={[styles.helperText, isArtDeco && deco.helperText]}>Panah menunjuk ke arah pasanganmu</Text>
+      <Text style={[styles.distanceText, isArtDeco && deco.distanceText, isLiquidGlass && glass.distanceText]}>
+        {formatDistance(distance!)}
+      </Text>
+      {status && (
+        <Text style={[styles.statusText, isArtDeco && deco.statusText, isLiquidGlass && glass.statusText]}>
+          {STATUS_LABEL[status]}
+        </Text>
+      )}
+      <Text style={[styles.helperText, isArtDeco && deco.helperText, isLiquidGlass && glass.helperText]}>
+        Panah menunjuk ke arah pasanganmu
+      </Text>
       {headingAccuracy !== null && headingAccuracy <= LOW_ACCURACY_THRESHOLD && (
         <Text style={[styles.calibrationHint, isArtDeco && deco.calibrationHint]}>
           Kompas kurang akurat -- goyangkan HP membentuk angka 8 untuk kalibrasi.
@@ -271,5 +292,31 @@ const deco = StyleSheet.create({
   },
   waitingText: {
     color: artDeco.color.muted,
+  },
+});
+
+const glass = StyleSheet.create({
+  compassCircle: {
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderColor: liquidGlass.color.glassPanelBorder,
+    shadowOpacity: 0,
+  },
+  compassCircleIdle: {
+    borderColor: liquidGlass.color.glassChipBorder,
+  },
+  tick: {
+    backgroundColor: liquidGlass.color.accent,
+  },
+  distanceText: {
+    color: liquidGlass.color.ink,
+  },
+  statusText: {
+    color: liquidGlass.color.accentText,
+  },
+  helperText: {
+    color: liquidGlass.color.muted,
+  },
+  waitingText: {
+    color: liquidGlass.color.muted,
   },
 });

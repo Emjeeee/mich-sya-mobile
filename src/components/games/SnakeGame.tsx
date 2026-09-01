@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
 import { artDeco } from '../../theme/artDecoTokens';
+import { GlassSurface } from '../../theme/components/GlassSurface';
+import { liquidGlass } from '../../theme/liquidGlassTokens';
 import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
 import { GameCard } from './GameCard';
@@ -32,7 +34,7 @@ function randomEmptyCell(snake: Point[]): Point {
 }
 
 export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const [snake, setSnake] = useState<Point[]>([{ x: 6, y: 6 }]);
   const [food, setFood] = useState<Point>(() => randomEmptyCell([{ x: 6, y: 6 }]));
   // Purely for rendering the head's "eyes" facing the right way -- only ever
@@ -133,8 +135,21 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
   return (
     <GameCard>
       <View style={styles.headerRow}>
-        <Text style={[styles.muted, isArtDeco && deco.muted]}>Gunakan tombol arah di bawah</Text>
-        <Text style={[styles.score, isArtDeco && deco.score]}>{snake.length}</Text>
+        {isLiquidGlass ? (
+          <>
+            <GlassSurface radius={liquidGlass.radius.pill} contentStyle={glass.hintChip}>
+              <Text style={glass.muted}>Gunakan tombol arah di bawah</Text>
+            </GlassSurface>
+            <GlassSurface radius={liquidGlass.radius.pill} contentStyle={glass.scoreChip}>
+              <Text style={glass.score}>{snake.length}</Text>
+            </GlassSurface>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.muted, isArtDeco && deco.muted]}>Gunakan tombol arah di bawah</Text>
+            <Text style={[styles.score, isArtDeco && deco.score]}>{snake.length}</Text>
+          </>
+        )}
       </View>
 
       {/* Explicit rows of exact-integer-width cells, not a wrapped flex list
@@ -186,7 +201,7 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
       </View>
 
       {running && (
-        <DPad isArtDeco={isArtDeco} onPress={changeDir} />
+        <DPad isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={changeDir} />
       )}
 
       {!running && (
@@ -209,23 +224,33 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
 // was actually behind the "controls don't work, game overs immediately"
 // reports, not the game logic itself. Discrete buttons can't misfire that
 // way and can't produce anything but one of the 4 cardinal directions.
-function DPad({ isArtDeco, onPress }: { isArtDeco: boolean; onPress: (dir: Dir) => void }) {
+function DPad({
+  isArtDeco,
+  isLiquidGlass,
+  onPress,
+}: {
+  isArtDeco: boolean;
+  isLiquidGlass: boolean;
+  onPress: (dir: Dir) => void;
+}) {
   const Btn = ({ dir, label }: { dir: Dir; label: string }) => (
     <Pressable
       onPress={() => onPress(dir)}
       style={({ pressed }) => [
         styles.dpadBtn,
         isArtDeco && deco.dpadBtn,
+        isLiquidGlass && glass.dpadBtn,
         pressed && styles.dpadBtnPressed,
         pressed && isArtDeco && deco.dpadBtnPressed,
+        pressed && isLiquidGlass && glass.dpadBtnPressed,
       ]}
     >
-      <Text style={[styles.dpadLabel, isArtDeco && deco.dpadLabel]}>{label}</Text>
+      <Text style={[styles.dpadLabel, isArtDeco && deco.dpadLabel, isLiquidGlass && glass.dpadLabel]}>{label}</Text>
     </Pressable>
   );
 
-  return (
-    <View style={styles.dpad}>
+  const rows = (
+    <>
       <View style={styles.dpadRow}>
         <View style={styles.dpadSpacer} />
         <Btn dir="up" label="▲" />
@@ -233,7 +258,7 @@ function DPad({ isArtDeco, onPress }: { isArtDeco: boolean; onPress: (dir: Dir) 
       </View>
       <View style={styles.dpadRow}>
         <Btn dir="left" label="◀" />
-        <View style={[styles.dpadCenter, isArtDeco && deco.dpadCenter]} />
+        <View style={[styles.dpadCenter, isArtDeco && deco.dpadCenter, isLiquidGlass && glass.dpadCenter]} />
         <Btn dir="right" label="▶" />
       </View>
       <View style={styles.dpadRow}>
@@ -241,8 +266,23 @@ function DPad({ isArtDeco, onPress }: { isArtDeco: boolean; onPress: (dir: Dir) 
         <Btn dir="down" label="▼" />
         <View style={styles.dpadSpacer} />
       </View>
-    </View>
+    </>
   );
+
+  // The whole cross sits on one shared dark frosted-glass surface (like
+  // GlassEffectContainer grouping related glass elements into one connected
+  // surface) rather than each button floating independently -- individual
+  // buttons are then just a lighter tint on top of that shared glass, not
+  // their own separate glass layer (no glass-on-glass).
+  if (isLiquidGlass) {
+    return (
+      <GlassSurface style={styles.dpad} contentStyle={glass.dpadContent} variant="dark" radius={32}>
+        {rows}
+      </GlassSurface>
+    );
+  }
+
+  return <View style={styles.dpad}>{rows}</View>;
 }
 
 const CELL_SIZE = 24;
@@ -408,5 +448,45 @@ const deco = StyleSheet.create({
   },
   dpadLabel: {
     color: artDeco.color.gold,
+  },
+});
+
+const glass = StyleSheet.create({
+  hintChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  scoreChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  muted: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: liquidGlass.color.ink,
+  },
+  score: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: liquidGlass.color.go,
+  },
+  dpadContent: {
+    padding: 14,
+    gap: 8,
+    alignItems: 'center',
+  },
+  dpadBtn: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+  },
+  dpadBtnPressed: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  dpadLabel: {
+    color: '#fff',
+  },
+  dpadCenter: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: DPAD_BTN_SIZE / 2,
   },
 });

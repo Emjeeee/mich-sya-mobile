@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -31,11 +32,29 @@ import {
 } from '../lib/torchPattern';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
+import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
 // Excludes 'stop' -- it's a control action (see the dedicated "Matikan
 // senter pasangan" button below), not a selectable blink-pattern chip.
 const TORCH_PRESET_ORDER: Exclude<TorchPatternKind, 'stop'>[] = ['steady', 'slow', 'fast', 'sos', 'custom'];
+
+// Real blur+wash behind a button/chip, as absolute-fill siblings rendered
+// before the button's own Text child -- same direct-blur-sibling technique
+// as HomeScreen's theme toggle/sign-out button, reused here since this
+// file has several buttons that each already have their own Pressable
+// structure not worth restructuring into GlassSurface.
+function GlassFill({ radius = liquidGlass.radius.control }: { radius?: number }) {
+  return (
+    <>
+      <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: liquidGlass.color.glassChipWash, borderRadius: radius }]}
+      />
+    </>
+  );
+}
 
 interface FindPartnerModalProps {
   visible: boolean;
@@ -45,7 +64,7 @@ interface FindPartnerModalProps {
 
 export default function FindPartnerModal({ visible, coupleId, onClose }: FindPartnerModalProps) {
   const insets = useSafeAreaInsets();
-  const { isArtDeco } = useAppTheme();
+  const { isArtDeco, isLiquidGlass } = useAppTheme();
   const {
     isSharing,
     myLocation,
@@ -109,12 +128,24 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View style={[styles.container, { paddingTop: insets.top + 16 }, isArtDeco && deco.container]}>
+      <View
+        style={[
+          styles.container,
+          { paddingTop: insets.top + 16 },
+          isArtDeco && deco.container,
+          isLiquidGlass && glass.container,
+        ]}
+      >
         {isArtDeco && <ArtDecoBackground />}
+        {isLiquidGlass && <LiquidGlassBackground variant="warm" />}
         <View style={styles.header}>
-          <Text style={[styles.heading, isArtDeco && deco.heading]}>Cari Pasangan</Text>
+          <Text style={[styles.heading, isArtDeco && deco.heading, isLiquidGlass && glass.heading]}>
+            Cari Pasangan
+          </Text>
           <Pressable onPress={handleClose}>
-            <Text style={[styles.closeText, isArtDeco && deco.closeText]}>Tutup</Text>
+            <Text style={[styles.closeText, isArtDeco && deco.closeText, isLiquidGlass && glass.closeText]}>
+              Tutup
+            </Text>
           </Pressable>
         </View>
 
@@ -125,7 +156,10 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
         >
           {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}
           {needsBackgroundLocationSettings && (
-            <Pressable style={[styles.settingsButton, isArtDeco && deco.settingsButton]} onPress={() => Linking.openSettings()}>
+            <Pressable
+              style={[styles.settingsButton, isArtDeco && deco.settingsButton]}
+              onPress={() => Linking.openSettings()}
+            >
               <Text style={[styles.settingsButtonText, isArtDeco && deco.settingsButtonText]}>Buka Pengaturan</Text>
             </Pressable>
           )}
@@ -137,32 +171,52 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
           <View style={styles.actions}>
             {isSharing ? (
-              <Pressable style={[styles.button, styles.stopButton, isArtDeco && deco.stopButton]} onPress={stopFinding}>
-                <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText]}>Berhenti berbagi lokasi</Text>
+              <Pressable
+                style={[styles.button, styles.stopButton, isArtDeco && deco.stopButton, isLiquidGlass && glass.stopButton]}
+                onPress={stopFinding}
+              >
+                {isLiquidGlass && <GlassFill />}
+                <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText, isLiquidGlass && glass.stopButtonText]}>
+                  Berhenti berbagi lokasi
+                </Text>
               </Pressable>
             ) : (
               <Pressable
-                style={[styles.button, styles.startButton, isArtDeco && deco.startButton]}
+                style={[
+                  styles.button,
+                  styles.startButton,
+                  isArtDeco && deco.startButton,
+                  isLiquidGlass && glass.startButton,
+                ]}
                 onPress={startFinding}
                 disabled={starting}
               >
                 {starting ? (
                   <ActivityIndicator color={isArtDeco ? artDeco.color.black : '#fff'} />
                 ) : (
-                  <Text style={[styles.startButtonText, isArtDeco && deco.startButtonText]}>Mulai cari pasangan</Text>
+                  <Text
+                    style={[styles.startButtonText, isArtDeco && deco.startButtonText, isLiquidGlass && glass.startButtonText]}
+                  >
+                    Mulai cari pasangan
+                  </Text>
                 )}
               </Pressable>
             )}
 
             <Pressable
-              style={[styles.button, styles.ringButton, isArtDeco && deco.ringButton]}
+              style={[styles.button, styles.ringButton, isArtDeco && deco.ringButton, isLiquidGlass && glass.ringButton]}
               onPress={handleRing}
               disabled={ringing}
             >
+              {isLiquidGlass && <GlassFill />}
               {ringing ? (
-                <ActivityIndicator color={isArtDeco ? artDeco.color.gold : '#e11d74'} />
+                <ActivityIndicator color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'} />
               ) : (
-                <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText]}>🔊 Bunyikan HP pasangan</Text>
+                <Text
+                  style={[styles.ringButtonText, isArtDeco && deco.ringButtonText, isLiquidGlass && glass.ringButtonText]}
+                >
+                  🔊 Bunyikan HP pasangan
+                </Text>
               )}
             </Pressable>
 
@@ -180,16 +234,20 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                     style={[
                       styles.torchChip,
                       isArtDeco && deco.torchChip,
+                      isLiquidGlass && glass.torchChip,
                       torchKind === kind && styles.torchChipActive,
                       torchKind === kind && isArtDeco && deco.torchChipActive,
+                      torchKind === kind && isLiquidGlass && glass.torchChipActive,
                     ]}
                   >
                     <Text
                       style={[
                         styles.torchChipText,
                         isArtDeco && deco.torchChipText,
+                        isLiquidGlass && glass.torchChipText,
                         torchKind === kind && styles.torchChipTextActive,
                         torchKind === kind && isArtDeco && deco.torchChipTextActive,
+                        torchKind === kind && isLiquidGlass && glass.torchChipTextActive,
                       ]}
                     >
                       {TORCH_PRESET_LABELS[kind as Exclude<TorchPatternKind, 'custom' | 'stop'>]}
@@ -205,16 +263,20 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                     style={[
                       styles.torchChip,
                       isArtDeco && deco.torchChip,
+                      isLiquidGlass && glass.torchChip,
                       torchKind === kind && styles.torchChipActive,
                       torchKind === kind && isArtDeco && deco.torchChipActive,
+                      torchKind === kind && isLiquidGlass && glass.torchChipActive,
                     ]}
                   >
                     <Text
                       style={[
                         styles.torchChipText,
                         isArtDeco && deco.torchChipText,
+                        isLiquidGlass && glass.torchChipText,
                         torchKind === kind && styles.torchChipTextActive,
                         torchKind === kind && isArtDeco && deco.torchChipTextActive,
+                        torchKind === kind && isLiquidGlass && glass.torchChipTextActive,
                       ]}
                     >
                       {kind === 'custom' ? 'Custom' : TORCH_PRESET_LABELS[kind]}
@@ -230,18 +292,22 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
             {torchKind === 'custom' && (
               <View style={styles.customRow}>
                 <View style={styles.customField}>
-                  <Text style={[styles.customLabel, isArtDeco && deco.customLabel]}>Nyala (ms)</Text>
+                  <Text style={[styles.customLabel, isArtDeco && deco.customLabel, isLiquidGlass && glass.customLabel]}>
+                    Nyala (ms)
+                  </Text>
                   <TextInput
-                    style={[styles.customInput, isArtDeco && deco.customInput]}
+                    style={[styles.customInput, isArtDeco && deco.customInput, isLiquidGlass && glass.customInput]}
                     keyboardType="number-pad"
                     value={customOnMs}
                     onChangeText={setCustomOnMs}
                   />
                 </View>
                 <View style={styles.customField}>
-                  <Text style={[styles.customLabel, isArtDeco && deco.customLabel]}>Mati (ms)</Text>
+                  <Text style={[styles.customLabel, isArtDeco && deco.customLabel, isLiquidGlass && glass.customLabel]}>
+                    Mati (ms)
+                  </Text>
                   <TextInput
-                    style={[styles.customInput, isArtDeco && deco.customInput]}
+                    style={[styles.customInput, isArtDeco && deco.customInput, isLiquidGlass && glass.customInput]}
                     keyboardType="number-pad"
                     value={customOffMs}
                     onChangeText={setCustomOffMs}
@@ -252,31 +318,49 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
             <View style={styles.torchButtonRow}>
               <Pressable
-                style={[styles.button, styles.ringButton, styles.torchButtonHalf, isArtDeco && deco.ringButton]}
+                style={[
+                  styles.button,
+                  styles.ringButton,
+                  styles.torchButtonHalf,
+                  isArtDeco && deco.ringButton,
+                  isLiquidGlass && glass.ringButton,
+                ]}
                 onPress={handleTorch}
                 disabled={torching}
               >
+                {isLiquidGlass && <GlassFill />}
                 {torching ? (
-                  <ActivityIndicator color={isArtDeco ? artDeco.color.gold : '#e11d74'} />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'} />
                 ) : (
-                  <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText]}>🔦 Nyalain</Text>
+                  <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText, isLiquidGlass && glass.ringButtonText]}>
+                    🔦 Nyalain
+                  </Text>
                 )}
               </Pressable>
               <Pressable
-                style={[styles.button, styles.stopButton, styles.torchButtonHalf, isArtDeco && deco.stopButton]}
+                style={[
+                  styles.button,
+                  styles.stopButton,
+                  styles.torchButtonHalf,
+                  isArtDeco && deco.stopButton,
+                  isLiquidGlass && glass.stopButton,
+                ]}
                 onPress={handleStopTorch}
                 disabled={stoppingTorch}
               >
+                {isLiquidGlass && <GlassFill />}
                 {stoppingTorch ? (
-                  <ActivityIndicator color={isArtDeco ? artDeco.color.gold : '#e11d74'} />
+                  <ActivityIndicator color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'} />
                 ) : (
-                  <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText]}>⏹️ Matikan</Text>
+                  <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText, isLiquidGlass && glass.stopButtonText]}>
+                    ⏹️ Matikan
+                  </Text>
                 )}
               </Pressable>
             </View>
           </View>
 
-          <Text style={[styles.hint, isArtDeco && deco.hint]}>
+          <Text style={[styles.hint, isArtDeco && deco.hint, isLiquidGlass && glass.hint]}>
             Lokasi tetap dibagikan meski layar ini ditutup atau app diminimize -- otomatis
             berhenti setelah 30 menit, atau tekan "Berhenti berbagi lokasi" kapan saja.
           </Text>
@@ -493,5 +577,70 @@ const deco = StyleSheet.create({
   },
   hint: {
     color: artDeco.color.faint,
+  },
+});
+
+const glass = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
+  heading: {
+    color: liquidGlass.color.accentText,
+  },
+  closeText: {
+    color: liquidGlass.color.muted,
+  },
+  startButton: {
+    backgroundColor: liquidGlass.color.accentDeep,
+    borderRadius: liquidGlass.radius.control,
+  },
+  startButtonText: {
+    color: '#fff',
+  },
+  stopButton: {
+    overflow: 'hidden',
+    borderRadius: liquidGlass.radius.control,
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+    backgroundColor: 'transparent',
+  },
+  stopButtonText: {
+    color: liquidGlass.color.accentText,
+  },
+  ringButton: {
+    overflow: 'hidden',
+    borderRadius: liquidGlass.radius.control,
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+    backgroundColor: 'transparent',
+  },
+  ringButtonText: {
+    color: liquidGlass.color.ink2,
+  },
+  torchChip: {
+    backgroundColor: liquidGlass.color.glassChipWash,
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+  },
+  torchChipActive: {
+    backgroundColor: liquidGlass.color.accentDeep,
+    borderColor: liquidGlass.color.accentDeep,
+  },
+  torchChipText: {
+    color: liquidGlass.color.ink2,
+  },
+  torchChipTextActive: {
+    color: '#fff',
+  },
+  customLabel: {
+    color: liquidGlass.color.muted,
+  },
+  customInput: {
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderColor: liquidGlass.color.glassChipBorder,
+    color: liquidGlass.color.ink,
+  },
+  hint: {
+    color: liquidGlass.color.muted,
   },
 });
