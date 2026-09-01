@@ -256,7 +256,10 @@ const styles = StyleSheet.create({
   chip: {
     flex: 1,
     borderRadius: 999,
-    paddingVertical: 10,
+    // paddingVertical 10 (~36px total with the label) fell under the
+    // 44-48dp minimum touch target -- bumped so each chip is a properly
+    // tappable target on its own, not just readable text.
+    paddingVertical: 15,
     alignItems: 'center',
     backgroundColor: '#fdeef4',
   },

@@ -333,11 +333,11 @@ const styles = StyleSheet.create({
   dpad: {
     alignSelf: 'center',
     marginTop: 14,
-    gap: 4,
+    gap: 8,
   },
   dpadRow: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 8,
   },
   dpadSpacer: {
     width: DPAD_BTN_SIZE,
