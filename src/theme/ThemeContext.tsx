@@ -4,6 +4,12 @@
 // the matching flag is true (see src/theme/THEMING_GUIDE.md). Switching
 // back to "Klasik" is instant and lossless because nothing about the
 // original styling is ever removed.
+//
+// Liquid Glass is the app's default look now -- a device that has never
+// touched the theme switcher (no AsyncStorage value saved yet) starts on
+// 'liquidglass'. A device that already explicitly picked something via the
+// switcher keeps that choice (the stored value always wins once present) --
+// this only changes what a *fresh* start lands on.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -25,7 +31,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeName, setThemeNameState] = useState<ThemeName>('original');
+  const [themeName, setThemeNameState] = useState<ThemeName>('liquidglass');
   const [storageReady, setStorageReady] = useState(false);
   const [fontsLoaded] = useFonts(artDecoFontMap);
 
