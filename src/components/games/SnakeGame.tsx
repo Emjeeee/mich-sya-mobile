@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
@@ -11,7 +10,6 @@ import { GameCard } from './GameCard';
 
 const SIZE = 12;
 const TICK_MS = 160;
-const SWIPE_THRESHOLD = 16;
 
 type Point = { x: number; y: number };
 type Dir = 'up' | 'down' | 'left' | 'right';
@@ -51,7 +49,7 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
   // tick should use. A single shared ref for both roles (the original bug)
   // meant a *second* input landing before the next tick validated itself
   // against the *first* input's not-yet-applied value instead of the last
-  // real move -- so two different keys/swipes in the same ~160ms window
+  // real move -- so two different button presses in the same ~160ms window
   // (e.g. up then left while actually moving right) could each individually
   // pass the guard and net out to a straight reversal into the snake's own
   // neck. Validating strictly against `appliedDir`, which only changes once
@@ -61,6 +59,10 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
   const { recordScore } = useGameScores(coupleId, 'snake');
 
   function changeDir(next: Dir) {
+    // Cross-key D-pad below only ever calls this with one of the 4 cardinal
+    // directions, so there is no diagonal input to begin with -- this guard
+    // just also blocks the one remaining illegal move, a straight 180 into
+    // the snake's own neck.
     if (OPPOSITE[appliedDirRef.current] === next) return;
     queuedDirRef.current = next;
   }
@@ -75,6 +77,12 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
         const delta = DELTA[useDir];
         const next = { x: head.x + delta.x, y: head.y + delta.y };
 
+        // No wraparound -- running off any edge ends the game. There is no
+        // modulo anywhere in this file, so the snake can never "teleport"
+        // to the opposite edge; if that was ever seen on-device it was the
+        // fractional-pixel `flexWrap` grid below misrendering a cell into
+        // the wrong row, not the game state actually jumping -- fixed by
+        // rendering explicit rows/columns instead of a wrapped flex list.
         const hitsWall = next.x < 0 || next.y < 0 || next.x >= SIZE || next.y >= SIZE;
         const ateFood = next.x === food.x && next.y === food.y;
         // The tail segment vacates this same tick unless food was just
@@ -122,66 +130,64 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
     setRunning(true);
   }
 
-  // Swipe-only controls (the d-pad buttons were dropped per request) --
-  // absolute screen direction, same as before: swipe left = go left, up =
-  // go up, etc. changeDir()'s OPPOSITE guard still blocks swiping straight
-  // back into the snake's current direction of travel.
-  const swipe = Gesture.Pan().onEnd((e) => {
-    const { translationX: dx, translationY: dy } = e;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_THRESHOLD) return;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      changeDir(dx > 0 ? 'right' : 'left');
-    } else {
-      changeDir(dy > 0 ? 'down' : 'up');
-    }
-  });
-
   return (
     <GameCard>
       <View style={styles.headerRow}>
-        <Text style={[styles.muted, isArtDeco && deco.muted]}>Geser layar untuk ganti arah</Text>
+        <Text style={[styles.muted, isArtDeco && deco.muted]}>Gunakan tombol arah di bawah</Text>
         <Text style={[styles.score, isArtDeco && deco.score]}>{snake.length}</Text>
       </View>
 
-      <GestureDetector gesture={swipe}>
-        <View style={[styles.grid, isArtDeco && deco.grid]}>
-          {Array.from({ length: SIZE * SIZE }, (_, i) => {
-            const x = i % SIZE;
-            const y = Math.floor(i / SIZE);
-            const isHead = snake[0].x === x && snake[0].y === y;
-            const isBody = !isHead && snake.some((s) => s.x === x && s.y === y);
-            const isFood = food.x === x && food.y === y;
+      {/* Explicit rows of exact-integer-width cells, not a wrapped flex list
+          of fractional-width items -- SIZE=12 into a non-multiple-of-12
+          pixel board meant each row's cells could accumulate a fraction of
+          a pixel of rounding error by the time it wrapped, which on some
+          devices staggered rows out of alignment (looked like the snake
+          moving diagonally) or wrapped a cell into the wrong row entirely
+          (looked like the snake teleporting). Fixed-integer CELL_SIZE with
+          real row Views makes both impossible regardless of pixel ratio. */}
+      <View style={[styles.grid, isArtDeco && deco.grid]}>
+        {Array.from({ length: SIZE }, (_, y) => (
+          <View key={y} style={styles.row}>
+            {Array.from({ length: SIZE }, (_, x) => {
+              const isHead = snake[0].x === x && snake[0].y === y;
+              const isBody = !isHead && snake.some((s) => s.x === x && s.y === y);
+              const isFood = food.x === x && food.y === y;
 
-            if (isHead) {
-              return (
-                <View key={i} style={styles.cell}>
-                  <View style={[styles.snakeHead, isArtDeco && deco.snakeHead]}>
-                    <View style={[styles.eyeRow, EYE_ROW_BY_DIR[facingDir]]}>
-                      <View style={styles.eye} />
-                      <View style={styles.eye} />
+              if (isHead) {
+                return (
+                  <View key={x} style={styles.cell}>
+                    <View style={[styles.snakeHead, isArtDeco && deco.snakeHead]}>
+                      <View style={[styles.eyeRow, EYE_ROW_BY_DIR[facingDir]]}>
+                        <View style={styles.eye} />
+                        <View style={styles.eye} />
+                      </View>
                     </View>
                   </View>
-                </View>
-              );
-            }
-            if (isBody) {
-              return (
-                <View key={i} style={styles.cell}>
-                  <View style={[styles.snakeBody, isArtDeco && deco.snakeBody]} />
-                </View>
-              );
-            }
-            if (isFood) {
-              return (
-                <View key={i} style={styles.cell}>
-                  <Text style={styles.foodEmoji}>🍎</Text>
-                </View>
-              );
-            }
-            return <View key={i} style={[styles.cell, styles.empty]} />;
-          })}
-        </View>
-      </GestureDetector>
+                );
+              }
+              if (isBody) {
+                return (
+                  <View key={x} style={styles.cell}>
+                    <View style={[styles.snakeBody, isArtDeco && deco.snakeBody]} />
+                  </View>
+                );
+              }
+              if (isFood) {
+                return (
+                  <View key={x} style={styles.cell}>
+                    <Text style={styles.foodEmoji}>🍎</Text>
+                  </View>
+                );
+              }
+              return <View key={x} style={[styles.cell, styles.empty]} />;
+            })}
+          </View>
+        ))}
+      </View>
+
+      {running && (
+        <DPad isArtDeco={isArtDeco} onPress={changeDir} />
+      )}
 
       {!running && (
         <View style={styles.center}>
@@ -195,8 +201,53 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
   );
 }
 
-const BOARD_SIZE = 280;
-const CELL_SIZE = BOARD_SIZE / SIZE;
+// Cross-key layout (like an Xbox controller's D-pad): one button each for
+// up/down/left/right arranged in a "+" shape around a blank center, instead
+// of 4 separate corner buttons or swipe gestures. Swipe detection turned
+// out to be unreliable here -- ambiguous drags could register as the wrong
+// axis or misfire as soon as the board was touched at all, which is what
+// was actually behind the "controls don't work, game overs immediately"
+// reports, not the game logic itself. Discrete buttons can't misfire that
+// way and can't produce anything but one of the 4 cardinal directions.
+function DPad({ isArtDeco, onPress }: { isArtDeco: boolean; onPress: (dir: Dir) => void }) {
+  const Btn = ({ dir, label }: { dir: Dir; label: string }) => (
+    <Pressable
+      onPress={() => onPress(dir)}
+      style={({ pressed }) => [
+        styles.dpadBtn,
+        isArtDeco && deco.dpadBtn,
+        pressed && styles.dpadBtnPressed,
+        pressed && isArtDeco && deco.dpadBtnPressed,
+      ]}
+    >
+      <Text style={[styles.dpadLabel, isArtDeco && deco.dpadLabel]}>{label}</Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={styles.dpad}>
+      <View style={styles.dpadRow}>
+        <View style={styles.dpadSpacer} />
+        <Btn dir="up" label="▲" />
+        <View style={styles.dpadSpacer} />
+      </View>
+      <View style={styles.dpadRow}>
+        <Btn dir="left" label="◀" />
+        <View style={[styles.dpadCenter, isArtDeco && deco.dpadCenter]} />
+        <Btn dir="right" label="▶" />
+      </View>
+      <View style={styles.dpadRow}>
+        <View style={styles.dpadSpacer} />
+        <Btn dir="down" label="▼" />
+        <View style={styles.dpadSpacer} />
+      </View>
+    </View>
+  );
+}
+
+const CELL_SIZE = 24;
+const BOARD_SIZE = CELL_SIZE * SIZE;
+const DPAD_BTN_SIZE = 48;
 
 // Eye placement within the head cell, one pair per facing direction --
 // simple absolute-positioned offsets rather than a full rotation, since the
@@ -224,14 +275,16 @@ const styles = StyleSheet.create({
     color: '#e11d74',
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     width: BOARD_SIZE,
     height: BOARD_SIZE,
     alignSelf: 'center',
     backgroundColor: '#eafaf0',
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    height: CELL_SIZE,
   },
   cell: {
     width: CELL_SIZE,
@@ -277,6 +330,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
   },
+  dpad: {
+    alignSelf: 'center',
+    marginTop: 14,
+    gap: 4,
+  },
+  dpadRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  dpadSpacer: {
+    width: DPAD_BTN_SIZE,
+    height: DPAD_BTN_SIZE,
+  },
+  dpadCenter: {
+    width: DPAD_BTN_SIZE,
+    height: DPAD_BTN_SIZE,
+    borderRadius: DPAD_BTN_SIZE / 2,
+    backgroundColor: '#e5e7eb',
+  },
+  dpadBtn: {
+    width: DPAD_BTN_SIZE,
+    height: DPAD_BTN_SIZE,
+    borderRadius: 10,
+    backgroundColor: '#374151',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dpadBtnPressed: {
+    backgroundColor: '#1f2937',
+  },
+  dpadLabel: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: '700',
+  },
 });
 
 const deco = StyleSheet.create({
@@ -302,5 +390,23 @@ const deco = StyleSheet.create({
   },
   resultText: {
     color: artDeco.color.ink,
+  },
+  dpadCenter: {
+    backgroundColor: artDeco.color.surface2,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.lineSoft,
+  },
+  dpadBtn: {
+    backgroundColor: artDeco.color.black,
+    borderRadius: artDeco.radius.none,
+    borderWidth: 1,
+    borderColor: artDeco.color.gold,
+  },
+  dpadBtnPressed: {
+    backgroundColor: artDeco.color.surface2,
+  },
+  dpadLabel: {
+    color: artDeco.color.gold,
   },
 });
