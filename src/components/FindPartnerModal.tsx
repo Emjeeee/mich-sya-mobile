@@ -51,7 +51,7 @@ function GlassFill({ radius = liquidGlass.radius.control }: { radius?: number })
   const blurProps = useGlassBlurProps();
   return (
     <>
-      <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
+      <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
       <View
         style={[StyleSheet.absoluteFill, { backgroundColor: liquidGlass.color.glassChipWash, borderRadius: radius }]}
       />

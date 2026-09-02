@@ -62,7 +62,7 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
     // RemoteControlPanel.tsx subscribes to on the controlling side, so a
     // change made here shows up there within a few seconds instead of only
     // the next time either app backgrounds/foregrounds.
-    const interval = setInterval(refresh, 5000);
+    const interval = setInterval(refresh, 8000); // was 5s -- eased off a bit as part of a general lag/battery pass
     return () => clearInterval(interval);
   }, [refresh]);
 

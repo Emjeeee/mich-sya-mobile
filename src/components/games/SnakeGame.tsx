@@ -4,7 +4,6 @@ import { Animated, PanResponder, StyleSheet, Text, View } from 'react-native';
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
 import { artDeco } from '../../theme/artDecoTokens';
-import { GlassSurface } from '../../theme/components/GlassSurface';
 import { liquidGlass } from '../../theme/liquidGlassTokens';
 import { useAppTheme } from '../../theme/ThemeContext';
 import { GameButton } from './GameButton';
@@ -157,12 +156,12 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
       <View style={styles.headerRow}>
         {isLiquidGlass ? (
           <>
-            <GlassSurface radius={liquidGlass.radius.pill} contentStyle={glass.hintChip}>
+            <View style={[glass.chipFlat, glass.hintChip]}>
               <Text style={glass.muted}>{hintText}</Text>
-            </GlassSurface>
-            <GlassSurface radius={liquidGlass.radius.pill} contentStyle={glass.scoreChip}>
+            </View>
+            <View style={[glass.chipFlat, glass.scoreChip]}>
               <Text style={glass.score}>{snake.length}</Text>
-            </GlassSurface>
+            </View>
           </>
         ) : (
           <>
@@ -307,7 +306,7 @@ function Joystick({
   return (
     <View style={styles.joystickWrap} {...panResponder.panHandlers}>
       {isLiquidGlass ? (
-        <GlassSurface style={styles.joystickFill} variant="dark" radius={JOYSTICK_BASE_SIZE / 2} />
+        <View style={[styles.joystickFill, glass.joystickBaseFlat]} />
       ) : (
         <View style={[styles.joystickFill, styles.joystickBase, isArtDeco && deco.joystickBase]} />
       )}
@@ -416,8 +415,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Shared by both the plain and GlassSurface-rendered base -- fills the
-  // wrap exactly so the whole circle (not just the knob) is the grab area.
+  // Shared by every joystick base rendering (plain, Art Deco, and Liquid
+  // Glass's flat tint) -- fills the wrap exactly so the whole circle, not
+  // just the knob, is the grab area.
   joystickFill: {
     position: 'absolute',
     top: 0,
@@ -474,6 +474,23 @@ const deco = StyleSheet.create({
 });
 
 const glass = StyleSheet.create({
+  // Snake re-renders every TICK_MS (160ms) while running -- real BlurView
+  // instances here would mean recomputing blur several times a second on
+  // top of an already-animating board, which is the single most expensive
+  // combination of things this app can do. A flat semi-opaque tint reads
+  // close enough to glass for small chips like these and costs nothing at
+  // render time -- same tradeoff GameScreen.tsx's modeButton makes.
+  chipFlat: {
+    backgroundColor: liquidGlass.color.glassChipWash,
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassChipBorder,
+    borderRadius: liquidGlass.radius.pill,
+  },
+  joystickBaseFlat: {
+    backgroundColor: liquidGlass.color.glassDarkWash,
+    borderWidth: 1,
+    borderColor: liquidGlass.color.glassDarkBorder,
+  },
   hintChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,

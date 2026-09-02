@@ -37,10 +37,22 @@ export function LiquidGlassRoot({ style, children }: { style?: StyleProp<ViewSty
 // ancestor (e.g. a glass component rendered somewhere not yet wrapped) --
 // expo-blur itself falls back to 'none' (a plain tint, not a crash) when a
 // dimezis method is requested without a blurTarget.
+//
+// `blurReductionFactor` downsamples the target before blurring it --
+// expo-blur's own default is 4; reported general app lag traced partly to
+// real-time blur being one of the more expensive things a phone GPU does,
+// especially stacked in several places on one screen (Home has 4-5 glass
+// surfaces) or sitting beside something repainting frequently (Snake's
+// board ticks every 160ms while running). Centralized here as one tunable
+// instead of per BlurView so every glass surface in the app gets cheaper
+// at once.
+const BLUR_REDUCTION_FACTOR = 8;
+
 export function useGlassBlurProps() {
   const blurTarget = useContext(BlurTargetContext);
   return {
     blurMethod: 'dimezisBlurViewSdk31Plus' as const,
     blurTarget: blurTarget ?? undefined,
+    blurReductionFactor: BLUR_REDUCTION_FACTOR,
   };
 }

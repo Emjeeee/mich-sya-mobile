@@ -9,6 +9,8 @@ import {
   StyleSheet,
   Text,
   View,
+  type StyleProp,
+  type TextStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -67,6 +69,28 @@ const ICON_COMPASS = require('../../assets/icons/compass.png');
 const ICON_MAP = require('../../assets/icons/map.png');
 const ICON_HEART = require('../../assets/icons/heart.png');
 
+// Owns its own 1-second interval instead of HomeScreen holding a ticking
+// `elapsed` state -- the previous version's setInterval called setElapsed()
+// on the whole HomeScreen component, re-rendering the entire screen (and
+// every glass surface on it -- the top bar, the swipe capsule, the action
+// dock, the sign-out button, each a real BlurView) once a second for as
+// long as a date session was active. Isolating the ticking state down to
+// this one small Text-sized component means only it re-renders each
+// second; nothing else on the screen is affected.
+function ElapsedTimer({ startedAt, style }: { startedAt: string; style: StyleProp<TextStyle> }) {
+  const [elapsed, setElapsed] = useState(() => formatElapsed(startedAt));
+
+  useEffect(() => {
+    setElapsed(formatElapsed(startedAt));
+    const interval = setInterval(() => {
+      setElapsed(formatElapsed(startedAt));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+
+  return <Text style={style}>{elapsed}</Text>;
+}
+
 function ActionButton({
   icon,
   glassIcon,
@@ -116,7 +140,6 @@ export default function HomeScreen({ navigation }: Props) {
   const [showPhoneNumberModal, setShowPhoneNumberModal] = useState(false);
   const [journeyPrompt, setJourneyPrompt] = useState<{ lat: number; lng: number } | null>(null);
   const [swipeResetKey, setSwipeResetKey] = useState(0);
-  const [elapsed, setElapsed] = useState('');
   const [quickMemoryNotice, setQuickMemoryNotice] = useState<string | null>(null);
   const [advancedSettingsEligible, setAdvancedSettingsEligible] = useState(false);
   const [recap, setRecap] = useState<{
@@ -127,15 +150,6 @@ export default function HomeScreen({ navigation }: Props) {
   } | null>(null);
   const sessionRef = useRef(session);
   sessionRef.current = session;
-
-  useEffect(() => {
-    if (!session) return;
-    setElapsed(formatElapsed(session.started_at));
-    const interval = setInterval(() => {
-      setElapsed(formatElapsed(session.started_at));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [session?.started_at]);
 
   useEffect(() => {
     if (!coupleId) return;
@@ -181,7 +195,10 @@ export default function HomeScreen({ navigation }: Props) {
 
   const handleEndSubmit = async (input: { title: string; summary: string }) => {
     const endingSession = sessionRef.current;
-    const durationLabel = elapsed;
+    // Computed fresh here rather than from a ticking state variable -- see
+    // ElapsedTimer below for why HomeScreen no longer holds a re-rendering
+    // `elapsed` state at all.
+    const durationLabel = endingSession ? formatElapsed(endingSession.started_at) : '';
     const { success, routeMeters } = await endSession(input);
     // Only treat the date as actually ended -- and show the "it's over"
     // recap -- when the update genuinely succeeded. `routeMeters` alone
@@ -360,7 +377,7 @@ export default function HomeScreen({ navigation }: Props) {
       >
         {isLiquidGlass && (
           <>
-            <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
+            <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
             <View
               style={[
                 StyleSheet.absoluteFill,
@@ -393,7 +410,10 @@ export default function HomeScreen({ navigation }: Props) {
               <Text style={[styles.status, isArtDeco && deco.status, isLiquidGlass && glass.status]}>
                 Kencan sedang berlangsung
               </Text>
-              <Text style={[styles.timer, isArtDeco && deco.timer, isLiquidGlass && glass.timer]}>{elapsed}</Text>
+              <ElapsedTimer
+                startedAt={session.started_at}
+                style={[styles.timer, isArtDeco && deco.timer, isLiquidGlass && glass.timer]}
+              />
               <SwipeToConfirm
                 key={swipeResetKey}
                 label="Geser untuk akhiri kencan"
@@ -476,7 +496,7 @@ export default function HomeScreen({ navigation }: Props) {
         >
           {isLiquidGlass && (
             <>
-              <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
+              <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
               <View
                 style={[
                   StyleSheet.absoluteFill,

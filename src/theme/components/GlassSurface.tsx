@@ -34,7 +34,12 @@ export function GlassSurface({
   style,
   contentStyle,
   radius = liquidGlass.radius.card,
-  intensity = 40,
+  // Lower than expo-blur's own default (50) and the 40 this used to pass
+  // explicitly -- real-time blur is one of the more GPU-expensive things
+  // this app does, and this still reads as glassy at a noticeably lighter
+  // compute cost. See useGlassBlurProps()'s blurReductionFactor for the
+  // other half of this tuning.
+  intensity = 25,
   tint = 'light',
   wash,
   borderColor,

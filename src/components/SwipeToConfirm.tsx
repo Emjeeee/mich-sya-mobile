@@ -117,7 +117,7 @@ export default function SwipeToConfirm({
           splitting into a separate content layer. */}
       {isLiquidGlass && (
         <>
-          <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
+          <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} {...blurProps} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: liquidGlass.color.glassPanelWash }]} />
         </>
       )}
