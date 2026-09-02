@@ -244,16 +244,33 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
 // was actually behind the "controls don't work, game overs immediately"
 // reports, not the game logic itself. Discrete buttons can't misfire that
 // way and can't produce anything but one of the 4 cardinal directions.
-function DPad({
+// Module-level, not defined inside DPad -- a component declared inside
+// another component's render function is a NEW function (and therefore a
+// NEW element type, as far as React's reconciler is concerned) on every
+// single render of its parent. SnakeGame re-renders every TICK_MS once the
+// snake is moving (each tick calls setSnake), so a `Btn` declared inside
+// DPad's body was being unmounted and remounted on every tick -- the
+// underlying native Pressable/touch-responder gets torn down and recreated
+// every ~160ms, which is why a direction change worked once (before the
+// tick loop was running, so nothing was competing with the touch) but
+// pressing the D-pad again after the snake started moving very often did
+// nothing at all: the button most taps landed on didn't survive long
+// enough as the same native view to fire onPress. A stable, module-level
+// component only ever needs its props updated, never remounted.
+function DPadButton({
+  dir,
+  label,
   isArtDeco,
   isLiquidGlass,
   onPress,
 }: {
+  dir: Dir;
+  label: string;
   isArtDeco: boolean;
   isLiquidGlass: boolean;
   onPress: (dir: Dir) => void;
 }) {
-  const Btn = ({ dir, label }: { dir: Dir; label: string }) => (
+  return (
     <Pressable
       onPress={() => onPress(dir)}
       style={({ pressed }) => [
@@ -268,22 +285,32 @@ function DPad({
       <Text style={[styles.dpadLabel, isArtDeco && deco.dpadLabel, isLiquidGlass && glass.dpadLabel]}>{label}</Text>
     </Pressable>
   );
+}
 
+function DPad({
+  isArtDeco,
+  isLiquidGlass,
+  onPress,
+}: {
+  isArtDeco: boolean;
+  isLiquidGlass: boolean;
+  onPress: (dir: Dir) => void;
+}) {
   const rows = (
     <>
       <View style={styles.dpadRow}>
         <View style={styles.dpadSpacer} />
-        <Btn dir="up" label="▲" />
+        <DPadButton dir="up" label="▲" isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={onPress} />
         <View style={styles.dpadSpacer} />
       </View>
       <View style={styles.dpadRow}>
-        <Btn dir="left" label="◀" />
+        <DPadButton dir="left" label="◀" isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={onPress} />
         <View style={[styles.dpadCenter, isArtDeco && deco.dpadCenter, isLiquidGlass && glass.dpadCenter]} />
-        <Btn dir="right" label="▶" />
+        <DPadButton dir="right" label="▶" isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={onPress} />
       </View>
       <View style={styles.dpadRow}>
         <View style={styles.dpadSpacer} />
-        <Btn dir="down" label="▼" />
+        <DPadButton dir="down" label="▼" isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={onPress} />
         <View style={styles.dpadSpacer} />
       </View>
     </>
