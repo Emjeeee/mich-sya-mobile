@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, PanResponder, StyleSheet, Text, View } from 'react-native';
 
 import { useGameScores } from '../../hooks/useGameScores';
 import { supabase } from '../../lib/supabase';
@@ -150,7 +150,7 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
   }
 
   const hintText =
-    running && !started ? 'Ketuk salah satu arah untuk mulai jalan' : 'Gunakan tombol arah di bawah';
+    running && !started ? 'Tahan joystick lalu arahkan untuk mulai jalan' : 'Tahan & arahkan joystick di bawah';
 
   return (
     <GameCard>
@@ -221,7 +221,7 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
       </View>
 
       {running && (
-        <DPad isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={changeDir} />
+        <Joystick isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onDirection={changeDir} />
       )}
 
       {!running && (
@@ -236,105 +236,96 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
   );
 }
 
-// Cross-key layout (like an Xbox controller's D-pad): one button each for
-// up/down/left/right arranged in a "+" shape around a blank center, instead
-// of 4 separate corner buttons or swipe gestures. Swipe detection turned
-// out to be unreliable here -- ambiguous drags could register as the wrong
-// axis or misfire as soon as the board was touched at all, which is what
-// was actually behind the "controls don't work, game overs immediately"
-// reports, not the game logic itself. Discrete buttons can't misfire that
-// way and can't produce anything but one of the 4 cardinal directions.
-// Module-level, not defined inside DPad -- a component declared inside
-// another component's render function is a NEW function (and therefore a
-// NEW element type, as far as React's reconciler is concerned) on every
-// single render of its parent. SnakeGame re-renders every TICK_MS once the
-// snake is moving (each tick calls setSnake), so a `Btn` declared inside
-// DPad's body was being unmounted and remounted on every tick -- the
-// underlying native Pressable/touch-responder gets torn down and recreated
-// every ~160ms, which is why a direction change worked once (before the
-// tick loop was running, so nothing was competing with the touch) but
-// pressing the D-pad again after the snake started moving very often did
-// nothing at all: the button most taps landed on didn't survive long
-// enough as the same native view to fire onPress. A stable, module-level
-// component only ever needs its props updated, never remounted.
-function DPadButton({
-  dir,
-  label,
+// Press-and-hold joystick, replacing the earlier D-pad -- drag the knob
+// toward a direction and hold it there to keep steering that way; letting
+// go springs the knob back to center but doesn't stop the snake, same as
+// releasing a D-pad button never did either. The touch responder
+// (panHandlers) is attached to the whole base circle, not just the small
+// knob, so grabbing the stick anywhere within it works, not only a precise
+// touch on the knob itself.
+//
+// The nearest cardinal direction is derived from whichever axis of the
+// drag has the larger magnitude -- the same "biggest axis wins" rule the
+// very first swipe-to-steer version used -- evaluated on every move, not
+// just once, so re-aiming the stick keeps re-steering the snake without
+// needing to release and grab it again. A small deadzone near center
+// avoids registering a direction from tiny finger jitter right as the
+// stick is grabbed.
+const JOYSTICK_BASE_SIZE = 160;
+const JOYSTICK_KNOB_SIZE = 64;
+const JOYSTICK_MAX_RADIUS = (JOYSTICK_BASE_SIZE - JOYSTICK_KNOB_SIZE) / 2;
+const JOYSTICK_DEADZONE = 12;
+
+function Joystick({
   isArtDeco,
   isLiquidGlass,
-  onPress,
+  onDirection,
 }: {
-  dir: Dir;
-  label: string;
   isArtDeco: boolean;
   isLiquidGlass: boolean;
-  onPress: (dir: Dir) => void;
+  onDirection: (dir: Dir) => void;
 }) {
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  // Only used to avoid re-calling onDirection every single move event when
+  // the stick hasn't actually crossed into a different cardinal direction
+  // since the last one -- onDirection itself is cheap to call repeatedly
+  // (changeDir() no-ops on an unchanged/illegal direction), this just
+  // avoids the redundant calls.
+  const lastDirRef = useRef<Dir | null>(null);
+
+  const snapBack = () => {
+    lastDirRef.current = null;
+    Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false, bounciness: 10 }).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        const { dx, dy } = gestureState;
+        const distance = Math.hypot(dx, dy);
+        const clampedDistance = Math.min(distance, JOYSTICK_MAX_RADIUS);
+        const angle = Math.atan2(dy, dx);
+        pan.setValue({
+          x: distance > 0 ? Math.cos(angle) * clampedDistance : 0,
+          y: distance > 0 ? Math.sin(angle) * clampedDistance : 0,
+        });
+
+        if (distance < JOYSTICK_DEADZONE) return;
+        const dir: Dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+        if (dir !== lastDirRef.current) {
+          lastDirRef.current = dir;
+          onDirection(dir);
+        }
+      },
+      onPanResponderRelease: snapBack,
+      onPanResponderTerminate: snapBack,
+    })
+  ).current;
+
   return (
-    <Pressable
-      onPress={() => onPress(dir)}
-      style={({ pressed }) => [
-        styles.dpadBtn,
-        isArtDeco && deco.dpadBtn,
-        isLiquidGlass && glass.dpadBtn,
-        pressed && styles.dpadBtnPressed,
-        pressed && isArtDeco && deco.dpadBtnPressed,
-        pressed && isLiquidGlass && glass.dpadBtnPressed,
-      ]}
-    >
-      <Text style={[styles.dpadLabel, isArtDeco && deco.dpadLabel, isLiquidGlass && glass.dpadLabel]}>{label}</Text>
-    </Pressable>
+    <View style={styles.joystickWrap} {...panResponder.panHandlers}>
+      {isLiquidGlass ? (
+        <GlassSurface style={styles.joystickFill} variant="dark" radius={JOYSTICK_BASE_SIZE / 2} />
+      ) : (
+        <View style={[styles.joystickFill, styles.joystickBase, isArtDeco && deco.joystickBase]} />
+      )}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.joystickKnob,
+          isArtDeco && deco.joystickKnob,
+          isLiquidGlass && glass.joystickKnob,
+          { transform: [{ translateX: pan.x }, { translateY: pan.y }] },
+        ]}
+      />
+    </View>
   );
-}
-
-function DPad({
-  isArtDeco,
-  isLiquidGlass,
-  onPress,
-}: {
-  isArtDeco: boolean;
-  isLiquidGlass: boolean;
-  onPress: (dir: Dir) => void;
-}) {
-  const rows = (
-    <>
-      <View style={styles.dpadRow}>
-        <View style={styles.dpadSpacer} />
-        <DPadButton dir="up" label="▲" isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={onPress} />
-        <View style={styles.dpadSpacer} />
-      </View>
-      <View style={styles.dpadRow}>
-        <DPadButton dir="left" label="◀" isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={onPress} />
-        <View style={[styles.dpadCenter, isArtDeco && deco.dpadCenter, isLiquidGlass && glass.dpadCenter]} />
-        <DPadButton dir="right" label="▶" isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={onPress} />
-      </View>
-      <View style={styles.dpadRow}>
-        <View style={styles.dpadSpacer} />
-        <DPadButton dir="down" label="▼" isArtDeco={isArtDeco} isLiquidGlass={isLiquidGlass} onPress={onPress} />
-        <View style={styles.dpadSpacer} />
-      </View>
-    </>
-  );
-
-  // The whole cross sits on one shared dark frosted-glass surface (like
-  // GlassEffectContainer grouping related glass elements into one connected
-  // surface) rather than each button floating independently -- individual
-  // buttons are then just a lighter tint on top of that shared glass, not
-  // their own separate glass layer (no glass-on-glass).
-  if (isLiquidGlass) {
-    return (
-      <GlassSurface style={styles.dpad} contentStyle={glass.dpadContent} variant="dark" radius={32}>
-        {rows}
-      </GlassSurface>
-    );
-  }
-
-  return <View style={styles.dpad}>{rows}</View>;
 }
 
 const CELL_SIZE = 24;
 const BOARD_SIZE = CELL_SIZE * SIZE;
-const DPAD_BTN_SIZE = 48;
 
 // Eye placement within the head cell, one pair per facing direction --
 // simple absolute-positioned offsets rather than a full rotation, since the
@@ -417,40 +408,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
   },
-  dpad: {
+  joystickWrap: {
+    width: JOYSTICK_BASE_SIZE,
+    height: JOYSTICK_BASE_SIZE,
     alignSelf: 'center',
     marginTop: 14,
-    gap: 8,
-  },
-  dpadRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dpadSpacer: {
-    width: DPAD_BTN_SIZE,
-    height: DPAD_BTN_SIZE,
-  },
-  dpadCenter: {
-    width: DPAD_BTN_SIZE,
-    height: DPAD_BTN_SIZE,
-    borderRadius: DPAD_BTN_SIZE / 2,
-    backgroundColor: '#e5e7eb',
-  },
-  dpadBtn: {
-    width: DPAD_BTN_SIZE,
-    height: DPAD_BTN_SIZE,
-    borderRadius: 10,
-    backgroundColor: '#374151',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dpadBtnPressed: {
-    backgroundColor: '#1f2937',
+  // Shared by both the plain and GlassSurface-rendered base -- fills the
+  // wrap exactly so the whole circle (not just the knob) is the grab area.
+  joystickFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: JOYSTICK_BASE_SIZE / 2,
   },
-  dpadLabel: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: '700',
+  joystickBase: {
+    backgroundColor: '#374151',
+  },
+  joystickKnob: {
+    width: JOYSTICK_KNOB_SIZE,
+    height: JOYSTICK_KNOB_SIZE,
+    borderRadius: JOYSTICK_KNOB_SIZE / 2,
+    backgroundColor: '#e11d74',
   },
 });
 
@@ -478,23 +461,15 @@ const deco = StyleSheet.create({
   resultText: {
     color: artDeco.color.ink,
   },
-  dpadCenter: {
-    backgroundColor: artDeco.color.surface2,
-    borderRadius: artDeco.radius.none,
-    borderWidth: 1,
-    borderColor: artDeco.color.lineSoft,
-  },
-  dpadBtn: {
+  joystickBase: {
     backgroundColor: artDeco.color.black,
     borderRadius: artDeco.radius.none,
     borderWidth: 1,
     borderColor: artDeco.color.gold,
   },
-  dpadBtnPressed: {
-    backgroundColor: artDeco.color.surface2,
-  },
-  dpadLabel: {
-    color: artDeco.color.gold,
+  joystickKnob: {
+    backgroundColor: artDeco.color.gold,
+    borderRadius: artDeco.radius.none,
   },
 });
 
@@ -517,23 +492,7 @@ const glass = StyleSheet.create({
     fontWeight: '800',
     color: liquidGlass.color.go,
   },
-  dpadContent: {
-    padding: 14,
-    gap: 8,
-    alignItems: 'center',
-  },
-  dpadBtn: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 14,
-  },
-  dpadBtnPressed: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-  },
-  dpadLabel: {
-    color: '#fff',
-  },
-  dpadCenter: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: DPAD_BTN_SIZE / 2,
+  joystickKnob: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
   },
 });
