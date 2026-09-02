@@ -45,6 +45,17 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
   const [running, setRunning] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [recorded, setRecorded] = useState(false);
+  // The snake used to start moving (heading 'right', from dead center)
+  // the instant "Mulai" was pressed -- with only SIZE=12 columns, that's
+  // just ~6 ticks (under a second) before it hits the wall on its own,
+  // often before a player has even located a D-pad button, let alone
+  // pressed one. That's what was actually behind "every input causes game
+  // over" / "the D-pad doesn't respond" -- the game was frequently already
+  // over before the first input was even processed. Freezing the snake in
+  // place until the first directional press removes that hidden countdown
+  // entirely; the board and D-pad are shown (`running`) well before any
+  // movement (`started`) begins.
+  const [started, setStarted] = useState(false);
   // Two refs, not one: `appliedDir` is the ground truth the tick loop last
   // actually moved in, and only it is ever compared against for the
   // OPPOSITE/180-reversal guard. `queuedDir` is whatever direction the next
@@ -64,13 +75,18 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
     // Cross-key D-pad below only ever calls this with one of the 4 cardinal
     // directions, so there is no diagonal input to begin with -- this guard
     // just also blocks the one remaining illegal move, a straight 180 into
-    // the snake's own neck.
-    if (OPPOSITE[appliedDirRef.current] === next) return;
+    // the snake's own neck. Only applies once the snake has actually started
+    // moving -- before that it's a single segment with no neck to reverse
+    // into, so the very first press should accept any of the 4 directions
+    // (including whatever direction happens to equal the default heading's
+    // opposite) rather than rejecting it as an illegal reversal.
+    if (started && OPPOSITE[appliedDirRef.current] === next) return;
     queuedDirRef.current = next;
+    if (!started) setStarted(true);
   }
 
   useEffect(() => {
-    if (!running || gameOver) return;
+    if (!running || gameOver || !started) return;
     const id = setInterval(() => {
       setSnake((prev) => {
         const head = prev[0];
@@ -108,7 +124,7 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
       });
     }, TICK_MS);
     return () => clearInterval(id);
-  }, [running, gameOver, food]);
+  }, [running, gameOver, started, food]);
 
   useEffect(() => {
     if (gameOver && !recorded) {
@@ -129,8 +145,12 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
     setFacingDir('right');
     setGameOver(false);
     setRecorded(false);
+    setStarted(false);
     setRunning(true);
   }
+
+  const hintText =
+    running && !started ? 'Ketuk salah satu arah untuk mulai jalan' : 'Gunakan tombol arah di bawah';
 
   return (
     <GameCard>
@@ -138,7 +158,7 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
         {isLiquidGlass ? (
           <>
             <GlassSurface radius={liquidGlass.radius.pill} contentStyle={glass.hintChip}>
-              <Text style={glass.muted}>Gunakan tombol arah di bawah</Text>
+              <Text style={glass.muted}>{hintText}</Text>
             </GlassSurface>
             <GlassSurface radius={liquidGlass.radius.pill} contentStyle={glass.scoreChip}>
               <Text style={glass.score}>{snake.length}</Text>
@@ -146,7 +166,7 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
           </>
         ) : (
           <>
-            <Text style={[styles.muted, isArtDeco && deco.muted]}>Gunakan tombol arah di bawah</Text>
+            <Text style={[styles.muted, isArtDeco && deco.muted]}>{hintText}</Text>
             <Text style={[styles.score, isArtDeco && deco.score]}>{snake.length}</Text>
           </>
         )}
