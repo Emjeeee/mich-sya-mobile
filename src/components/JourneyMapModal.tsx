@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useJourneyMap, type JourneyPin, type RoutePoint } from '../hooks/useJourneyMap';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { BackButton } from '../theme/components/BackButton';
 import { useAppTheme } from '../theme/ThemeContext';
 
 interface JourneyMapModalProps {
@@ -81,9 +82,7 @@ export default function JourneyMapModal({ visible, coupleId, onClose }: JourneyM
         {isArtDeco && <ArtDecoBackground />}
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text style={[styles.heading, isArtDeco && deco.heading]}>Journey Map</Text>
-          <Pressable onPress={onClose}>
-            <Text style={[styles.closeText, isArtDeco && deco.closeText]}>Tutup</Text>
-          </Pressable>
+          <BackButton onPress={onClose} label="Tutup" variant="close" />
         </View>
 
         {loading ? (

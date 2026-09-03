@@ -16,6 +16,7 @@ import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { BackButton } from '../theme/components/BackButton';
 import { GlassSurface } from '../theme/components/GlassSurface';
 import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
 import { LiquidGlassRoot } from '../theme/components/LiquidGlassRoot';
@@ -68,11 +69,7 @@ export default function GameScreen({ navigation, route }: Props) {
         contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
       >
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()}>
-          <Text style={[styles.backLink, isArtDeco && deco.backLink, isLiquidGlass && glass.backLink]}>
-            ‹ Arcade Room
-          </Text>
-        </Pressable>
+        <BackButton onPress={() => navigation.goBack()} label="Arcade Room" />
         <Text style={[styles.title, isArtDeco && deco.title, isLiquidGlass && glass.title]}>{game.title}</Text>
         <Text style={[styles.subtitle, isArtDeco && deco.subtitle, isLiquidGlass && glass.subtitle]}>
           {game.description}

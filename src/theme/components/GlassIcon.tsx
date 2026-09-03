@@ -170,3 +170,19 @@ export function StopIcon({ size = 18, color = '#4a2b3d' }: GlassIconProps) {
     </Svg>
   );
 }
+
+export function ChevronLeftIcon({ size = 22, color = '#9c1257' }: GlassIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...STROKE_PROPS} stroke={color}>
+      <Path d="M15 5L8 12L15 19" />
+    </Svg>
+  );
+}
+
+export function CloseIcon({ size = 18, color = '#9c1257' }: GlassIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...STROKE_PROPS} stroke={color}>
+      <Path d="M6 6L18 18M18 6L6 18" />
+    </Svg>
+  );
+}

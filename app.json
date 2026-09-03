@@ -100,7 +100,8 @@
           ]
         }
       ],
-      "./plugins/withRingForegroundService.js"
+      "./plugins/withRingForegroundService.js",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

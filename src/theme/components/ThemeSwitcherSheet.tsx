@@ -119,6 +119,6 @@ const styles = StyleSheet.create({
   optionText: { flex: 1 },
   optionTitle: { fontSize: 15, fontWeight: '700', color: '#222' },
   optionDesc: { fontSize: 12, color: '#777', marginTop: 2 },
-  close: { alignSelf: 'center', marginTop: 4, padding: 8 },
+  close: { alignSelf: 'center', marginTop: 4, minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   closeText: { color: '#999', fontWeight: '600' },
 });

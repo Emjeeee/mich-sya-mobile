@@ -7,6 +7,7 @@ import { GAMES } from '../lib/games/registry';
 import type { RootStackParamList } from '../navigation/types';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { BackButton } from '../theme/components/BackButton';
 import { DiamondMarker } from '../theme/components/DiamondMarker';
 import { GlassSurface } from '../theme/components/GlassSurface';
 import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
@@ -34,11 +35,7 @@ export default function ArcadeScreen({ navigation, route }: Props) {
       {isArtDeco && <ArtDecoBackground />}
       {isLiquidGlass && <LiquidGlassBackground variant="warm" />}
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()}>
-          <Text style={[styles.backLink, isArtDeco && deco.backLink, isLiquidGlass && glass.backLink]}>
-            ‹ Kembali
-          </Text>
-        </Pressable>
+        <BackButton onPress={() => navigation.goBack()} label="Kembali" />
         <Text style={[styles.title, isArtDeco && deco.title, isLiquidGlass && glass.title]}>Arcade Room</Text>
         <Text style={[styles.subtitle, isArtDeco && deco.subtitle, isLiquidGlass && glass.subtitle]}>
           {GAMES.length} mini game buat seru-seruan berdua

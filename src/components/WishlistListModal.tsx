@@ -15,6 +15,7 @@ import { useWishlist } from '../hooks/useWishlist';
 import { getSignedUrl } from '../lib/storage';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { BackButton } from '../theme/components/BackButton';
 import { useAppTheme } from '../theme/ThemeContext';
 import type { WishlistItem } from '../types/database';
 import AddWishlistModal from './AddWishlistModal';
@@ -103,9 +104,7 @@ export default function WishlistListModal({ visible, coupleId, onClose }: Wishli
         {isArtDeco && <ArtDecoBackground />}
         <View style={styles.header}>
           <Text style={[styles.heading, isArtDeco && deco.heading]}>Wishlist</Text>
-          <Pressable onPress={onClose}>
-            <Text style={[styles.closeText, isArtDeco && deco.closeText]}>Tutup</Text>
-          </Pressable>
+          <BackButton onPress={onClose} label="Tutup" variant="close" />
         </View>
 
         {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}

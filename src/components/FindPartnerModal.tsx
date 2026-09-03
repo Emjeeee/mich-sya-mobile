@@ -32,6 +32,7 @@ import {
 } from '../lib/torchPattern';
 import { artDeco } from '../theme/artDecoTokens';
 import { ArtDecoBackground } from '../theme/components/ArtDecoBackground';
+import { BackButton } from '../theme/components/BackButton';
 import { FlashlightIcon, SpeakerIcon, StopIcon } from '../theme/components/GlassIcon';
 import { LiquidGlassBackground } from '../theme/components/LiquidGlassBackground';
 import { LiquidGlassRoot, useGlassBlurProps } from '../theme/components/LiquidGlassRoot';
@@ -157,11 +158,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
           <Text style={[styles.heading, isArtDeco && deco.heading, isLiquidGlass && glass.heading]}>
             Cari Pasangan
           </Text>
-          <Pressable onPress={handleClose}>
-            <Text style={[styles.closeText, isArtDeco && deco.closeText, isLiquidGlass && glass.closeText]}>
-              Tutup
-            </Text>
-          </Pressable>
+          <BackButton onPress={handleClose} label="Tutup" variant="close" />
         </View>
 
         <ScrollView
