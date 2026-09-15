@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 
-import { isSilentRingEligible } from '../lib/silentRing';
 import {
   getPartnerRemoteControlState,
   parsePartnerRow,
@@ -55,10 +54,10 @@ const STREAMS: {
 type VolumeMap = Record<VolumeStream, number>;
 const DEFAULT_VOLUMES: VolumeMap = { ring: 50, notification: 50, media: 50, alarm: 50 };
 
-// Only ever visible for one specific account (see silentRing.ts) -- lets
-// that account remotely change the *partner's* phone ringer mode + all 4
-// volume streams. Fundamentally different from SilentRingToggle.tsx, which
-// only ever affects the signed-in account's own device.
+// Visible on BOTH accounts -- lets either side remotely change the
+// *partner's* phone ringer mode + all 4 volume streams. Fundamentally
+// different from SilentRingToggle.tsx, which only ever affects the
+// signed-in account's own device.
 //
 // setPartnerRingerMode()/setPartnerStreamVolume() only confirm the push was
 // *delivered* -- Expo accepts it well before the partner's device even
@@ -74,7 +73,6 @@ const DEFAULT_VOLUMES: VolumeMap = { ring: 50, notification: 50, media: 50, alar
 // current state instead of a blind guess.
 export default function RemoteControlPanel({ coupleId }: { coupleId: string | null }) {
   const { isArtDeco, isLiquidGlass } = useAppTheme();
-  const [eligible, setEligible] = useState(false);
   const [partnerGranted, setPartnerGranted] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -129,7 +127,6 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setEligible(isSilentRingEligible(data.user?.email));
       setUserId(data.user?.id ?? null);
     });
   }, []);
@@ -200,8 +197,6 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
     setLastSent(label);
     lastSentTimer.current = setTimeout(() => setLastSent(null), 2500);
   };
-
-  if (!eligible) return null;
 
   const chooseMode = async (value: 'normal' | 'vibrate' | 'silent') => {
     const previous = mode;
@@ -279,13 +274,18 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
                   {m.label.replace(/^\S+\s/, '')}
                 </Text>
               </View>
+            ) : isArtDeco ? (
+              <View style={deco.chipRowInner}>
+                <m.GlassIcon size={14} color={mode === m.value ? artDeco.color.black : artDeco.color.ink2} />
+                <Text style={[deco.chipText, mode === m.value && deco.chipTextActive]}>
+                  {m.label.replace(/^\S+\s/, '')}
+                </Text>
+              </View>
             ) : (
               <Text
                 style={[
                   styles.chipText,
-                  isArtDeco && deco.chipText,
                   mode === m.value && styles.chipTextActive,
-                  mode === m.value && isArtDeco && deco.chipTextActive,
                 ]}
               >
                 {m.label}
@@ -303,8 +303,13 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
                 <s.GlassIcon size={14} color={liquidGlass.color.ink} />
                 <Text style={glass.volumeLabel}>{s.glassLabel}</Text>
               </View>
+            ) : isArtDeco ? (
+              <View style={deco.streamLabelRow}>
+                <s.GlassIcon size={14} color={artDeco.color.ink2} />
+                <Text style={deco.volumeLabel}>{s.glassLabel}</Text>
+              </View>
             ) : (
-              <Text style={[styles.volumeLabel, isArtDeco && deco.volumeLabel]}>{s.label}</Text>
+              <Text style={styles.volumeLabel}>{s.label}</Text>
             )}
             <Text style={[styles.volumeValue, isArtDeco && deco.volumeValue, isLiquidGlass && glass.volumeValue]}>
               {Math.round(volumes[s.value])}%
@@ -410,6 +415,17 @@ const styles = StyleSheet.create({
 });
 
 const deco = StyleSheet.create({
+  chipRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  streamLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   label: {
     color: artDeco.color.muted,
   },

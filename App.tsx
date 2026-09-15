@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as QuickActions from 'expo-quick-actions';
 import type { Session } from '@supabase/supabase-js';
 
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { startBleRingListener } from './src/lib/bleRing';
 import { flushPendingMemories } from './src/lib/offlineQueue';
 import { checkOnThisDayNow } from './src/lib/onThisDay';
@@ -29,9 +30,11 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppInner />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AppInner />
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

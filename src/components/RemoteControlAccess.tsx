@@ -2,21 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { getVolumeState, hasRemoteControlAccess, requestRemoteControlAccess } from 'ble-ring';
 
-import { isSilentRingEligible } from '../lib/silentRing';
 import { reportRemoteControlAccessStatus } from '../lib/remoteControl';
-import { supabase } from '../lib/supabase';
 import { artDeco } from '../theme/artDecoTokens';
 import { liquidGlass } from '../theme/liquidGlassTokens';
 import { useAppTheme } from '../theme/ThemeContext';
 
-// Only ever visible for the *other* account (not mjonathann.03 -- reusing
-// isSilentRingEligible inverted, since it's already the "is this the
-// Michael account" check) -- shows whether this device has granted "Do Not
-// Disturb access", which RemoteControlPanel.tsx's mode/volume buttons need
-// to actually work on this device. See src/lib/remoteControl.ts.
+// Visible on BOTH accounts -- remote control is mutual (either side can
+// steer the other's ringer/volume), so both devices need to grant "Do Not
+// Disturb access" for RemoteControlPanel.tsx's mode/volume buttons to
+// actually work when the *other* account uses them. Previously gated to
+// only the non-mjonathann.03 account, which meant Michael's own device
+// never got asked to grant this and Tasya's controls of his phone silently
+// did nothing. See src/lib/remoteControl.ts.
 export default function RemoteControlAccess({ coupleId }: { coupleId: string | null }) {
   const { isArtDeco, isLiquidGlass } = useAppTheme();
-  const [eligible, setEligible] = useState(false);
   const [granted, setGranted] = useState<boolean | null>(null);
 
   const refresh = useCallback(() => {
@@ -38,9 +37,6 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
   }, [coupleId]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setEligible(!isSilentRingEligible(data.user?.email));
-    });
     refresh();
   }, [refresh]);
 
@@ -66,7 +62,7 @@ export default function RemoteControlAccess({ coupleId }: { coupleId: string | n
     return () => clearInterval(interval);
   }, [refresh]);
 
-  if (!eligible || granted === null || granted) return null;
+  if (granted === null || granted) return null;
 
   return (
     <View style={styles.container}>

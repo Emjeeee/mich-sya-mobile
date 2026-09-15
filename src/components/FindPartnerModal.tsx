@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BatteryOptimizationNotice from './BatteryOptimizationNotice';
 import CompassArrow from './CompassArrow';
+import CrashLogViewer from './CrashLogViewer';
 import RemoteControlAccess from './RemoteControlAccess';
 import RemoteControlPanel from './RemoteControlPanel';
 import SilentRingToggle from './SilentRingToggle';
@@ -227,8 +228,12 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                 <GlassLabel icon={<SpeakerIcon size={16} color={liquidGlass.color.ink2} />} color={liquidGlass.color.ink2}>
                   Bunyikan HP pasangan
                 </GlassLabel>
+              ) : isArtDeco ? (
+                <GlassLabel icon={<SpeakerIcon size={16} color={artDeco.color.gold} />} color={artDeco.color.gold}>
+                  Bunyikan HP pasangan
+                </GlassLabel>
               ) : (
-                <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText]}>🔊 Bunyikan HP pasangan</Text>
+                <Text style={styles.ringButtonText}>🔊 Bunyikan HP pasangan</Text>
               )}
             </Pressable>
 
@@ -236,6 +241,7 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
             <SilentRingToggle />
             <RemoteControlAccess coupleId={coupleId} />
             <RemoteControlPanel coupleId={coupleId} />
+            <CrashLogViewer />
 
             <View style={styles.torchChipGrid}>
               <View style={styles.torchChipRow}>
@@ -347,8 +353,12 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                   <GlassLabel icon={<FlashlightIcon size={16} color={liquidGlass.color.ink2} />} color={liquidGlass.color.ink2}>
                     Nyalain
                   </GlassLabel>
+                ) : isArtDeco ? (
+                  <GlassLabel icon={<FlashlightIcon size={16} color={artDeco.color.gold} />} color={artDeco.color.gold}>
+                    Nyalain
+                  </GlassLabel>
                 ) : (
-                  <Text style={[styles.ringButtonText, isArtDeco && deco.ringButtonText]}>🔦 Nyalain</Text>
+                  <Text style={styles.ringButtonText}>🔦 Nyalain</Text>
                 )}
               </Pressable>
               <Pressable
@@ -369,8 +379,12 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                   <GlassLabel icon={<StopIcon size={14} color={liquidGlass.color.accentText} />} color={liquidGlass.color.accentText}>
                     Matikan
                   </GlassLabel>
+                ) : isArtDeco ? (
+                  <GlassLabel icon={<StopIcon size={14} color={artDeco.color.ruby} />} color={artDeco.color.ruby}>
+                    Matikan
+                  </GlassLabel>
                 ) : (
-                  <Text style={[styles.stopButtonText, isArtDeco && deco.stopButtonText]}>⏹️ Matikan</Text>
+                  <Text style={styles.stopButtonText}>⏹️ Matikan</Text>
                 )}
               </Pressable>
             </View>

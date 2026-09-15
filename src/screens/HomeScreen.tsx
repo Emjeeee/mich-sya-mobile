@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -99,15 +99,20 @@ function ActionButton({
 }: {
   icon: number | ReactNode;
   // SF-Symbol-style substitute shown instead of `icon` when the Liquid
-  // Glass theme is active -- the PNG/pixel-art icons stay as-is for
-  // Klasik/Art Deco. Optional so a button can skip it and keep its
-  // original icon in every theme.
+  // Glass or Art Deco theme is active -- the PNG/pixel-art icons stay as-is
+  // only for Klasik. Optional so a button can skip it and keep its original
+  // icon in every theme. Art Deco recolors it gold (via cloneElement below)
+  // instead of each icon's own Liquid Glass default color.
   glassIcon?: ReactNode;
   label: string;
   onPress: () => void;
 }) {
   const { isArtDeco, isLiquidGlass } = useAppTheme();
-  const resolvedIcon = isLiquidGlass && glassIcon ? glassIcon : icon;
+  const themedGlassIcon =
+    glassIcon && isArtDeco && isValidElement<{ color?: string }>(glassIcon)
+      ? cloneElement(glassIcon, { color: artDeco.color.gold })
+      : glassIcon;
+  const resolvedIcon = (isLiquidGlass || isArtDeco) && themedGlassIcon ? themedGlassIcon : icon;
   return (
     <Pressable
       style={[styles.actionButton, isArtDeco && deco.actionButton, isLiquidGlass && glass.actionButton]}

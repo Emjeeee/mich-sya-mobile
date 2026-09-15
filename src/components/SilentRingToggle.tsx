@@ -54,17 +54,13 @@ export default function SilentRingToggle() {
               <SpeakerIcon size={14} color={!silent ? '#fff' : liquidGlass.color.ink2} />
               <Text style={[glass.chipText, !silent && glass.chipTextActive]}>Normal</Text>
             </View>
+          ) : isArtDeco ? (
+            <View style={deco.chipRowInner}>
+              <SpeakerIcon size={14} color={!silent ? artDeco.color.black : artDeco.color.ink2} />
+              <Text style={[deco.chipText, !silent && deco.chipTextActive]}>Normal</Text>
+            </View>
           ) : (
-            <Text
-              style={[
-                styles.chipText,
-                isArtDeco && deco.chipText,
-                !silent && styles.chipTextActive,
-                !silent && isArtDeco && deco.chipTextActive,
-              ]}
-            >
-              🔊 Normal
-            </Text>
+            <Text style={[styles.chipText, !silent && styles.chipTextActive]}>🔊 Normal</Text>
           )}
         </Pressable>
         <Pressable
@@ -83,17 +79,13 @@ export default function SilentRingToggle() {
               <VibrateIcon size={14} color={silent ? '#fff' : liquidGlass.color.ink2} />
               <Text style={[glass.chipText, silent && glass.chipTextActive]}>Senyap</Text>
             </View>
+          ) : isArtDeco ? (
+            <View style={deco.chipRowInner}>
+              <VibrateIcon size={14} color={silent ? artDeco.color.black : artDeco.color.ink2} />
+              <Text style={[deco.chipText, silent && deco.chipTextActive]}>Senyap</Text>
+            </View>
           ) : (
-            <Text
-              style={[
-                styles.chipText,
-                isArtDeco && deco.chipText,
-                silent && styles.chipTextActive,
-                silent && isArtDeco && deco.chipTextActive,
-              ]}
-            >
-              📳 Senyap
-            </Text>
+            <Text style={[styles.chipText, silent && styles.chipTextActive]}>📳 Senyap</Text>
           )}
         </Pressable>
       </View>
@@ -134,6 +126,12 @@ const styles = StyleSheet.create({
 });
 
 const deco = StyleSheet.create({
+  chipRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
   label: {
     color: artDeco.color.muted,
   },

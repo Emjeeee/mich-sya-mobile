@@ -16,8 +16,8 @@ interface BackButtonProps {
   label?: string;
   // 'back' (default): a chevron, for real screen-to-screen navigation
   // (navigation.goBack()). 'close': an X, for dismissing a modal/sheet --
-  // only changes which glyph Liquid Glass shows; Klasik/Art Deco render
-  // both the same way (their own text-only style predates this distinction).
+  // only changes which glyph Liquid Glass/Art Deco show; Klasik's own
+  // text-only style predates this distinction and renders both the same.
   variant?: 'back' | 'close';
 }
 
@@ -39,10 +39,17 @@ export function BackButton({ onPress, label = 'Kembali', variant = 'back' }: Bac
           )}
           <Text style={glass.label}>{label}</Text>
         </View>
+      ) : isArtDeco ? (
+        <View style={styles.iosRow}>
+          {variant === 'close' ? (
+            <CloseIcon size={16} color={artDeco.color.gold} />
+          ) : (
+            <ChevronLeftIcon size={20} color={artDeco.color.gold} />
+          )}
+          <Text style={deco.text}>{label}</Text>
+        </View>
       ) : (
-        <Text style={[styles.text, isArtDeco && deco.text]}>
-          {variant === 'close' ? label : `‹ ${label}`}
-        </Text>
+        <Text style={styles.text}>{variant === 'close' ? label : `‹ ${label}`}</Text>
       )}
     </Pressable>
   );
