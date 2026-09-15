@@ -57,10 +57,24 @@ export function Leaderboard({
     );
   }
 
-  const sorted = [...data]
-    .filter((s) => s.score !== null)
-    .sort((a, b) => (sort === 'asc' ? a.score! - b.score! : b.score! - a.score!))
-    .slice(0, 5);
+  // One row per player -- their personal best out of the fetched history --
+  // not the top 5 individual play-throughs. The couple is exactly 2 people,
+  // but ranking raw rounds could let one person's several attempts fill
+  // most/all of the top 5 (a very active player still shows up multiple
+  // times), which reads as "more than 2 players" even though every row is
+  // still labeled either "Kamu" or "Pasangan". Aggregating first guarantees
+  // at most 2 rows -- exactly what a 2-person leaderboard should show.
+  const bestByUser = new Map<string, (typeof data)[number]>();
+  for (const s of data) {
+    if (s.score === null) continue;
+    const key = s.user_id ?? 'unknown';
+    const existing = bestByUser.get(key);
+    const isBetter = !existing || (sort === 'asc' ? s.score! < existing.score! : s.score! > existing.score!);
+    if (isBetter) bestByUser.set(key, s);
+  }
+  const sorted = [...bestByUser.values()].sort((a, b) =>
+    sort === 'asc' ? a.score! - b.score! : b.score! - a.score!
+  );
 
   if (sorted.length === 0) {
     return <Text style={[styles.empty, isArtDeco && deco.empty]}>Belum ada skor tercatat.</Text>;

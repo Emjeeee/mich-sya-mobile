@@ -62,7 +62,8 @@ export function MemoryMatchGame({ coupleId }: { coupleId?: string | null }) {
     if (won && !recorded) {
       setRecorded(true);
       supabase.auth.getUser().then(({ data }) => {
-        recordScore({ userId: data.user?.id ?? null, score: moves });
+        if (!data.user?.id) return;
+        recordScore({ userId: data.user.id, score: moves });
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

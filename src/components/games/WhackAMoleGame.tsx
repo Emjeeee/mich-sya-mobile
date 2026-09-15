@@ -57,7 +57,8 @@ export function WhackAMoleGame({ coupleId }: { coupleId?: string | null }) {
     if (!running && timeLeft === 0 && !recorded) {
       setRecorded(true);
       supabase.auth.getUser().then(({ data }) => {
-        recordScore({ userId: data.user?.id ?? null, score });
+        if (!data.user?.id) return;
+        recordScore({ userId: data.user.id, score });
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

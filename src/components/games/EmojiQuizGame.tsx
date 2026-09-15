@@ -39,7 +39,8 @@ export function EmojiQuizGame({ coupleId }: { coupleId?: string | null }) {
       if (!recorded) {
         setRecorded(true);
         supabase.auth.getUser().then(({ data }) => {
-          recordScore({ userId: data.user?.id ?? null, score: correct });
+          if (!data.user?.id) return;
+          recordScore({ userId: data.user.id, score: correct });
         });
       }
     }

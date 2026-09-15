@@ -129,7 +129,12 @@ export function SnakeGame({ coupleId }: { coupleId?: string | null }) {
     if (gameOver && !recorded) {
       setRecorded(true);
       supabase.auth.getUser().then(({ data }) => {
-        recordScore({ userId: data.user?.id ?? null, score: snake.length });
+        // A stale/racing session (no resolved user id) writes nothing rather
+        // than a null user_id, which Leaderboard.tsx would otherwise
+        // display as "Pasangan" -- misattributing your own round to your
+        // partner's.
+        if (!data.user?.id) return;
+        recordScore({ userId: data.user.id, score: snake.length });
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -55,7 +55,8 @@ export function SlidingPuzzleGame({ coupleId }: { coupleId?: string | null }) {
     if (next.every((v, i) => v === SOLVED[i]) && !recorded) {
       setRecorded(true);
       supabase.auth.getUser().then(({ data }) => {
-        recordScore({ userId: data.user?.id ?? null, score: moves + 1 });
+        if (!data.user?.id) return;
+        recordScore({ userId: data.user.id, score: moves + 1 });
       });
     }
   }

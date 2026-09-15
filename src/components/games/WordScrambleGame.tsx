@@ -57,7 +57,8 @@ export function WordScrambleGame({ coupleId }: { coupleId?: string | null }) {
       if (!recorded) {
         setRecorded(true);
         supabase.auth.getUser().then(({ data }) => {
-          recordScore({ userId: data.user?.id ?? null, score: solved });
+          if (!data.user?.id) return;
+          recordScore({ userId: data.user.id, score: solved });
         });
       }
     }

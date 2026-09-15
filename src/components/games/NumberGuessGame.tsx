@@ -32,7 +32,9 @@ export function NumberGuessGame({ coupleId }: { coupleId?: string | null }) {
     if (value === secret) {
       setWon(true);
       const { data } = await supabase.auth.getUser();
-      await recordScore({ userId: data.user?.id ?? null, score: nextHistory.length });
+      if (data.user?.id) {
+        await recordScore({ userId: data.user.id, score: nextHistory.length });
+      }
     }
   }
 

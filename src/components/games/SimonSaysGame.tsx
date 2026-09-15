@@ -87,7 +87,8 @@ export function SimonSaysGame({ coupleId }: { coupleId?: string | null }) {
     if (phase === 'gameOver' && !recorded) {
       setRecorded(true);
       supabase.auth.getUser().then(({ data }) => {
-        recordScore({ userId: data.user?.id ?? null, score: sequence.length - 1 });
+        if (!data.user?.id) return;
+        recordScore({ userId: data.user.id, score: sequence.length - 1 });
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
