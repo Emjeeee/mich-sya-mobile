@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { supabase } from '../lib/supabase';
 import type { GameSessionRow, GameStatus, GameType, GameWinner } from '../types/database';
@@ -18,6 +18,7 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
   const [userId, setUserId] = useState<string | null>(null);
   const [session, setSession] = useState<GameSessionRow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const requestCounterRef = useRef(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -29,6 +30,7 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
   // the same poll window and one write silently clobbers the other's.
   const refetch = useCallback(async (): Promise<GameSessionRow | null> => {
     if (!coupleId) return null;
+    const requestId = ++requestCounterRef.current;
     const { data, error } = await supabase
       .from('game_sessions')
       .select('*')
@@ -43,6 +45,8 @@ export function useOnlineGameSession(coupleId: string | null | undefined, gameTy
       return null;
     }
     const row = (data as GameSessionRow) ?? null;
+    // A newer poll was issued while this one was in flight -- don't overwrite its result.
+    if (requestId !== requestCounterRef.current) return row;
     setSession(row);
     setIsLoading(false);
     return row;

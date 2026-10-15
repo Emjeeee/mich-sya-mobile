@@ -33,7 +33,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeName, setThemeNameState] = useState<ThemeName>('liquidglass');
   const [storageReady, setStorageReady] = useState(false);
-  const [fontsLoaded] = useFonts(artDecoFontMap);
+  const [fontsLoaded, fontError] = useFonts(artDecoFontMap);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -56,7 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       isArtDeco: themeName === 'artdeco',
       isLiquidGlass: themeName === 'liquidglass',
       setThemeName,
-      ready: storageReady && fontsLoaded,
+      ready: storageReady && (fontsLoaded || !!fontError),
     }),
     [themeName, storageReady, fontsLoaded]
   );

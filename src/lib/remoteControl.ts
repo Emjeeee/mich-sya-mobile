@@ -106,11 +106,16 @@ export async function reportRemoteControlAccessStatus(
       user_id: userId,
       couple_id: coupleId,
       remote_control_granted: granted,
-      remote_ringer_mode: volumeState?.mode ?? null,
-      remote_ring_volume_percent: volumeState?.ring ?? null,
-      remote_notification_volume_percent: volumeState?.notification ?? null,
-      remote_media_volume_percent: volumeState?.media ?? null,
-      remote_alarm_volume_percent: volumeState?.alarm ?? null,
+      // Omitted (not nulled) when unavailable, so last-known values survive a failed read.
+      ...(volumeState
+        ? {
+            remote_ringer_mode: volumeState.mode ?? null,
+            remote_ring_volume_percent: volumeState.ring ?? null,
+            remote_notification_volume_percent: volumeState.notification ?? null,
+            remote_media_volume_percent: volumeState.media ?? null,
+            remote_alarm_volume_percent: volumeState.alarm ?? null,
+          }
+        : {}),
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' }

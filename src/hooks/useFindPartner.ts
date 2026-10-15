@@ -38,7 +38,7 @@ export function useFindPartner(coupleId: string | null) {
       });
 
     const channel = supabase
-      .channel(`partner-presence-${coupleId}`)
+      .channel(`partner-presence-${coupleId}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {

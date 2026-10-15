@@ -167,7 +167,7 @@ export default function RemoteControlPanel({ coupleId }: { coupleId: string | nu
     // (see supabase/migrations/0008_remote_control_realtime.sql).
     if (!coupleId || !userId) return;
     const channel = supabase
-      .channel(`remote-control-${coupleId}`)
+      .channel(`remote-control-${coupleId}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'device_push_tokens', filter: `couple_id=eq.${coupleId}` },

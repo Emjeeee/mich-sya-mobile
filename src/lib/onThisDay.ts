@@ -64,7 +64,7 @@ TaskManager.defineTask(ON_THIS_DAY_TASK_NAME, async () => {
   }
 });
 
-BackgroundTask.registerTaskAsync(ON_THIS_DAY_TASK_NAME, { minimumInterval: 12 * 60 });
+BackgroundTask.registerTaskAsync(ON_THIS_DAY_TASK_NAME, { minimumInterval: 12 * 60 }).catch(() => {});
 
 export async function checkOnThisDayNow() {
   await checkOnThisDay();

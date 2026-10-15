@@ -85,7 +85,7 @@ TaskManager.defineTask(FIND_PARTNER_CAP_CHECK_TASK_NAME, async () => {
   }
 });
 
-BackgroundTask.registerTaskAsync(FIND_PARTNER_CAP_CHECK_TASK_NAME, { minimumInterval: 15 });
+BackgroundTask.registerTaskAsync(FIND_PARTNER_CAP_CHECK_TASK_NAME, { minimumInterval: 15 }).catch(() => {});
 
 export type StartFindPartnerResult = 'ok' | 'foreground-denied' | 'background-denied';
 
