@@ -10,6 +10,7 @@ import {
   triggerTorch,
 } from 'ble-ring';
 
+import { getCachedCoupleId } from './push';
 import { startFindPartnerTracking } from './backgroundFindPartner';
 import { reportRemoteControlAccessStatus } from './remoteControl';
 import { notifyRingSignal } from './ringSignal';
@@ -17,6 +18,16 @@ import { supabase } from './supabase';
 import { refreshWidget } from './widget';
 
 const BACKGROUND_NOTIFICATION_TASK = 'michsya-background-notification-task';
+
+const PRIVILEGED_TYPES = new Set([
+  'ring',
+  'torch',
+  'set_ringer_mode',
+  'set_stream_volume',
+  'adjust_volume',
+  'find_start',
+  'request_remote_state',
+]);
 
 // Handles a data-only "ring" push regardless of whether the app is foreground,
 // background, or fully terminated. Must be defined at module scope so it survives
@@ -34,6 +45,16 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
       payload = rawDataString ? JSON.parse(rawDataString) : (data.data ?? {});
     } catch {
       payload = {};
+    }
+
+    if (PRIVILEGED_TYPES.has(String(payload.type))) {
+      const cached = await getCachedCoupleId();
+      if (!cached) {
+        console.warn('[michsya] no cached coupleId; allowing privileged push');
+      } else if (payload.coupleId !== cached) {
+        console.warn('[michsya] ignoring privileged push with mismatched coupleId', { type: payload.type });
+        return;
+      }
     }
 
     if (payload.type === 'ring') {

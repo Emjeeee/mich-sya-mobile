@@ -1,4 +1,21 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
+
 import { supabase } from './supabase';
+
+const COUPLE_ID_KEY = 'michsya_cached_couple_id';
+
+export function cacheCoupleId(coupleId: string) {
+  AsyncStorage.setItem(COUPLE_ID_KEY, coupleId).catch(() => {});
+}
+
+export async function getCachedCoupleId(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(COUPLE_ID_KEY);
+  } catch {
+    return null;
+  }
+}
 
 interface PushPayload {
   title?: string;
@@ -9,6 +26,7 @@ interface PushPayload {
 }
 
 export async function registerPushToken(coupleId: string, userId: string, token: string) {
+  cacheCoupleId(coupleId);
   await supabase.from('device_push_tokens').upsert(
     {
       user_id: userId,
@@ -74,8 +92,9 @@ export async function sendPushToPartner(
   // which previously aborted ringPartner() entirely before it could even
   // check whether BLE/SMS went out. Must degrade to `false`, not throw.
   try {
-    const token = await getPartnerPushToken(coupleId, myUserId);
-    if (!token) return false;
+    cacheCoupleId(coupleId);
+    // Receiver validates coupleId (backgroundNotifications.ts); senderId is informational.
+    const data = { ...payload.data, coupleId, senderId: myUserId };
 
     // Data-only pushes (no title/body -- ring, widget_refresh, find_start's
     // internal re-delivery) must NOT set `sound` or `channelId`: both are
@@ -88,6 +107,27 @@ export async function sendPushToPartner(
     // bit of our own handling entirely, native or JS.
     const isDataOnly = !payload.title && !payload.body;
 
+    // The Edge Function resolves the partner token server-side and only relays
+    // data-only pushes; visible (title/body) pushes still go direct for now.
+    if (isDataOnly) {
+      const { error } = await supabase.functions.invoke('send-expo-push', {
+        body: { data, priority: payload.priority ?? 'high' },
+      });
+      if (!error) return true;
+      const status = (error as { context?: { status?: number } }).context?.status;
+      const notDeployed =
+        error instanceof FunctionsFetchError || (error instanceof FunctionsHttpError && status === 404);
+      if (!notDeployed) {
+        console.warn('send-expo-push failed:', error);
+        return false;
+      }
+      // TEMPORARY: delete this fallback once send-expo-push is deployed.
+      console.warn('send-expo-push unavailable, falling back to direct exp.host push');
+    }
+
+    const token = await getPartnerPushToken(coupleId, myUserId);
+    if (!token) return false;
+
     const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: {
@@ -98,7 +138,7 @@ export async function sendPushToPartner(
         to: token,
         title: payload.title,
         body: payload.body,
-        data: payload.data,
+        data,
         ...(isDataOnly
           ? {}
           : { sound: payload.sound ?? 'default', channelId: 'default' }),
