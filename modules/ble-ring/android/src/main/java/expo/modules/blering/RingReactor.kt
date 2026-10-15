@@ -40,6 +40,13 @@ object RingReactor {
     showRingNotification(context)
   }
 
+  // Remote stop (BLE/SMS/push): the local stop plus closing the native alert
+  // Activity, which only the swipe/back path closed before.
+  fun stopRemote(context: Context) {
+    stop(context)
+    NativeRingAlertActivity.finishIfShowing()
+  }
+
   @Synchronized
   fun stop(context: Context) {
     rampRunnable?.let { rampHandler.removeCallbacks(it) }

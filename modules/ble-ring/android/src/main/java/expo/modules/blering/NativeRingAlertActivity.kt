@@ -21,6 +21,7 @@ class NativeRingAlertActivity : Activity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    current = this
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
       setShowWhenLocked(true)
@@ -93,11 +94,24 @@ class NativeRingAlertActivity : Activity() {
     // Safety net for any other dismissal path (task swiped away from
     // Recents, etc.) -- stop() is idempotent, so calling it again after the
     // swipe/back-press already did is harmless.
+    if (current === this) current = null
     RingReactor.stop(applicationContext)
     super.onDestroy()
   }
 
   companion object {
     private const val DISMISS_THRESHOLD = 90
+
+    // Set only while an instance exists (cleared in onDestroy) so a remote
+    // stop can close it.
+    @Volatile
+    private var current: NativeRingAlertActivity? = null
+
+    fun finishIfShowing() {
+      val activity = current ?: return
+      activity.runOnUiThread {
+        if (!activity.isFinishing) activity.finish()
+      }
+    }
   }
 }

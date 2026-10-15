@@ -92,6 +92,18 @@ class BleRingScanService : Service() {
 
   private val scanCallback = object : ScanCallback() {
     override fun onScanResult(callbackType: Int, result: ScanResult?) {
+      val payload = result?.scanRecord?.getServiceData(ParcelUuid(RingBleConstants.SERVICE_UUID))
+
+      // Ring stop (type 3) runs before the cooldown below so a stop sent
+      // right after a ring isn't swallowed by that ring's cooldown.
+      if (payload != null && payload.isNotEmpty() && payload[0].toInt() == 3) {
+        val stopId = RingIdMemory.fromPayload(payload)
+        Log.d(TAG, "Ring stop advertisement detected, stopping ring")
+        if (stopId != null) RingIdMemory.markStopped(stopId)
+        RingReactor.stopRemote(applicationContext)
+        return
+      }
+
       val now = System.currentTimeMillis()
       // The sender advertises for several seconds -- ignore repeat sightings
       // of the same burst so we don't re-trigger the alert on every scan tick.
@@ -99,10 +111,15 @@ class BleRingScanService : Service() {
       lastTriggeredAt = now
 
       // Service data layout (see BleRingModule.torchPayload): byte 0 is the
-      // event type (0=ring, 1=torch); no data at all (older advertiser, or
-      // ring's minimal 1-byte payload) also means ring.
-      val payload = result?.scanRecord?.getServiceData(ParcelUuid(RingBleConstants.SERVICE_UUID))
+      // event type (0=ring, 1=torch, 3=ring stop; 2 is reserved); no data at
+      // all (older advertiser) also means ring. Ring bytes 1-2 are an
+      // optional ring id.
       if (payload == null || payload.isEmpty() || payload[0].toInt() == 0) {
+        val ringId = if (payload != null) RingIdMemory.fromPayload(payload) else null
+        if (ringId != null && RingIdMemory.shouldIgnoreRing(ringId)) {
+          Log.d(TAG, "Ring advertisement ignored (already stopped or handled)")
+          return
+        }
         Log.d(TAG, "Ring advertisement detected, triggering alert")
         RingReactor.trigger(applicationContext)
         return

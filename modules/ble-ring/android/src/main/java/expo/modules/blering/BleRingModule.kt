@@ -29,9 +29,14 @@ class BleRingModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("BleRing")
 
-    AsyncFunction("broadcastRing") { promise: Promise ->
-      // Event type 0 = ring, no further payload needed.
-      broadcastEvent(byteArrayOf(0), promise)
+    AsyncFunction("broadcastRing") { ringId: Int?, promise: Promise ->
+      // Event type 0 = ring; optional bytes 1-2 = ring id (little-endian).
+      broadcastEvent(ringPayload(0, ringId), promise)
+    }
+
+    // Event type 3 = ring stop (2 is reserved for a future presence beacon).
+    AsyncFunction("broadcastRingStop") { ringId: Int?, promise: Promise ->
+      broadcastEvent(ringPayload(3, ringId), promise)
     }
 
     AsyncFunction("broadcastTorch") { kind: String, onMs: Int?, offMs: Int?, promise: Promise ->
@@ -85,8 +90,14 @@ class BleRingModule : Module() {
       promise.resolve(BleRingScanService.isRunning)
     }
 
-    AsyncFunction("sendRingSms") { phoneNumber: String, promise: Promise ->
-      sendSms(phoneNumber, RingBleConstants.SMS_TRIGGER_MESSAGE, promise)
+    AsyncFunction("sendRingSms") { phoneNumber: String, ringId: Int?, promise: Promise ->
+      val suffix = if (ringId != null) ":$ringId" else ""
+      sendSms(phoneNumber, RingBleConstants.SMS_TRIGGER_MESSAGE + suffix, promise)
+    }
+
+    AsyncFunction("sendRingStopSms") { phoneNumber: String, ringId: Int?, promise: Promise ->
+      val suffix = if (ringId != null) ":$ringId" else ""
+      sendSms(phoneNumber, RingBleConstants.SMS_RING_STOP_MESSAGE_PREFIX + suffix, promise)
     }
 
     AsyncFunction("sendTorchSms") { phoneNumber: String, kind: String, onMs: Int?, offMs: Int?, promise: Promise ->
@@ -135,6 +146,26 @@ class BleRingModule : Module() {
     AsyncFunction("stopRing") { promise: Promise ->
       RingReactor.stop(context)
       promise.resolve(true)
+    }
+
+    // Push channel's ring dedupe: true if this ring id was already stopped
+    // or handled via another channel (so it should be ignored); otherwise
+    // records it as handled.
+    AsyncFunction("shouldIgnoreRing") { ringId: Int, promise: Promise ->
+      promise.resolve(RingIdMemory.shouldIgnoreRing(ringId))
+    }
+
+    // Push channel's remote ring stop: remembers the id (so a late ring with
+    // it is ignored), then stops sound/vibration/notification and closes the
+    // native alert Activity. A harmless no-op if nothing is ringing.
+    AsyncFunction("stopRingRemote") { ringId: Int?, promise: Promise ->
+      try {
+        if (ringId != null) RingIdMemory.markStopped(ringId)
+        RingReactor.stopRemote(context)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
     }
 
     // Push channel's bridge for remotely stopping the *other* device's
@@ -338,6 +369,16 @@ class BleRingModule : Module() {
     "custom" -> 4
     "stop" -> 5
     else -> 1
+  }
+
+  // eventType(1) + optional ringId(2, little-endian; omitted when null).
+  private fun ringPayload(eventType: Int, ringId: Int?): ByteArray {
+    if (ringId == null) return byteArrayOf(eventType.toByte())
+    return byteArrayOf(
+      eventType.toByte(),
+      (ringId and 0xFF).toByte(),
+      ((ringId shr 8) and 0xFF).toByte()
+    )
   }
 
   // eventType(1) + patternKind(1) + onMsLo/onMsHi + offMsLo/offMsHi -- the

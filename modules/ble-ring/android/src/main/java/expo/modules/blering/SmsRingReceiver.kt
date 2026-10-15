@@ -26,7 +26,27 @@ class SmsRingReceiver : BroadcastReceiver() {
       val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
       val fullBody = messages.joinToString("") { it.messageBody ?: "" }
 
-      if (fullBody.contains(RingBleConstants.SMS_TRIGGER_MARKER)) {
+      // Must be checked before the ring marker below.
+      val stopIndex = fullBody.indexOf(RingBleConstants.SMS_RING_STOP_MARKER)
+      if (stopIndex >= 0) {
+        val stopId = RingIdMemory.fromSmsSuffix(
+          fullBody.substring(stopIndex + RingBleConstants.SMS_RING_STOP_MARKER.length)
+        )
+        Log.d(TAG, "Ring stop SMS detected, stopping ring")
+        if (stopId != null) RingIdMemory.markStopped(stopId)
+        RingReactor.stopRemote(context.applicationContext)
+        return
+      }
+
+      val ringIndex = fullBody.indexOf(RingBleConstants.SMS_TRIGGER_MARKER)
+      if (ringIndex >= 0) {
+        val ringId = RingIdMemory.fromSmsSuffix(
+          fullBody.substring(ringIndex + RingBleConstants.SMS_TRIGGER_MARKER.length)
+        )
+        if (ringId != null && RingIdMemory.shouldIgnoreRing(ringId)) {
+          Log.d(TAG, "Ring SMS ignored (already stopped or handled)")
+          return
+        }
         Log.d(TAG, "Ring SMS detected, triggering alert")
         RingReactor.trigger(context.applicationContext)
         return

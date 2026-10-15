@@ -33,6 +33,12 @@ object RingBleConstants {
   const val SMS_TORCH_TRIGGER_MARKER = "MICHSYA_TORCH_7f3a9c"
   const val SMS_TORCH_MESSAGE_PREFIX = "[MichSya] Pasanganmu lagi coba nyalain senter HP kamu. $SMS_TORCH_TRIGGER_MARKER"
 
+  // Remote ring stop. Doesn't overlap the ring marker, but SmsRingReceiver
+  // checks it first anyway. Plain GSM-7 like the torch marker; an optional
+  // ":<ringId>" suffix follows it.
+  const val SMS_RING_STOP_MARKER = "MICHSYA_RINGSTOP_7f3a9c"
+  const val SMS_RING_STOP_MESSAGE_PREFIX = "[MichSya] Pasanganmu lagi coba mematikan bunyi HP kamu. $SMS_RING_STOP_MARKER"
+
   const val TORCH_NOTIFICATION_CHANNEL_ID = "michsya-torch"
   const val TORCH_NOTIFICATION_ID = 9190
   const val TORCH_AUTO_OFF_MS = 30_000L
