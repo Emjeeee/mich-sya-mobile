@@ -10,6 +10,25 @@ const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
 // then have to download every time it changes (see AdvancedSettingsScreen.tsx).
 const MAX_SOUND_SIZE_BYTES = 10 * 1024 * 1024;
 
+// Permanent failure (retrying can never succeed) -- the offline queue must not
+// keep re-attempting these. Flag instead of instanceof: safer across Hermes/Babel.
+export function isUploadValidationError(err: unknown): boolean {
+  return !!err && (err as { isValidation?: boolean }).isValidation === true;
+}
+
+function validationError(message: string): Error {
+  return Object.assign(new Error(message), { isValidation: true });
+}
+
+const VIDEO_TOO_BIG = `Video terlalu besar (maks ${MAX_VIDEO_SIZE_BYTES / (1024 * 1024)}MB). Coba video yang lebih pendek.`;
+
+// Cheap pre-read check using the picker's reported size, so an oversized file
+// is rejected before it is ever loaded into memory.
+export function checkVideoSize(contentType: string, fileSize: number | null | undefined): string | null {
+  if (contentType.includes('video') && fileSize != null && fileSize > MAX_VIDEO_SIZE_BYTES) return VIDEO_TOO_BIG;
+  return null;
+}
+
 function extensionFromUri(uri: string, fallback: string): string {
   const match = /\.([a-zA-Z0-9]+)$/.exec(uri.split('?')[0]);
   return match ? match[1].toLowerCase() : fallback;
@@ -32,12 +51,10 @@ export async function uploadCouplePhoto(
   const arrayBuffer = await response.arrayBuffer();
 
   if (contentType.includes('video') && arrayBuffer.byteLength > MAX_VIDEO_SIZE_BYTES) {
-    throw new Error(
-      `Video terlalu besar (maks ${MAX_VIDEO_SIZE_BYTES / (1024 * 1024)}MB). Coba video yang lebih pendek.`
-    );
+    throw validationError(VIDEO_TOO_BIG);
   }
   if (contentType.includes('audio') && arrayBuffer.byteLength > MAX_SOUND_SIZE_BYTES) {
-    throw new Error(
+    throw validationError(
       `File suara terlalu besar (maks ${MAX_SOUND_SIZE_BYTES / (1024 * 1024)}MB). Coba file yang lebih kecil.`
     );
   }

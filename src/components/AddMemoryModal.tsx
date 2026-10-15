@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { enqueuePendingMemory, flushPendingMemories, type PendingMemory } from '../lib/offlineQueue';
 import { saveMemoryNow } from '../lib/memoryUpload';
+import { checkVideoSize, isUploadValidationError } from '../lib/storage';
 import { localDateString } from '../lib/time';
 import { artDeco } from '../theme/artDecoTokens';
 import { useAppTheme } from '../theme/ThemeContext';
@@ -82,6 +83,16 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
     onClose();
   };
 
+  const addPickedAssets = (picked: ImagePicker.ImagePickerAsset[]) => {
+    const accepted: ImagePicker.ImagePickerAsset[] = [];
+    for (const asset of picked) {
+      const tooBig = checkVideoSize(asset.type === 'video' ? 'video/mp4' : 'image/jpeg', asset.fileSize);
+      if (tooBig) setError(tooBig);
+      else accepted.push(asset);
+    }
+    if (accepted.length > 0) setAssets((prev) => [...prev, ...accepted]);
+  };
+
   const pickMedia = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== 'granted') {
@@ -96,7 +107,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
     });
 
     if (!result.canceled) {
-      setAssets((prev) => [...prev, ...result.assets]);
+      addPickedAssets(result.assets);
     }
   };
 
@@ -113,7 +124,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
     });
 
     if (!result.canceled) {
-      setAssets((prev) => [...prev, ...result.assets]);
+      addPickedAssets(result.assets);
     }
   };
 
@@ -163,9 +174,14 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
 
     try {
       await saveMemoryNow(item);
-      flushPendingMemories();
+      flushPendingMemories().catch(() => {});
       handleClose();
     } catch (err) {
+      if (isUploadValidationError(err)) {
+        setSaving(false);
+        setError(err instanceof Error ? err.message : 'File tidak valid.');
+        return;
+      }
       await enqueuePendingMemory(item);
       setSaving(false);
       setNotice('Gagal upload sekarang -- disimpan, akan dicoba lagi otomatis nanti.');

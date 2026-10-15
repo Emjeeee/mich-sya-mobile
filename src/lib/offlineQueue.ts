@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { saveMemoryNow } from './memoryUpload';
+import { isUploadValidationError } from './storage';
 
 const QUEUE_KEY = 'michsya.offlineMemoryQueue';
 
@@ -64,8 +65,9 @@ export async function flushPendingMemories() {
     for (const item of queue) {
       try {
         await saveMemoryNow(item);
-      } catch {
-        remaining.push(item);
+      } catch (err) {
+        // Validation failures (e.g. oversized video) would never succeed -- drop, don't retry forever.
+        if (!isUploadValidationError(err)) remaining.push(item);
       }
     }
     await setQueue(remaining);

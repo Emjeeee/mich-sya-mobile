@@ -8,16 +8,14 @@ export async function saveMemoryNow(item: PendingMemory): Promise<void> {
   const { data: userData } = await supabase.auth.getUser();
   const createdBy = userData.user?.id ?? null;
 
-  const [paths, voiceNotePath] = await Promise.all([
-    Promise.all(
-      item.assets.map((asset) =>
-        uploadCouplePhoto(item.coupleId, 'memories', asset.uri, asset.mimeType)
-      )
-    ),
-    item.voiceNote
-      ? uploadCouplePhoto(item.coupleId, 'memories', item.voiceNote.uri, item.voiceNote.mimeType)
-      : Promise.resolve(null),
-  ]);
+  // Sequential, not Promise.all: each upload holds a whole file as an ArrayBuffer.
+  const paths: string[] = [];
+  for (const asset of item.assets) {
+    paths.push(await uploadCouplePhoto(item.coupleId, 'memories', asset.uri, asset.mimeType));
+  }
+  const voiceNotePath = item.voiceNote
+    ? await uploadCouplePhoto(item.coupleId, 'memories', item.voiceNote.uri, item.voiceNote.mimeType)
+    : null;
 
   // A voice note with no photos still needs one row to attach to; a voice note
   // alongside photos rides along on every row from this same capture.

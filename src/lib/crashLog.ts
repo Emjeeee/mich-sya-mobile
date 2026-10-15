@@ -25,12 +25,13 @@ async function readEntries(): Promise<CrashEntry[]> {
   }
 }
 
-// Fire-and-forget by design -- called from a global exception handler and a
+// Callers may ignore the returned promise (it never rejects); the fatal-error
+// handler awaits it briefly. Fire-and-forget by design -- called from a global exception handler and a
 // React error boundary, neither of which can safely await much (the process
 // may be about to terminate) or throw further (there's nowhere left for
 // that error to go).
-export function recordCrash(entry: Omit<CrashEntry, 'timestamp'>): void {
-  readEntries()
+export function recordCrash(entry: Omit<CrashEntry, 'timestamp'>): Promise<void> {
+  return readEntries()
     .then((existing) => {
       const next = [{ ...entry, timestamp: new Date().toISOString() }, ...existing].slice(0, MAX_ENTRIES);
       return AsyncStorage.setItem(CRASH_KEY, JSON.stringify(next));

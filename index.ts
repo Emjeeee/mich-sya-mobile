@@ -20,14 +20,27 @@ import App from './App';
 // how the app actually crashes, only log before it does.
 const originalHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
-  recordCrash({
+  const written = recordCrash({
     message: error?.message ?? String(error),
     stack: error?.stack ?? null,
     isFatal: !!isFatal,
     source: 'global',
     screen: null,
   });
-  originalHandler(error, isFatal);
+  if (!isFatal) {
+    originalHandler(error, isFatal);
+    return;
+  }
+  // The AsyncStorage write is async -- give it a moment to land before the
+  // fatal handler tears the process down.
+  let called = false;
+  const proceed = () => {
+    if (called) return;
+    called = true;
+    originalHandler(error, isFatal);
+  };
+  setTimeout(proceed, 500);
+  written.then(proceed, proceed);
 });
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

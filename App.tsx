@@ -45,10 +45,13 @@ function AppInner() {
   const [ringActive, setRingActive] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setInitializing(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+        setInitializing(false);
+      })
+      .catch(() => setInitializing(false));
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -72,8 +75,8 @@ function AppInner() {
 
   useEffect(() => {
     // AppState 'change' doesn't fire on the very first cold launch, so also run once on mount.
-    flushPendingMemories();
-    checkOnThisDayNow();
+    flushPendingMemories().catch(() => {});
+    checkOnThisDayNow().catch(() => {});
     refreshWidget().catch(() => {});
     // Runs for BOTH accounts (unlike RemoteControlAccess/Panel, which are
     // gated to one side each) -- quiet hours and a custom ringtone apply to
@@ -83,8 +86,8 @@ function AppInner() {
 
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        flushPendingMemories();
-        checkOnThisDayNow();
+        flushPendingMemories().catch(() => {});
+        checkOnThisDayNow().catch(() => {});
         refreshWidget().catch(() => {});
         syncRingCustomizationToDevice().catch(() => {});
       }
