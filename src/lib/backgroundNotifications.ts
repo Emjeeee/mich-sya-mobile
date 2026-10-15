@@ -51,7 +51,8 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
       const cached = await getCachedCoupleId();
       if (!cached) {
         console.warn('[michsya] no cached coupleId; allowing privileged push');
-      } else if (payload.coupleId !== cached) {
+      } else if (payload.coupleId !== undefined && payload.coupleId !== cached) {
+        // A missing coupleId (push from a build older than this check) is let through so mixed-version phones still ring each other; tighten once both are updated.
         console.warn('[michsya] ignoring privileged push with mismatched coupleId', { type: payload.type });
         return;
       }
