@@ -120,7 +120,9 @@ export async function startFindPartnerTracking(
     await Location.startLocationUpdatesAsync(FIND_PARTNER_TASK_NAME, {
       accuracy: Location.Accuracy.Balanced,
       timeInterval: PING_INTERVAL_MS,
-      distanceInterval: 10,
+      // 0, not 10: with a 10m displacement filter a phone sitting still (a desk,
+      // the meeting point) may never deliver a fix, so nothing is ever uploaded.
+      distanceInterval: 0,
       showsBackgroundLocationIndicator: true,
       foregroundService: {
         notificationTitle: 'MichSya sedang membagikan lokasi',
@@ -128,7 +130,37 @@ export async function startFindPartnerTracking(
       },
     });
   }
+  // Upload a first position right now instead of waiting for the OS to
+  // deliver one -- the UI's "sharing" state and the partner's compass both
+  // come from this row, so no row meant the button never changed and the
+  // partner saw nothing.
+  await uploadCurrentPosition(coupleId, userId);
   return 'ok';
+}
+
+async function uploadCurrentPosition(coupleId: string, userId: string) {
+  try {
+    const pos =
+      (await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+      ])) ?? (await Location.getLastKnownPositionAsync());
+    if (!pos) return;
+    const { error } = await supabase.from('partner_presence').upsert(
+      {
+        couple_id: coupleId,
+        user_id: userId,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        is_sharing: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'couple_id,user_id' }
+    );
+    if (error) console.warn('[michsya] initial presence upsert failed:', error);
+  } catch (err) {
+    console.warn('[michsya] initial presence upload failed:', err);
+  }
 }
 
 export async function stopFindPartnerTracking(coupleId: string, userId: string) {
