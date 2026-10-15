@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import { registerRootComponent } from 'expo';
 
 import { recordCrash } from './src/lib/crashLog';
+import './src/lib/autoDate';
 import './src/lib/backgroundLocation';
 import './src/lib/backgroundNotifications';
 import './src/lib/onThisDay';

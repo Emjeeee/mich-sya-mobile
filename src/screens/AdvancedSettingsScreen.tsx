@@ -16,11 +16,14 @@ import * as DocumentPicker from 'expo-document-picker';
 
 import {
   getCoupleRingSettings,
+  setCoupleAutoDateEnabled,
   setCoupleCustomRingtone,
+  setCoupleHome,
   setCoupleQuietHours,
   syncRingCustomizationToDevice,
   type CoupleRingSettings,
 } from '../lib/ringCustomization';
+import { getCurrentCoords } from '../lib/location';
 import { uploadCouplePhoto } from '../lib/storage';
 import type { RootStackParamList } from '../navigation/types';
 import { artDeco } from '../theme/artDecoTokens';
@@ -79,6 +82,7 @@ export default function AdvancedSettingsScreen({ navigation, route }: Props) {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [savingHours, setSavingHours] = useState(false);
+  const [savingAutoDate, setSavingAutoDate] = useState(false);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -141,6 +145,50 @@ export default function AdvancedSettingsScreen({ navigation, route }: Props) {
       Alert.alert('Gagal', 'Tidak bisa menyimpan jadwal.');
     } finally {
       setSavingHours(false);
+    }
+  };
+
+  // Kencan otomatis (0009_auto_date.sql) -- same sync path as the settings
+  // above: write to Supabase, then push down to this device's native prefs.
+  const handleToggleAutoDate = async (enabled: boolean) => {
+    setSavingAutoDate(true);
+    try {
+      await setCoupleAutoDateEnabled(coupleId, enabled);
+      await syncRingCustomizationToDevice();
+      refresh();
+    } catch {
+      Alert.alert('Gagal', 'Tidak bisa menyimpan pengaturan kencan otomatis.');
+    } finally {
+      setSavingAutoDate(false);
+    }
+  };
+
+  const handleSetHome = async () => {
+    setSavingAutoDate(true);
+    try {
+      const coords = await getCurrentCoords();
+      if (!coords) {
+        Alert.alert('Lokasi belum tersedia', 'Nyalakan GPS dan izinkan akses lokasi, lalu coba lagi.');
+        return;
+      }
+      await setCoupleHome(coupleId, coords.lat, coords.lng);
+      refresh();
+    } catch {
+      Alert.alert('Gagal', 'Tidak bisa menyimpan lokasi Rumah.');
+    } finally {
+      setSavingAutoDate(false);
+    }
+  };
+
+  const handleClearHome = async () => {
+    setSavingAutoDate(true);
+    try {
+      await setCoupleHome(coupleId, null, null);
+      refresh();
+    } catch {
+      Alert.alert('Gagal', 'Tidak bisa menghapus lokasi Rumah.');
+    } finally {
+      setSavingAutoDate(false);
     }
   };
 
@@ -295,6 +343,65 @@ export default function AdvancedSettingsScreen({ navigation, route }: Props) {
                 </Text>
               )}
             </Pressable>
+          </Card>
+
+          <Card isLiquidGlass={isLiquidGlass} isArtDeco={isArtDeco}>
+            <View style={styles.rowBetween}>
+              <Text style={[styles.cardTitle, isArtDeco && deco.cardTitle, isLiquidGlass && glass.cardTitle]}>
+                Kencan otomatis
+              </Text>
+              <Switch
+                value={!!settings?.auto_date_enabled}
+                onValueChange={handleToggleAutoDate}
+                disabled={savingAutoDate}
+                trackColor={isLiquidGlass ? { false: '#ccc', true: liquidGlass.color.accentDeep } : undefined}
+              />
+            </View>
+            <Text style={[styles.cardHint, isArtDeco && deco.cardHint, isLiquidGlass && glass.cardHint]}>
+              Kencan dimulai sendiri kalau HP kalian berdekatan sekitar 3 menit (di luar Rumah), dan selesai kalau
+              terpisah 15 menit.
+            </Text>
+            <Text style={[styles.statusText, isArtDeco && deco.statusText, isLiquidGlass && glass.statusText]}>
+              {settings?.home_lat != null && settings?.home_lng != null ? 'Rumah: sudah diatur' : 'Rumah: belum diatur'}
+            </Text>
+            <View style={styles.row}>
+              <Pressable
+                style={[styles.button, isArtDeco && deco.button, isLiquidGlass && glass.button]}
+                onPress={handleSetHome}
+                disabled={savingAutoDate}
+              >
+                {savingAutoDate ? (
+                  <ActivityIndicator color={accent} />
+                ) : (
+                  <Text style={[styles.buttonText, isArtDeco && deco.buttonText, isLiquidGlass && glass.buttonText]}>
+                    Jadikan lokasi ini Rumah
+                  </Text>
+                )}
+              </Pressable>
+              {settings?.home_lat != null && settings?.home_lng != null && (
+                <Pressable
+                  style={[
+                    styles.button,
+                    styles.secondaryButton,
+                    isArtDeco && deco.secondaryButton,
+                    isLiquidGlass && glass.secondaryButton,
+                  ]}
+                  onPress={handleClearHome}
+                  disabled={savingAutoDate}
+                >
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      styles.secondaryButtonText,
+                      isArtDeco && deco.secondaryButtonText,
+                      isLiquidGlass && glass.secondaryButtonText,
+                    ]}
+                  >
+                    Hapus Rumah
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </Card>
         </>
       )}

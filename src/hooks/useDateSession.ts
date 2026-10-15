@@ -1,23 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import {
-  startBackgroundLocationTracking,
-  stopBackgroundLocationTracking,
-} from '../lib/backgroundLocation';
-import { distanceMeters } from '../lib/geo';
+import { endDateSessionCore, startDateSessionCore } from '../lib/autoDate';
+import { startBackgroundLocationTracking } from '../lib/backgroundLocation';
 import { friendlyError } from '../lib/friendlyError';
-import { getCurrentCoords } from '../lib/location';
-import { sendPushToPartner } from '../lib/push';
 import { supabase } from '../lib/supabase';
-import { localDateString, localTimeString } from '../lib/time';
-import { refreshWidget } from '../lib/widget';
 import type { DateSession } from '../types/database';
-
-// Best-effort nudge so the partner's widget/app catches up immediately
-// instead of waiting for the next periodic widget refresh.
-function notifyPartnerOfWidgetChange(coupleId: string, myUserId: string) {
-  sendPushToPartner(coupleId, myUserId, { data: { type: 'widget_refresh' } }).catch(() => {});
-}
 
 interface EndSessionInput {
   title: string;
@@ -33,22 +20,6 @@ interface EndSessionInput {
 export interface EndSessionResult {
   success: boolean;
   routeMeters: number | null;
-}
-
-async function computeRouteDistanceMeters(sessionId: string): Promise<number | null> {
-  const { data, error } = await supabase
-    .from('date_session_locations')
-    .select('lat, lng')
-    .eq('session_id', sessionId)
-    .order('recorded_at', { ascending: true });
-
-  if (error || !data || data.length < 2) return null;
-
-  let total = 0;
-  for (let i = 1; i < data.length; i++) {
-    total += distanceMeters(data[i - 1], data[i]);
-  }
-  return total;
 }
 
 export function useDateSession() {
@@ -106,57 +77,9 @@ export function useDateSession() {
     setStarting(true);
     setError(null);
 
-    // Re-check server-side: a stale local state (or a widget/other-device start)
-    // would otherwise create a duplicate active session.
-    const { data: existing } = await supabase
-      .from('date_sessions')
-      .select('*')
-      .eq('couple_id', coupleId)
-      .is('ended_at', null)
-      .order('started_at', { ascending: false })
-      .limit(1);
-    if (existing?.[0]) {
-      setSession(existing[0] as DateSession);
-      setStarting(false);
-      return;
-    }
-
-    const { data: userData } = await supabase.auth.getUser();
-    const coords = await getCurrentCoords();
-
-    const { data, error: insertError } = await supabase
-      .from('date_sessions')
-      .insert({
-        couple_id: coupleId,
-        created_by: userData.user?.id ?? null,
-        start_lat: coords?.lat ?? null,
-        start_lng: coords?.lng ?? null,
-      })
-      .select()
-      .single();
-
-    if (insertError) {
-      setError(friendlyError(insertError.message));
-      setStarting(false);
-      return;
-    }
-
-    const newSession = data as DateSession;
-    setSession(newSession);
-
-    // Drop an immediate breadcrumb so the trail doesn't wait for the first interval tick.
-    if (coords) {
-      await supabase.from('date_session_locations').insert({
-        session_id: newSession.id,
-        couple_id: coupleId,
-        lat: coords.lat,
-        lng: coords.lng,
-      });
-    }
-
-    await startBackgroundLocationTracking(newSession.id, coupleId);
-    refreshWidget().catch(() => {});
-    if (userData.user) notifyPartnerOfWidgetChange(coupleId, userData.user.id);
+    const result = await startDateSessionCore(coupleId);
+    if (result.error) setError(result.error);
+    else if (result.session) setSession(result.session);
     setStarting(false);
   }, [coupleId]);
 
@@ -167,51 +90,16 @@ export function useDateSession() {
       setEnding(true);
       setError(null);
 
-      const coords = await getCurrentCoords();
-      const endedAt = new Date();
-
-      const { error: updateError } = await supabase
-        .from('date_sessions')
-        .update({
-          ended_at: endedAt.toISOString(),
-          end_lat: coords?.lat ?? null,
-          end_lng: coords?.lng ?? null,
-          title: title || current.title,
-          summary,
-        })
-        .eq('id', current.id);
-
-      if (updateError) {
-        setError(friendlyError(updateError.message));
+      const result = await endDateSessionCore(coupleId, current, { title, summary });
+      if (result.error) setError(result.error);
+      if (!result.success) {
         setEnding(false);
         return { success: false, routeMeters: null };
       }
 
-      const { data: userData } = await supabase.auth.getUser();
-      const startedAt = new Date(current.started_at);
-
-      const { error: scheduleError } = await supabase.from('schedules').insert({
-        couple_id: coupleId,
-        title: title || 'Kencan',
-        description: summary,
-        scheduled_date: localDateString(startedAt),
-        scheduled_time: localTimeString(startedAt),
-        status: 'completed',
-        created_by: userData.user?.id ?? null,
-      });
-
-      if (scheduleError) {
-        setError(friendlyError(scheduleError.message));
-      }
-
-      const routeMeters = await computeRouteDistanceMeters(current.id);
-
-      await stopBackgroundLocationTracking();
-      refreshWidget().catch(() => {});
-      if (userData.user) notifyPartnerOfWidgetChange(coupleId, userData.user.id);
       setSession(null);
       setEnding(false);
-      return { success: true, routeMeters };
+      return { success: true, routeMeters: result.routeMeters };
     },
     [coupleId]
   );

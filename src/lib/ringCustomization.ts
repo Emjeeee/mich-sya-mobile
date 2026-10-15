@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // SDK version this app is on -- the new default export uses a different
 // File/Directory/Paths class-based API instead.
 import * as FileSystem from 'expo-file-system/legacy';
-import { setCustomRingtonePath, setQuietHours } from 'ble-ring';
+import { setAutoDateConfig, setCustomRingtonePath, setQuietHours } from 'ble-ring';
 
 import { getSignedUrl } from './storage';
 import { supabase } from './supabase';
@@ -13,6 +13,10 @@ export interface CoupleRingSettings {
   custom_ringtone_url: string | null;
   quiet_hours_start_minutes: number | null;
   quiet_hours_end_minutes: number | null;
+  home_lat: number | null;
+  home_lng: number | null;
+  home_radius_m: number;
+  auto_date_enabled: boolean;
 }
 
 // Fixed local path so RingReactor/BatteryAlertReactor (native, no JS/network
@@ -32,7 +36,7 @@ async function resolveCoupleId(): Promise<string | null> {
 export async function getCoupleRingSettings(coupleId: string): Promise<CoupleRingSettings | null> {
   const { data } = await supabase
     .from('couple')
-    .select('custom_ringtone_url, quiet_hours_start_minutes, quiet_hours_end_minutes')
+    .select('custom_ringtone_url, quiet_hours_start_minutes, quiet_hours_end_minutes, home_lat, home_lng, home_radius_m, auto_date_enabled')
     .eq('id', coupleId)
     .maybeSingle();
   return (data as CoupleRingSettings | null) ?? null;
@@ -57,6 +61,24 @@ export async function setCoupleQuietHours(
   if (error) throw error;
 }
 
+// "Kencan otomatis" (see 0009_auto_date.sql, src/lib/autoDate.ts): couple-wide
+// on/off switch and the "Rumah" spot that never auto-starts a date.
+export async function setCoupleAutoDateEnabled(coupleId: string, enabled: boolean): Promise<void> {
+  const { error } = await supabase.from('couple').update({ auto_date_enabled: enabled }).eq('id', coupleId);
+  if (error) throw error;
+}
+
+export async function setCoupleHome(coupleId: string, lat: number | null, lng: number | null): Promise<void> {
+  const { error } = await supabase.from('couple').update({ home_lat: lat, home_lng: lng }).eq('id', coupleId);
+  if (error) throw error;
+}
+
+// Both phones advertise/scan for the same tag; the first 6 hex chars of the
+// couple uuid are plenty to tell this couple's phones from anyone else's.
+function coupleTagHex(coupleId: string): string {
+  return coupleId.replace(/-/g, '').slice(0, 6).toLowerCase();
+}
+
 // Called on app mount + every foreground (App.tsx), for BOTH accounts --
 // pulls the couple's shared ring-customization settings down into this
 // device's local native prefs. Quiet hours are cheap to always re-sync;
@@ -69,6 +91,12 @@ export async function syncRingCustomizationToDevice(): Promise<void> {
   if (!settings) return;
 
   await setQuietHours(settings.quiet_hours_start_minutes, settings.quiet_hours_end_minutes).catch(() => {});
+  try {
+    // try/catch (not just .catch): an older native build lacks this function entirely.
+    await setAutoDateConfig(!!settings.auto_date_enabled, coupleTagHex(coupleId));
+  } catch {
+    // Best-effort -- next foreground sync retries.
+  }
 
   const lastSyncedUrl = await AsyncStorage.getItem(LAST_SYNCED_RINGTONE_KEY);
   if (settings.custom_ringtone_url === lastSyncedUrl) return;
