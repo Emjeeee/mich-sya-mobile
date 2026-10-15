@@ -12,6 +12,7 @@ import { StyleSheet, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { liquidGlass } from '../liquidGlassTokens';
+import { GlassBlurTarget } from './LiquidGlassRoot';
 
 const SPARKLE_PATH = 'M12 2L14 10L22 12L14 14L12 22L10 14L2 12L10 10L12 2Z';
 const HEART_PATH =
@@ -39,6 +40,7 @@ export function LiquidGlassBackground({ variant = 'warm' }: { variant?: 'warm' |
   const tint = variant === 'warm' ? g.blobBottomRight : liquidGlass.color.accent;
 
   return (
+    <GlassBlurTarget>
     <Svg
       width={width}
       height={height}
@@ -83,5 +85,6 @@ export function LiquidGlassBackground({ variant = 'warm' }: { variant?: 'warm' |
         );
       })}
     </Svg>
+    </GlassBlurTarget>
   );
 }
