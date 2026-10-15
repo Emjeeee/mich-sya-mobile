@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { enqueuePendingMemory, flushPendingMemories, type PendingMemory } from '../lib/offlineQueue';
+import { enqueuePendingMemory, flushPendingMemories, newMemoryId, type PendingMemory } from '../lib/offlineQueue';
 import { saveMemoryNow } from '../lib/memoryUpload';
 import { checkVideoSize, isUploadValidationError } from '../lib/storage';
 import { localDateString } from '../lib/time';
@@ -160,7 +160,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
     setNotice(null);
 
     const item: PendingMemory = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id: newMemoryId(),
       coupleId,
       title: title.trim() || 'Momen hari ini',
       story: story.trim(),

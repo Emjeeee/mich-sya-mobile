@@ -15,9 +15,21 @@ export interface PendingMemory {
   voiceNote: { uri: string; mimeType: string } | null;
 }
 
+// Random v4 uuid; the id only needs to be unique and stable, not secret.
+export function newMemoryId(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.floor(Math.random() * 16);
+    return (c === 'x' ? r : (r & 3) | 8).toString(16);
+  });
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 async function getQueue(): Promise<PendingMemory[]> {
   const raw = await AsyncStorage.getItem(QUEUE_KEY);
-  return raw ? (JSON.parse(raw) as PendingMemory[]) : [];
+  const queue = raw ? (JSON.parse(raw) as PendingMemory[]) : [];
+  // Items queued before ids became uuids can't be used as memories.id.
+  return queue.map((item) => (UUID_RE.test(item.id) ? item : { ...item, id: newMemoryId() }));
 }
 
 async function setQueue(queue: PendingMemory[]) {
@@ -45,10 +57,10 @@ function withQueueLock<T>(fn: () => Promise<T>): Promise<T> {
   return result;
 }
 
-export async function enqueuePendingMemory(item: Omit<PendingMemory, 'id'>) {
+export async function enqueuePendingMemory(item: PendingMemory) {
   await withQueueLock(async () => {
     const queue = await getQueue();
-    queue.push({ ...item, id: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
+    queue.push(item);
     await setQueue(queue);
   });
 }

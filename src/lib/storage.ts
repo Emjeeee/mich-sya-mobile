@@ -29,6 +29,11 @@ export function checkVideoSize(contentType: string, fileSize: number | null | un
   return null;
 }
 
+function isAlreadyExists(error: unknown): boolean {
+  const e = error as { statusCode?: string | number; message?: string };
+  return String(e.statusCode) === '409' || /already exists|duplicate/i.test(e.message ?? '');
+}
+
 function extensionFromUri(uri: string, fallback: string): string {
   const match = /\.([a-zA-Z0-9]+)$/.exec(uri.split('?')[0]);
   return match ? match[1].toLowerCase() : fallback;
@@ -41,11 +46,14 @@ export async function uploadCouplePhoto(
   coupleId: string,
   folder: 'gallery' | 'memories' | 'wishlist' | 'journey' | 'sounds',
   uri: string,
-  contentType: string
+  contentType: string,
+  // Deterministic file name (no extension) so a retried upload targets the same object.
+  fixedName?: string
 ): Promise<string> {
   const defaultExt = contentType.includes('video') ? 'mp4' : contentType.includes('audio') ? 'mp3' : 'jpg';
   const ext = extensionFromUri(uri, defaultExt);
-  const path = `${coupleId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const name = fixedName ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const path = `${coupleId}/${folder}/${name}.${ext}`;
 
   const response = await fetch(uri);
   const arrayBuffer = await response.arrayBuffer();
@@ -63,7 +71,8 @@ export async function uploadCouplePhoto(
     contentType,
   });
 
-  if (error) throw error;
+  // The bucket has no UPDATE policy so upsert can't overwrite; an existing fixed-name object is our own earlier attempt.
+  if (error && !(fixedName && isAlreadyExists(error))) throw error;
   return path;
 }
 
