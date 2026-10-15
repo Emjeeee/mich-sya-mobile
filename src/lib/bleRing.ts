@@ -1,8 +1,10 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import {
   broadcastRing as nativeBroadcastRing,
+  broadcastRingStop as nativeBroadcastRingStop,
   broadcastTorch as nativeBroadcastTorch,
   sendRingSms as nativeSendRingSms,
+  sendRingStopSms as nativeSendRingStopSms,
   sendTorchSms as nativeSendTorchSms,
   startScanning as nativeStartScanning,
 } from 'ble-ring';
@@ -85,10 +87,10 @@ export async function startBleRingListener(): Promise<void> {
 // startBleRingListener(). Resolving `true` only means the advertisement
 // went out, not that the partner's phone was actually in range to hear it --
 // there's no way to know that synchronously with a connectionless broadcast.
-export async function broadcastBleRing(): Promise<boolean> {
+export async function broadcastBleRing(ringId: number | null = null): Promise<boolean> {
   try {
     if (!(await hasBlePermissions())) return false;
-    return await nativeBroadcastRing();
+    return await nativeBroadcastRing(ringId);
   } catch {
     return false;
   }
@@ -98,11 +100,30 @@ export async function broadcastBleRing(): Promise<boolean> {
 // internet/data -- covers the case Bluetooth can't (no proximity needed).
 // No-ops if there's no saved phone number for the partner, or if SEND_SMS
 // hasn't been granted.
-export async function broadcastSmsRing(phoneNumber: string | null): Promise<boolean> {
+export async function broadcastSmsRing(phoneNumber: string | null, ringId: number | null = null): Promise<boolean> {
   if (!phoneNumber) return false;
   try {
     if (!(await hasSmsPermission(PermissionsAndroid.PERMISSIONS.SEND_SMS))) return false;
-    return await nativeSendRingSms(phoneNumber);
+    return await nativeSendRingSms(phoneNumber, ringId);
+  } catch {
+    return false;
+  }
+}
+
+export async function broadcastBleRingStop(ringId: number | null): Promise<boolean> {
+  try {
+    if (!(await hasBlePermissions())) return false;
+    return await nativeBroadcastRingStop(ringId);
+  } catch {
+    return false;
+  }
+}
+
+export async function broadcastSmsRingStop(phoneNumber: string | null, ringId: number | null): Promise<boolean> {
+  if (!phoneNumber) return false;
+  try {
+    if (!(await hasSmsPermission(PermissionsAndroid.PERMISSIONS.SEND_SMS))) return false;
+    return await nativeSendRingStopSms(phoneNumber, ringId);
   } catch {
     return false;
   }

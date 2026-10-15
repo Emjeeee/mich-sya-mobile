@@ -17,3 +17,17 @@ export function subscribeRingSignal(listener: Listener): () => void {
     listeners = listeners.filter((l) => l !== listener);
   };
 }
+
+// Counterpart for a remote "ring stopped" -- dismisses the JS RingAlertScreen.
+let stopListeners: Listener[] = [];
+
+export function notifyRingStopSignal() {
+  stopListeners.forEach((listener) => listener());
+}
+
+export function subscribeRingStopSignal(listener: Listener): () => void {
+  stopListeners.push(listener);
+  return () => {
+    stopListeners = stopListeners.filter((l) => l !== listener);
+  };
+}

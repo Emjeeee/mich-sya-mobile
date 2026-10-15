@@ -14,7 +14,7 @@ import { startBleRingListener } from './src/lib/bleRing';
 import { flushPendingMemories } from './src/lib/offlineQueue';
 import { checkOnThisDayNow } from './src/lib/onThisDay';
 import { syncRingCustomizationToDevice } from './src/lib/ringCustomization';
-import { subscribeRingSignal } from './src/lib/ringSignal';
+import { subscribeRingSignal, subscribeRingStopSignal } from './src/lib/ringSignal';
 import { supabase } from './src/lib/supabase';
 import { refreshWidget } from './src/lib/widget';
 import type { RootStackParamList } from './src/navigation/types';
@@ -107,6 +107,7 @@ function AppInner() {
     // full-screen intent while the app isn't in the foreground on an unlocked
     // device -- see src/lib/ringSignal.ts.
     const unsubscribeRingSignal = subscribeRingSignal(() => setRingActive(true));
+    const unsubscribeRingStopSignal = subscribeRingStopSignal(() => setRingActive(false));
 
     const unsubscribeForeground = notifee.onForegroundEvent(({ type, detail }) => {
       if (type === EventType.DELIVERED && detail.notification?.data?.type === 'ring') {
@@ -116,6 +117,7 @@ function AppInner() {
 
     return () => {
       unsubscribeRingSignal();
+      unsubscribeRingStopSignal();
       unsubscribeForeground();
     };
   }, []);

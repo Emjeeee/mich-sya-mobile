@@ -1,10 +1,15 @@
-import { broadcastBleRing, broadcastSmsRing } from './bleRing';
+import { broadcastBleRing, broadcastBleRingStop, broadcastSmsRing, broadcastSmsRingStop } from './bleRing';
 import { getPartnerPhoneNumber, sendPushToPartner } from './push';
 import { supabase } from './supabase';
 
 async function resolveCoupleId(): Promise<string | null> {
   const { data: coupleRows } = await supabase.from('couple').select('id').limit(1);
   return (coupleRows?.[0]?.id as string) ?? null;
+}
+
+// 16-bit (1..65535) so it fits in 2 BLE payload bytes; lets the receiver drop a late/duplicate ring after a stop.
+export function createRingId(): number {
+  return Math.floor(Math.random() * 65535) + 1;
 }
 
 // Shared by the in-app "Bunyikan HP pasangan" button, the long-press quick
@@ -20,8 +25,8 @@ async function resolveCoupleId(): Promise<string | null> {
 // from being tried -- that exact bug was caught by a real airplane-mode
 // test: an unguarded throw from the push path was aborting this function
 // before BLE/SMS were even evaluated.
-export async function ringPartner(coupleId?: string | null): Promise<boolean> {
-  const blePromise = broadcastBleRing().catch(() => false);
+export async function ringPartner(coupleId?: string | null, ringId: number = createRingId()): Promise<boolean> {
+  const blePromise = broadcastBleRing(ringId).catch(() => false);
 
   let userId: string | null = null;
   try {
@@ -41,11 +46,46 @@ export async function ringPartner(coupleId?: string | null): Promise<boolean> {
   if (!resolvedCoupleId) return blePromise;
 
   const smsPromise = getPartnerPhoneNumber(resolvedCoupleId, userId)
-    .then((phoneNumber) => broadcastSmsRing(phoneNumber))
+    .then((phoneNumber) => broadcastSmsRing(phoneNumber, ringId))
     .catch(() => false);
 
   const pushSent = await sendPushToPartner(resolvedCoupleId, userId, {
-    data: { type: 'ring' },
+    data: { type: 'ring', ringId },
+  }).catch(() => false);
+
+  const [bleSent, smsSent] = await Promise.all([blePromise, smsPromise]);
+  return pushSent || bleSent || smsSent;
+}
+
+// Stops a ringing partner phone over the same 3 channels as ringPartner(),
+// each independently guarded. `ringId` is the id of the ring being cancelled
+// (null for a blanket stop).
+export async function stopPartnerRing(coupleId?: string | null, ringId: number | null = null): Promise<boolean> {
+  const blePromise = broadcastBleRingStop(ringId).catch(() => false);
+
+  let userId: string | null = null;
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    userId = userData.user?.id ?? null;
+  } catch {
+    userId = null;
+  }
+  if (!userId) return blePromise;
+
+  let resolvedCoupleId: string | null = null;
+  try {
+    resolvedCoupleId = coupleId ?? (await resolveCoupleId());
+  } catch {
+    resolvedCoupleId = null;
+  }
+  if (!resolvedCoupleId) return blePromise;
+
+  const smsPromise = getPartnerPhoneNumber(resolvedCoupleId, userId)
+    .then((phoneNumber) => broadcastSmsRingStop(phoneNumber, ringId))
+    .catch(() => false);
+
+  const pushSent = await sendPushToPartner(resolvedCoupleId, userId, {
+    data: ringId === null ? { type: 'ring_stop' } : { type: 'ring_stop', ringId },
   }).catch(() => false);
 
   const [bleSent, smsSent] = await Promise.all([blePromise, smsPromise]);

@@ -7,7 +7,9 @@ interface BleRingModuleType {
    * trigger. No pairing, no internet, no Supabase/FCM involved. Resolves
    * `true` if advertising started (doesn't guarantee anyone was in range).
    */
-  broadcastRing(): Promise<boolean>;
+  broadcastRing(ringId: number | null): Promise<boolean>;
+  /** Same advertisement, event type 3 = stop the partner's ring (optionally tagged with that ring's id). */
+  broadcastRingStop(ringId: number | null): Promise<boolean>;
   /**
    * Same connectionless BLE advertisement as broadcastRing, but tagged as a
    * torch event carrying the blink pattern (see src/lib/torchPattern.ts) --
@@ -31,7 +33,9 @@ interface BleRingModuleType {
    * number. Fallback for when the receiving phone has cellular signal but no
    * internet/data -- SMS goes over the carrier network independent of data.
    */
-  sendRingSms(phoneNumber: string): Promise<boolean>;
+  sendRingSms(phoneNumber: string, ringId: number | null): Promise<boolean>;
+  /** SMS equivalent of broadcastRingStop. */
+  sendRingStopSms(phoneNumber: string, ringId: number | null): Promise<boolean>;
   /** Same idea as sendRingSms, with the blink pattern encoded as a suffix. */
   sendTorchSms(phoneNumber: string, kind: string, onMs: number | null, offMs: number | null): Promise<boolean>;
   /**
@@ -54,6 +58,14 @@ interface BleRingModuleType {
    * ring's actual sound now lives natively, not in a JS audio player.
    */
   stopRing(): Promise<boolean>;
+  /**
+   * Remote-stop receiver (push channel): remembers `ringId` as stopped so a
+   * late ring with it is ignored, then stops the ring and closes the native
+   * alert Activity. No-op if nothing is ringing.
+   */
+  stopRingRemote(ringId: number | null): Promise<boolean>;
+  /** Push channel's ring dedupe: true if this ring id was already stopped/handled natively; otherwise records it as handled. */
+  shouldIgnoreRing(ringId: number): Promise<boolean>;
   /**
    * Per-device "silent ring" preference -- when true, all 3 trigger
    * channels react on this device with vibration only, no sound. See
@@ -130,19 +142,25 @@ interface BleRingModuleType {
 
 export const BleRingModule = requireNativeModule<BleRingModuleType>('BleRing');
 
-export const broadcastRing = () => BleRingModule.broadcastRing();
+export const broadcastRing = (ringId: number | null) => BleRingModule.broadcastRing(ringId);
+export const broadcastRingStop = (ringId: number | null) => BleRingModule.broadcastRingStop(ringId);
 export const broadcastTorch = (kind: string, onMs: number | null, offMs: number | null) =>
   BleRingModule.broadcastTorch(kind, onMs, offMs);
 export const startScanning = () => BleRingModule.startScanning();
 export const stopScanning = () => BleRingModule.stopScanning();
 export const isScanning = () => BleRingModule.isScanning();
-export const sendRingSms = (phoneNumber: string) => BleRingModule.sendRingSms(phoneNumber);
+export const sendRingSms = (phoneNumber: string, ringId: number | null) =>
+  BleRingModule.sendRingSms(phoneNumber, ringId);
+export const sendRingStopSms = (phoneNumber: string, ringId: number | null) =>
+  BleRingModule.sendRingStopSms(phoneNumber, ringId);
 export const sendTorchSms = (phoneNumber: string, kind: string, onMs: number | null, offMs: number | null) =>
   BleRingModule.sendTorchSms(phoneNumber, kind, onMs, offMs);
 export const triggerTorch = (kind: string, onMs: number | null, offMs: number | null) =>
   BleRingModule.triggerTorch(kind, onMs, offMs);
 export const triggerRing = () => BleRingModule.triggerRing();
 export const stopRing = () => BleRingModule.stopRing();
+export const stopRingRemote = (ringId: number | null) => BleRingModule.stopRingRemote(ringId);
+export const shouldIgnoreRing = (ringId: number) => BleRingModule.shouldIgnoreRing(ringId);
 export const setSilentRing = (silent: boolean) => BleRingModule.setSilentRing(silent);
 export const isSilentRing = () => BleRingModule.isSilentRing();
 export const stopTorch = () => BleRingModule.stopTorch();

@@ -5,6 +5,8 @@ import {
   hasRemoteControlAccess,
   setRingerMode,
   setStreamVolume,
+  shouldIgnoreRing,
+  stopRingRemote,
   stopTorch,
   triggerRing,
   triggerTorch,
@@ -13,7 +15,7 @@ import {
 import { getCachedCoupleId } from './push';
 import { startFindPartnerTracking } from './backgroundFindPartner';
 import { reportRemoteControlAccessStatus } from './remoteControl';
-import { notifyRingSignal } from './ringSignal';
+import { notifyRingSignal, notifyRingStopSignal } from './ringSignal';
 import { supabase } from './supabase';
 import { refreshWidget } from './widget';
 
@@ -21,6 +23,7 @@ const BACKGROUND_NOTIFICATION_TASK = 'michsya-background-notification-task';
 
 const PRIVILEGED_TYPES = new Set([
   'ring',
+  'ring_stop',
   'torch',
   'set_ringer_mode',
   'set_stream_volume',
@@ -28,6 +31,11 @@ const PRIVILEGED_TYPES = new Set([
   'find_start',
   'request_remote_state',
 ]);
+
+function parseRingId(value: unknown): number | null {
+  const id = Number(value);
+  return Number.isInteger(id) && id >= 1 && id <= 65535 ? id : null;
+}
 
 // Handles a data-only "ring" push regardless of whether the app is foreground,
 // background, or fully terminated. Must be defined at module scope so it survives
@@ -58,8 +66,24 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
       }
     }
 
+    if (payload.type === 'ring_stop') {
+      console.log('[michsya] background task: ring_stop payload received');
+      try {
+        await stopRingRemote(parseRingId(payload.ringId));
+      } catch (err) {
+        console.warn('[michsya] stopRingRemote() failed:', err);
+      }
+      notifyRingStopSignal();
+    }
+
     if (payload.type === 'ring') {
       console.log('[michsya] background task: ring payload received');
+      const ringId = parseRingId(payload.ringId);
+      if (ringId !== null) {
+        // Already stopped, or already rung via BLE/SMS; fail open if native can't answer.
+        const ignore = await shouldIgnoreRing(ringId).catch(() => false);
+        if (ignore) return;
+      }
       // Reuses RingReactor -- the same native sound/vibrate/full-screen-alert
       // engine the BLE/SMS receivers already use -- instead of a JS-side
       // notification + expo-audio player. That JS path only bypassed
