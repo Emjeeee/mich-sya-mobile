@@ -68,8 +68,12 @@ class BleRingModule : Module() {
     }
 
     AsyncFunction("startScanning") { promise: Promise ->
-      ContextCompat.startForegroundService(context, Intent(context, BleRingScanService::class.java))
-      promise.resolve(true)
+      try {
+        ContextCompat.startForegroundService(context, Intent(context, BleRingScanService::class.java))
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
     }
 
     AsyncFunction("stopScanning") { promise: Promise ->

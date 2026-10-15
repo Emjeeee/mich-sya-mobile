@@ -7,10 +7,12 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import androidx.core.content.ContextCompat
 
 // Foreground service that owns the actual torch blink loop, notification,
@@ -36,12 +38,12 @@ class TorchBlinkService : Service() {
       // crashes with RemoteServiceException, even for a same-instance
       // no-op. stopBlinking() cancels this same notification immediately
       // after, so it's an imperceptible flash rather than a visible one.
-      startForeground(RingBleConstants.TORCH_NOTIFICATION_ID, buildNotification())
+      enterForeground()
       stopBlinking()
       return START_NOT_STICKY
     }
 
-    startForeground(RingBleConstants.TORCH_NOTIFICATION_ID, buildNotification())
+    if (!enterForeground()) return START_NOT_STICKY
 
     val kind = intent?.getStringExtra("kind") ?: "slow"
     val onMs = intent?.getLongExtra("onMs", -1L)?.takeIf { it >= 0 }
@@ -57,6 +59,30 @@ class TorchBlinkService : Service() {
     runStep(steps, 0)
 
     return START_NOT_STICKY
+  }
+
+  // shortService (no extra permission, unlike camera, which throws
+  // SecurityException on Android 14+ without CAMERA / from background);
+  // setTorchMode needs neither. On failure there is nothing more to try, so
+  // log and stop rather than crash the process.
+  private fun enterForeground(): Boolean {
+    return try {
+      val notification = buildNotification()
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        startForeground(
+          RingBleConstants.TORCH_NOTIFICATION_ID,
+          notification,
+          ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE
+        )
+      } else {
+        startForeground(RingBleConstants.TORCH_NOTIFICATION_ID, notification)
+      }
+      true
+    } catch (e: Exception) {
+      Log.w(TAG, "Could not start torch foreground service", e)
+      stopSelf()
+      false
+    }
   }
 
   private fun runStep(steps: List<TorchReactor.Step>, index: Int) {
@@ -140,7 +166,13 @@ class TorchBlinkService : Service() {
     fun requestStop(context: Context) {
       val intent = Intent(context, TorchBlinkService::class.java)
         .setAction(RingBleConstants.TORCH_STOP_ACTION)
-      ContextCompat.startForegroundService(context, intent)
+      try {
+        ContextCompat.startForegroundService(context, intent)
+      } catch (e: Exception) {
+        Log.w(TAG, "Could not start torch stop request", e)
+      }
     }
+
+    private const val TAG = "TorchBlinkService"
   }
 }

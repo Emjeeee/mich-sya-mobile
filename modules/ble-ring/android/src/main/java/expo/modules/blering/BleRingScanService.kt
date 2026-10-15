@@ -25,6 +25,7 @@ class BleRingScanService : Service() {
   private var lastTriggeredAt = 0L
   private val batteryMonitor = BatteryMonitorReceiver()
   private var batteryMonitorRegistered = false
+  private var foregroundFailed = false
 
   override fun onBind(intent: Intent?): IBinder? = null
 
@@ -52,17 +53,24 @@ class BleRingScanService : Service() {
     try {
       startForeground(RingBleConstants.SCAN_NOTIFICATION_ID, buildScanningNotification())
     } catch (e: Exception) {
-      // Missing Bluetooth permission (e.g. boot-started before the app was
-      // ever opened to grant it) -- give up quietly rather than crash.
-      Log.w(TAG, "Could not start foreground service, stopping", e)
+      // Missing Bluetooth permission. stopSelf() here would break the
+      // startForegroundService() contract (crash), so just stay idle;
+      // onStartCommand stops us if we were not started that way. BootReceiver
+      // pre-checks permissions so this should be rare.
+      Log.w(TAG, "Could not start foreground service, staying idle", e)
       isRunning = false
-      stopSelf()
+      foregroundFailed = true
       return
     }
     startScan()
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    if (foregroundFailed) {
+      // A null intent means a sticky restart, not a fresh startForegroundService() call.
+      if (intent == null) stopSelf()
+      return START_NOT_STICKY
+    }
     return START_STICKY
   }
 
@@ -124,7 +132,11 @@ class BleRingScanService : Service() {
         if (onMs != null) putExtra("onMs", onMs.toLong())
         if (offMs != null) putExtra("offMs", offMs.toLong())
       }
-      ContextCompat.startForegroundService(applicationContext, intent)
+      try {
+        ContextCompat.startForegroundService(applicationContext, intent)
+      } catch (e: Exception) {
+        Log.w(TAG, "Could not start torch service", e)
+      }
     }
 
     override fun onScanFailed(errorCode: Int) {

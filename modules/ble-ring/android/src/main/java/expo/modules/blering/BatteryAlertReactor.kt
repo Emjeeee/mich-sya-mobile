@@ -34,18 +34,28 @@ object BatteryAlertReactor {
   private var rampRunnable: Runnable? = null
   private var originalAlarmVolume: Int? = null
 
+  @Synchronized
   fun trigger(context: Context, thresholdPercent: Int, currentPercent: Int) {
     playSound(context, thresholdPercent)
     vibrate(context)
     showNotification(context, currentPercent)
   }
 
+  @Synchronized
   fun stop(context: Context) {
     rampRunnable?.let { rampHandler.removeCallbacks(it) }
     rampRunnable = null
     mediaPlayer?.let {
-      it.stop()
-      it.release()
+      try {
+        it.stop()
+      } catch (e: IllegalStateException) {
+        // already stopped/released
+      }
+      try {
+        it.release()
+      } catch (e: IllegalStateException) {
+        // already released
+      }
     }
     mediaPlayer = null
     vibrator?.cancel()

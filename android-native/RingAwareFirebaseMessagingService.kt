@@ -19,7 +19,11 @@ class RingAwareFirebaseMessagingService : ExpoFirebaseMessagingService() {
     Log.d(TAG, "onMessageReceived: type=$type")
 
     if (type == "ring" || type == "find_start") {
-      ContextCompat.startForegroundService(this, Intent(this, RingForegroundService::class.java))
+      try {
+        ContextCompat.startForegroundService(this, Intent(this, RingForegroundService::class.java))
+      } catch (e: Exception) {
+        Log.w(TAG, "Could not start RingForegroundService", e)
+      }
     }
 
     super.onMessageReceived(remoteMessage)

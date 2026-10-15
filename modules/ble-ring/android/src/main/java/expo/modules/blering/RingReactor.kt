@@ -33,18 +33,28 @@ object RingReactor {
   private var rampRunnable: Runnable? = null
   private var originalAlarmVolume: Int? = null
 
+  @Synchronized
   fun trigger(context: Context) {
     playRingtone(context)
     vibrate(context)
     showRingNotification(context)
   }
 
+  @Synchronized
   fun stop(context: Context) {
     rampRunnable?.let { rampHandler.removeCallbacks(it) }
     rampRunnable = null
     mediaPlayer?.let {
-      it.stop()
-      it.release()
+      try {
+        it.stop()
+      } catch (e: IllegalStateException) {
+        // already stopped/released
+      }
+      try {
+        it.release()
+      } catch (e: IllegalStateException) {
+        // already released
+      }
     }
     mediaPlayer = null
     // vibrate()'s waveform loops indefinitely (repeat index 0) until
