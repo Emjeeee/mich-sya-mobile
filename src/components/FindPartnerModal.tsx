@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
@@ -22,7 +22,7 @@ import RemoteControlAccess from './RemoteControlAccess';
 import RemoteControlPanel from './RemoteControlPanel';
 import SilentRingToggle from './SilentRingToggle';
 import { useFindPartner } from '../hooks/useFindPartner';
-import { ringPartner } from '../lib/ringPartner';
+import { createRingId, ringPartner, stopPartnerRing } from '../lib/ringPartner';
 import { torchPartner } from '../lib/torchPartner';
 import {
   DEFAULT_TORCH_PATTERN,
@@ -98,6 +98,22 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
   const [customOffMs, setCustomOffMs] = useState('250');
   const [torching, setTorching] = useState(false);
   const [stoppingTorch, setStoppingTorch] = useState(false);
+  const [stoppingRing, setStoppingRing] = useState(false);
+  // Id of the ring just sent; non-null for ~10s so "Batalkan" can cancel exactly that ring.
+  const [cancelableRingId, setCancelableRingId] = useState<number | null>(null);
+  const cancelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cancelTimer.current) clearTimeout(cancelTimer.current);
+    };
+  }, []);
+
+  const clearCancelable = () => {
+    if (cancelTimer.current) clearTimeout(cancelTimer.current);
+    cancelTimer.current = null;
+    setCancelableRingId(null);
+  };
 
   const handleClose = () => {
     // Sharing now runs in the background independent of this screen -- closing it
@@ -107,11 +123,27 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
 
   const handleRing = async () => {
     setRinging(true);
-    const sent = await ringPartner(coupleId);
+    const ringId = createRingId();
+    const sent = await ringPartner(coupleId, ringId);
     setRinging(false);
     if (!sent) {
       Alert.alert('Gagal', 'Tidak bisa membunyikan HP pasangan. Pastikan dia sudah pernah membuka MichSya di HP-nya.');
+      return;
     }
+    if (cancelTimer.current) clearTimeout(cancelTimer.current);
+    setCancelableRingId(ringId);
+    cancelTimer.current = setTimeout(clearCancelable, 10_000);
+  };
+
+  const handleStopRing = async (ringId: number | null = null) => {
+    setStoppingRing(true);
+    const sent = await stopPartnerRing(coupleId, ringId);
+    setStoppingRing(false);
+    if (!sent) {
+      Alert.alert('Gagal', 'Tidak bisa mematikan bunyi HP pasangan. Pastikan dia sudah pernah membuka MichSya di HP-nya.');
+      return;
+    }
+    clearCancelable();
   };
 
   const handleTorch = async () => {
@@ -234,6 +266,39 @@ export default function FindPartnerModal({ visible, coupleId, onClose }: FindPar
                 </GlassLabel>
               ) : (
                 <Text style={styles.ringButtonText}>🔊 Bunyikan HP pasangan</Text>
+              )}
+            </Pressable>
+
+            {cancelableRingId !== null && (
+              <Pressable
+                style={[styles.cancelRingChip, isArtDeco && deco.torchChip, isLiquidGlass && glass.torchChip]}
+                onPress={() => handleStopRing(cancelableRingId)}
+                disabled={stoppingRing}
+              >
+                <Text style={[styles.torchChipText, isArtDeco && deco.torchChipText, isLiquidGlass && glass.torchChipText]}>
+                  Batalkan
+                </Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              style={[styles.button, styles.stopButton, isArtDeco && deco.stopButton, isLiquidGlass && glass.stopButton]}
+              onPress={() => handleStopRing()}
+              disabled={stoppingRing}
+            >
+              {isLiquidGlass && <GlassFill />}
+              {stoppingRing ? (
+                <ActivityIndicator color={isArtDeco ? artDeco.color.gold : isLiquidGlass ? liquidGlass.color.accent : '#e11d74'} />
+              ) : isLiquidGlass ? (
+                <GlassLabel icon={<StopIcon size={14} color={liquidGlass.color.accentText} />} color={liquidGlass.color.accentText}>
+                  Matikan bunyi HP pasangan
+                </GlassLabel>
+              ) : isArtDeco ? (
+                <GlassLabel icon={<StopIcon size={14} color={artDeco.color.ruby} />} color={artDeco.color.ruby}>
+                  Matikan bunyi HP pasangan
+                </GlassLabel>
+              ) : (
+                <Text style={styles.stopButtonText}>⏹️ Matikan bunyi HP pasangan</Text>
               )}
             </Pressable>
 
@@ -479,6 +544,14 @@ const styles = StyleSheet.create({
   ringButtonText: {
     color: '#e11d74',
     fontWeight: '600',
+  },
+  cancelRingChip: {
+    alignSelf: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   torchButtonRow: {
     flexDirection: 'row',
