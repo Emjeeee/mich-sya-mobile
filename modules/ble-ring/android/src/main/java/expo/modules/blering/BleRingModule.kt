@@ -34,7 +34,7 @@ class BleRingModule : Module() {
       broadcastEvent(ringPayload(0, ringId), promise)
     }
 
-    // Event type 3 = ring stop (2 is reserved for a future presence beacon).
+    // Event type 3 = ring stop (2 is the presence beacon, see PresenceBeacon).
     AsyncFunction("broadcastRingStop") { ringId: Int?, promise: Promise ->
       broadcastEvent(ringPayload(3, ringId), promise)
     }
@@ -70,6 +70,37 @@ class BleRingModule : Module() {
     AsyncFunction("setQuietHours") { startMinutes: Int?, endMinutes: Int?, promise: Promise ->
       RingPreferences.setQuietHours(context, startMinutes, endMinutes)
       promise.resolve(true)
+    }
+
+    // "Kencan otomatis": enabled flag + 6-hex-char couple tag, stored locally
+    // so the scan service's presence beacon/detector run with no JS.
+    AsyncFunction("setAutoDateConfig") { enabled: Boolean, coupleTagHex: String, promise: Promise ->
+      try {
+        AutoDatePreferences.setConfig(context, enabled, coupleTagHex)
+        if (!enabled) AutoDateDetector.reset(context)
+        val appContext = context.applicationContext
+        Handler(Looper.getMainLooper()).post {
+          try {
+            if (BleRingScanService.isRunning) PresenceBeacon.refresh(appContext)
+          } catch (e: Exception) {
+            // Best-effort; the service tick retries.
+          }
+        }
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
+    }
+
+    // Called by the headless auto-date task when GPS says we have not moved
+    // yet: re-emit the 'end' event later instead of ending now.
+    AsyncFunction("deferAutoDateEnd") { promise: Promise ->
+      try {
+        AutoDateDetector.deferEnd(context, System.currentTimeMillis())
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.resolve(false)
+      }
     }
 
     AsyncFunction("startScanning") { promise: Promise ->
@@ -454,9 +485,15 @@ class BleRingModule : Module() {
       }
     }
 
+    // Some chipsets allow a single advertiser: pause the presence beacon.
+    val appContext = context.applicationContext
+    val mainHandler = Handler(Looper.getMainLooper())
+    mainHandler.post { PresenceBeacon.suspendForOneShot() }
+
     try {
       advertiser.startAdvertising(settings, data, callback)
     } catch (e: SecurityException) {
+      mainHandler.post { PresenceBeacon.resumeAfterOneShot(appContext) }
       // BLUETOOTH_ADVERTISE not granted -- caller is expected to have
       // requested it via PermissionsAndroid before calling this.
       if (!resolved) {
@@ -472,6 +509,7 @@ class BleRingModule : Module() {
       } catch (e: SecurityException) {
         // Already stopped or permission revoked mid-flight -- nothing to do.
       }
+      PresenceBeacon.resumeAfterOneShot(appContext)
     }, RingBleConstants.ADVERTISE_DURATION_MS)
   }
 }

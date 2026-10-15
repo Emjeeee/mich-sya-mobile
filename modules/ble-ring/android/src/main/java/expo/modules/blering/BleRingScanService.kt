@@ -9,10 +9,14 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.IBinder
 import android.os.ParcelUuid
 import android.util.Log
@@ -26,6 +30,34 @@ class BleRingScanService : Service() {
   private val batteryMonitor = BatteryMonitorReceiver()
   private var batteryMonitorRegistered = false
   private var foregroundFailed = false
+  private val tickHandler = Handler(Looper.getMainLooper())
+  private var btStateReceiverRegistered = false
+
+  // Presence beacon health + absence timer: runs even with no sightings.
+  private val tickRunnable = object : Runnable {
+    override fun run() {
+      try {
+        PresenceBeacon.ensure(applicationContext)
+        AutoDateDetector.evaluate(applicationContext, System.currentTimeMillis())
+      } catch (e: Exception) {
+        Log.w(TAG, "Auto date tick failed", e)
+      }
+      tickHandler.postDelayed(this, TICK_INTERVAL_MS)
+    }
+  }
+
+  private val btStateReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+      try {
+        when (intent?.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1)) {
+          BluetoothAdapter.STATE_ON -> PresenceBeacon.refresh(applicationContext)
+          BluetoothAdapter.STATE_OFF -> PresenceBeacon.stop()
+        }
+      } catch (e: Exception) {
+        Log.w(TAG, "Bluetooth state handling failed", e)
+      }
+    }
+  }
 
   override fun onBind(intent: Intent?): IBinder? = null
 
@@ -63,6 +95,7 @@ class BleRingScanService : Service() {
       return
     }
     startScan()
+    startAutoDate()
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -77,6 +110,13 @@ class BleRingScanService : Service() {
   override fun onDestroy() {
     isRunning = false
     stopScan()
+    tickHandler.removeCallbacks(tickRunnable)
+    try {
+      PresenceBeacon.stop()
+      if (btStateReceiverRegistered) unregisterReceiver(btStateReceiver)
+    } catch (e: Exception) {
+      // Already stopped/unregistered -- fine.
+    }
     if (batteryMonitorRegistered) {
       try {
         unregisterReceiver(batteryMonitor)
@@ -93,6 +133,14 @@ class BleRingScanService : Service() {
   private val scanCallback = object : ScanCallback() {
     override fun onScanResult(callbackType: Int, result: ScanResult?) {
       val payload = result?.scanRecord?.getServiceData(ParcelUuid(RingBleConstants.SERVICE_UUID))
+
+      // Presence beacon (type 2): handled and returned before the ring
+      // cooldown/torch decoding below, so it can never ring or blink, and
+      // frequent presence packets never eat a ring's cooldown.
+      if (result != null && payload != null && payload.isNotEmpty() && payload[0].toInt() == 2) {
+        handlePresence(payload, result.rssi)
+        return
+      }
 
       // Ring stop (type 3) runs before the cooldown below so a stop sent
       // right after a ring isn't swallowed by that ring's cooldown.
@@ -111,7 +159,7 @@ class BleRingScanService : Service() {
       lastTriggeredAt = now
 
       // Service data layout (see BleRingModule.torchPayload): byte 0 is the
-      // event type (0=ring, 1=torch, 3=ring stop; 2 is reserved); no data at
+      // event type (0=ring, 1=torch, 2=presence, 3=ring stop); no data at
       // all (older advertiser) also means ring. Ring bytes 1-2 are an
       // optional ring id.
       if (payload == null || payload.isEmpty() || payload[0].toInt() == 0) {
@@ -161,6 +209,29 @@ class BleRingScanService : Service() {
     }
   }
 
+  private fun handlePresence(payload: ByteArray, rssi: Int) {
+    try {
+      if (!AutoDatePreferences.isEnabled(applicationContext)) return
+      val tag = AutoDatePreferences.tagBytes(applicationContext) ?: return
+      if (payload.size < 4) return
+      if (payload[1] != tag[0] || payload[2] != tag[1] || payload[3] != tag[2]) return
+      AutoDateDetector.onSighting(applicationContext, rssi, System.currentTimeMillis())
+    } catch (e: Exception) {
+      Log.w(TAG, "Presence handling failed", e)
+    }
+  }
+
+  private fun startAutoDate() {
+    try {
+      registerReceiver(btStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+      btStateReceiverRegistered = true
+    } catch (e: Exception) {
+      Log.w(TAG, "Could not register Bluetooth state receiver", e)
+    }
+    PresenceBeacon.refresh(applicationContext)
+    tickHandler.postDelayed(tickRunnable, TICK_INTERVAL_MS)
+  }
+
   private fun startScan() {
     val bleScanner = scanner() ?: return
     val filter = ScanFilter.Builder()
@@ -207,6 +278,7 @@ class BleRingScanService : Service() {
   companion object {
     private const val TAG = "BleRingScanService"
     private const val RETRIGGER_COOLDOWN_MS = 10_000L
+    private const val TICK_INTERVAL_MS = 30_000L
 
     @Volatile
     var isRunning: Boolean = false

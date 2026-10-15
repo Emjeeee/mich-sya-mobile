@@ -138,6 +138,15 @@ interface BleRingModuleType {
    * time. See AdvancedSettingsScreen.tsx.
    */
   setQuietHours(startMinutes: number | null, endMinutes: number | null): Promise<boolean>;
+  /**
+   * "Kencan otomatis": stores the couple-wide enabled flag and a 6-hex-char
+   * couple tag natively so the always-on scan service can advertise/detect
+   * the partner's presence beacon (and emit start/end to the headless JS
+   * task) without JS running. See src/lib/autoDate.ts.
+   */
+  setAutoDateConfig(enabled: boolean, coupleTagHex: string): Promise<boolean>;
+  /** Asks the native detector to re-emit the auto-date 'end' event in ~10 minutes. */
+  deferAutoDateEnd(): Promise<boolean>;
 }
 
 export const BleRingModule = requireNativeModule<BleRingModuleType>('BleRing');
@@ -175,3 +184,6 @@ export const requestBatteryOptimizationExemption = () => BleRingModule.requestBa
 export const setCustomRingtonePath = (path: string | null) => BleRingModule.setCustomRingtonePath(path);
 export const setQuietHours = (startMinutes: number | null, endMinutes: number | null) =>
   BleRingModule.setQuietHours(startMinutes, endMinutes);
+export const setAutoDateConfig = (enabled: boolean, coupleTagHex: string) =>
+  BleRingModule.setAutoDateConfig(enabled, coupleTagHex);
+export const deferAutoDateEnd = () => BleRingModule.deferAutoDateEnd();

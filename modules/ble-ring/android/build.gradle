@@ -27,6 +27,11 @@ if (useManagedAndroidSdkVersions) {
   }
 }
 
+dependencies {
+  // HeadlessJsTaskService (AutoDateTaskService).
+  implementation 'com.facebook.react:react-android'
+}
+
 android {
   namespace "expo.modules.blering"
   defaultConfig {

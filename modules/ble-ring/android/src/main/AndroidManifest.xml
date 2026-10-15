@@ -5,6 +5,11 @@
       android:exported="false"
       android:foregroundServiceType="connectedDevice" />
 
+    <!-- Runs the JS 'MichsyaAutoDate' task for Kencan otomatis. -->
+    <service
+      android:name=".AutoDateTaskService"
+      android:exported="false" />
+
     <service
       android:name=".TorchBlinkService"
       android:exported="false"
