@@ -5,6 +5,7 @@ import { startBackgroundLocationTracking, stopBackgroundLocationTracking } from 
 import { getCurrentCoords } from './src/lib/location';
 import { ringPartner } from './src/lib/ringPartner';
 import { supabase } from './src/lib/supabase';
+import { localDateString, localTimeString } from './src/lib/time';
 import { torchPartner } from './src/lib/torchPartner';
 import { DEFAULT_TORCH_PATTERN, TORCH_PATTERN_STORAGE_KEY, type TorchPattern } from './src/lib/torchPattern';
 import { DateWidget, fetchWidgetState, WIDGET_NAME } from './src/lib/widget';
@@ -37,8 +38,8 @@ async function handleStartEndDate() {
       couple_id: coupleId,
       title: session.title || 'Kencan',
       description: session.summary,
-      scheduled_date: startedAt.toISOString().slice(0, 10),
-      scheduled_time: startedAt.toISOString().slice(11, 16),
+      scheduled_date: localDateString(startedAt),
+      scheduled_time: localTimeString(startedAt),
       status: 'completed',
       created_by: userData.user?.id ?? null,
     });
@@ -85,7 +86,7 @@ async function handleQuickMemory() {
     photo_url: null,
     voice_note_url: null,
     location: coords ? `${coords.lat}, ${coords.lng}` : null,
-    memory_date: new Date().toISOString().slice(0, 10),
+    memory_date: localDateString(),
     created_by: userData.user?.id ?? null,
   });
 }

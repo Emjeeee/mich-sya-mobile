@@ -41,6 +41,11 @@ export default function SwipeToConfirm({
   const maxTranslateRef = useRef(0);
   const isLocked = disabled || loading;
   const wasLoadingRef = useRef(loading);
+  // PanResponder is created once; handlers read these refs so they never see stale props.
+  const isLockedRef = useRef(isLocked);
+  isLockedRef.current = isLocked;
+  const onConfirmRef = useRef(onConfirm);
+  onConfirmRef.current = onConfirm;
 
   // If the caller's onConfirm action fails (e.g. a network error), it sets
   // `loading` back to false without the screen unmounting -- previously
@@ -64,8 +69,8 @@ export default function SwipeToConfirm({
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !isLocked,
-      onMoveShouldSetPanResponder: () => !isLocked,
+      onStartShouldSetPanResponder: () => !isLockedRef.current,
+      onMoveShouldSetPanResponder: () => !isLockedRef.current,
       onPanResponderMove: (_, gestureState) => {
         const clamped = Math.max(0, Math.min(gestureState.dx, maxTranslateRef.current));
         pan.setValue(clamped);
@@ -77,7 +82,7 @@ export default function SwipeToConfirm({
             toValue: max,
             duration: 120,
             useNativeDriver: false,
-          }).start(() => onConfirm());
+          }).start(() => onConfirmRef.current());
         } else {
           Animated.spring(pan, {
             toValue: 0,

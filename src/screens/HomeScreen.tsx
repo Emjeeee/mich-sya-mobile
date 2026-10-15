@@ -128,6 +128,10 @@ function ActionButton({
   );
 }
 
+// QuickActions.initial is the launch action for the whole process -- HomeScreen
+// remounts (after RingAlertScreen, sign-out/in) must not replay it.
+let handledInitialQuickAction = false;
+
 export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { isArtDeco, isLiquidGlass } = useAppTheme();
@@ -159,8 +163,8 @@ export default function HomeScreen({ navigation }: Props) {
   useEffect(() => {
     if (!coupleId) return;
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) registerForPushNotifications(coupleId, data.user.id);
-    });
+      if (data.user) return registerForPushNotifications(coupleId, data.user.id);
+    }).catch(() => {});
   }, [coupleId]);
 
   useEffect(() => {
@@ -183,7 +187,7 @@ export default function HomeScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!coupleId) return;
+    if (!coupleId || loading) return;
 
     const handleQuickAction = async (action: QuickActions.Action) => {
       if (action.id === 'start_date') {
@@ -193,10 +197,13 @@ export default function HomeScreen({ navigation }: Props) {
       }
     };
 
-    if (QuickActions.initial) handleQuickAction(QuickActions.initial);
+    if (QuickActions.initial && !handledInitialQuickAction) {
+      handledInitialQuickAction = true;
+      handleQuickAction(QuickActions.initial);
+    }
     const subscription = QuickActions.addListener(handleQuickAction);
     return () => subscription.remove();
-  }, [coupleId, startSession]);
+  }, [coupleId, loading, startSession]);
 
   const handleEndSubmit = async (input: { title: string; summary: string }) => {
     const endingSession = sessionRef.current;

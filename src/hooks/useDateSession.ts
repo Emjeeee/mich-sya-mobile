@@ -94,7 +94,7 @@ export function useDateSession() {
         // Re-arm background tracking in case the app process was restarted
         // while a date was still active (startX is idempotent).
         if (active) {
-          startBackgroundLocationTracking(active.id, id);
+          startBackgroundLocationTracking(active.id, id).catch(() => {});
         }
       }
       setLoading(false);
@@ -105,6 +105,21 @@ export function useDateSession() {
     if (!coupleId) return;
     setStarting(true);
     setError(null);
+
+    // Re-check server-side: a stale local state (or a widget/other-device start)
+    // would otherwise create a duplicate active session.
+    const { data: existing } = await supabase
+      .from('date_sessions')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .is('ended_at', null)
+      .order('started_at', { ascending: false })
+      .limit(1);
+    if (existing?.[0]) {
+      setSession(existing[0] as DateSession);
+      setStarting(false);
+      return;
+    }
 
     const { data: userData } = await supabase.auth.getUser();
     const coords = await getCurrentCoords();

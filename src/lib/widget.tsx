@@ -1,7 +1,7 @@
 import { FlexWidget, ImageWidget, requestWidgetUpdate, TextWidget } from 'react-native-android-widget';
 
 import { supabase } from './supabase';
-import { formatElapsed } from './time';
+import { formatElapsed, localDateString } from './time';
 import type { DateSession, Schedule } from '../types/database';
 
 const ICON_PLAY = require('../../assets/icons/play.png');
@@ -36,7 +36,7 @@ export async function fetchWidgetState(): Promise<WidgetState> {
     .select('*')
     .eq('couple_id', coupleId)
     .in('status', ['planned', 'confirmed'])
-    .gte('scheduled_date', new Date().toISOString().slice(0, 10))
+    .gte('scheduled_date', localDateString())
     .order('scheduled_date', { ascending: true })
     .limit(1);
 
