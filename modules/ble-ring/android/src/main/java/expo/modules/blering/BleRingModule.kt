@@ -1,5 +1,7 @@
 package expo.modules.blering
 
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.AdvertiseCallback
@@ -357,6 +359,42 @@ class BleRingModule : Module() {
     // requestable through a standard system dialog; Vivo's separate
     // "autostart manager" has no public API at all and can only be turned on
     // by the user manually (see the note surfaced in the app UI).
+    // Android's own record of why this app's process died. JS-level crash
+    // handlers can never see a native crash (SIGSEGV on a render thread, ANR,
+    // OOM kill) -- the process is gone before any JS runs -- so this is the
+    // only way to surface those in-app without adb. API 30+; empty below.
+    AsyncFunction("getRecentExits") { promise: Promise ->
+      try {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+          promise.resolve(emptyList<Map<String, Any>>())
+        } else {
+          val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+          val exits = am.getHistoricalProcessExitReasons(context.packageName, 0, 8)
+          val result = exits.mapNotNull { info ->
+            val label = when (info.reason) {
+              ApplicationExitInfo.REASON_CRASH -> "crash"
+              ApplicationExitInfo.REASON_CRASH_NATIVE -> "crash_native"
+              ApplicationExitInfo.REASON_ANR -> "anr"
+              ApplicationExitInfo.REASON_LOW_MEMORY -> "low_memory"
+              else -> null
+            }
+            if (label == null) {
+              null
+            } else {
+              mapOf<String, Any>(
+                "reason" to label,
+                "timestamp" to info.timestamp.toDouble(),
+                "description" to (info.description ?: "")
+              )
+            }
+          }
+          promise.resolve(result)
+        }
+      } catch (e: Exception) {
+        promise.resolve(emptyList<Map<String, Any>>())
+      }
+    }
+
     AsyncFunction("hasBatteryOptimizationExemption") { promise: Promise ->
       try {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager

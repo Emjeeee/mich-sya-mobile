@@ -104,6 +104,7 @@ interface BleRingModuleType {
    * Plain getters -- unlike setRingerMode/setStreamVolume, no DND access
    * needed for any of these.
    */
+  getRecentExits(): Promise<{ reason: 'crash' | 'crash_native' | 'anr' | 'low_memory'; timestamp: number; description: string }[]>;
   getVolumeState(): Promise<{
     mode: 'normal' | 'vibrate' | 'silent';
     ring: number;
@@ -179,6 +180,7 @@ export const setRingerMode = (mode: string) => BleRingModule.setRingerMode(mode)
 export const setStreamVolume = (stream: 'ring' | 'notification' | 'media' | 'alarm', percent: number) =>
   BleRingModule.setStreamVolume(stream, percent);
 export const getVolumeState = () => BleRingModule.getVolumeState();
+export const getRecentExits = () => BleRingModule.getRecentExits();
 export const hasBatteryOptimizationExemption = () => BleRingModule.hasBatteryOptimizationExemption();
 export const requestBatteryOptimizationExemption = () => BleRingModule.requestBatteryOptimizationExemption();
 export const setCustomRingtonePath = (path: string | null) => BleRingModule.setCustomRingtonePath(path);

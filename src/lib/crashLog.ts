@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getRecentExits } from 'ble-ring';
 
 const CRASH_KEY = 'michsya.lastCrash';
+const CLEARED_KEY = 'michsya.crashLogClearedAt';
 // A crash by definition can happen mid-write to other keys, on either
 // thread -- capped list (not a growing log) so one bad loop can't fill
 // storage, and each entry is a complete JSON write so a torn write can only
@@ -11,7 +13,7 @@ export interface CrashEntry {
   message: string;
   stack: string | null;
   isFatal: boolean;
-  source: 'global' | 'boundary';
+  source: 'global' | 'boundary' | 'native';
   screen: string | null;
   timestamp: string;
 }
@@ -39,13 +41,39 @@ export function recordCrash(entry: Omit<CrashEntry, 'timestamp'>): Promise<void>
     .catch(() => {});
 }
 
+// Android's own process-exit record (native crash / ANR / low-memory kill):
+// the only trace of a crash that killed the process before any JS ran. The OS
+// history can't be cleared from here, so "Hapus" stores a timestamp and
+// anything older is hidden.
+async function readNativeExits(): Promise<CrashEntry[]> {
+  try {
+    const clearedRaw = await AsyncStorage.getItem(CLEARED_KEY);
+    const clearedAt = clearedRaw ? Number(clearedRaw) : 0;
+    const exits = await getRecentExits();
+    return exits
+      .filter((e) => e.timestamp > clearedAt)
+      .map((e) => ({
+        message: `Proses aplikasi berhenti: ${e.reason}${e.description ? ` (${e.description})` : ''}`,
+        stack: null,
+        isFatal: true,
+        source: 'native' as const,
+        screen: null,
+        timestamp: new Date(e.timestamp).toISOString(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getCrashLog(): Promise<CrashEntry[]> {
-  return readEntries();
+  const [js, native] = await Promise.all([readEntries(), readNativeExits()]);
+  return [...js, ...native].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1)).slice(0, MAX_ENTRIES);
 }
 
 export async function clearCrashLog(): Promise<void> {
   try {
     await AsyncStorage.removeItem(CRASH_KEY);
+    await AsyncStorage.setItem(CLEARED_KEY, String(Date.now()));
   } catch {
     // ignore
   }
