@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
 
 import { supabase } from './supabase';
 
@@ -61,16 +60,6 @@ export async function getMyPhoneNumber(userId: string): Promise<string | null> {
   return data?.phone_number ?? null;
 }
 
-async function getPartnerPushToken(coupleId: string, myUserId: string): Promise<string | null> {
-  const { data } = await supabase
-    .from('device_push_tokens')
-    .select('user_id, expo_push_token')
-    .eq('couple_id', coupleId);
-
-  const partnerRow = data?.find((row) => row.user_id !== myUserId);
-  return partnerRow?.expo_push_token ?? null;
-}
-
 export async function getPartnerPhoneNumber(coupleId: string, myUserId: string): Promise<string | null> {
   const { data } = await supabase
     .from('device_push_tokens')
@@ -107,53 +96,26 @@ export async function sendPushToPartner(
     // bit of our own handling entirely, native or JS.
     const isDataOnly = !payload.title && !payload.body;
 
-    // The Edge Function resolves the partner token server-side and only relays
-    // data-only pushes; visible (title/body) pushes still go direct for now.
-    if (isDataOnly) {
-      const { error } = await supabase.functions.invoke('send-expo-push', {
-        body: { data, priority: payload.priority ?? 'high' },
-      });
-      if (!error) return true;
-      const status = (error as { context?: { status?: number } }).context?.status;
-      const notDeployed =
-        error instanceof FunctionsFetchError || (error instanceof FunctionsHttpError && status === 404);
-      if (!notDeployed) {
-        console.warn('send-expo-push failed:', error);
-        return false;
-      }
-      // TEMPORARY: delete this fallback once send-expo-push is deployed.
-      console.warn('send-expo-push unavailable, falling back to direct exp.host push');
-    }
-
-    const token = await getPartnerPushToken(coupleId, myUserId);
-    if (!token) return false;
-
-    const response = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        accept: 'application/json',
-      },
-      body: JSON.stringify({
-        to: token,
-        title: payload.title,
-        body: payload.body,
+    // Every push goes through the Edge Function, which resolves the partner's
+    // token server-side from the caller's own session (never a client-supplied
+    // token) and stamps the verified coupleId/senderId over whatever is sent.
+    // No direct exp.host fallback: it would reintroduce an unauthenticated path.
+    const { error } = await supabase.functions.invoke('send-expo-push', {
+      body: {
         data,
+        priority: payload.priority ?? 'high',
         ...(isDataOnly
           ? {}
-          : { sound: payload.sound ?? 'default', channelId: 'default' }),
-        priority: payload.priority ?? 'high',
-      }),
+          : {
+              title: payload.title,
+              body: payload.body,
+              sound: payload.sound ?? 'default',
+              channelId: 'default',
+            }),
+      },
     });
-
-    if (!response.ok) return false;
-
-    // Expo returns 200 even when the push itself was rejected (e.g. a stale/
-    // uninstalled-app token) -- the real per-recipient result is in the body.
-    const json = await response.json().catch(() => null);
-    const ticketStatus = json?.data?.status;
-    if (ticketStatus === 'error') {
-      console.warn('Expo push rejected:', json?.data?.message, json?.data?.details);
+    if (error) {
+      console.warn('send-expo-push failed:', error);
       return false;
     }
 
