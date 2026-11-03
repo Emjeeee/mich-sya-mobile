@@ -249,7 +249,7 @@ export default function AddMemoryModal({ visible, coupleId, onClose }: AddMemory
                         setAssets((prev) => prev.filter((item) => item.uri !== asset.uri))
                       }
                     >
-                      <Image source={{ uri: asset.uri }} style={[styles.preview, isArtDeco && deco.preview]} />
+                      <Image resizeMethod="resize" source={{ uri: asset.uri }} style={[styles.preview, isArtDeco && deco.preview]} />
                     </Pressable>
                   ))}
                 </ScrollView>

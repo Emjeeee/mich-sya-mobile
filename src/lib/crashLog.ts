@@ -45,6 +45,14 @@ export function recordCrash(entry: Omit<CrashEntry, 'timestamp'>): Promise<void>
 // the only trace of a crash that killed the process before any JS ran. The OS
 // history can't be cleared from here, so "Hapus" stores a timestamp and
 // anything older is hidden.
+function importanceLabel(importance: number): string {
+  if (importance <= 100) return 'app dibuka';
+  if (importance <= 125) return 'layanan latar belakang aktif';
+  if (importance <= 230) return 'terlihat';
+  if (importance <= 300) return 'layanan';
+  return 'latar belakang';
+}
+
 async function readNativeExits(): Promise<CrashEntry[]> {
   try {
     const clearedRaw = await AsyncStorage.getItem(CLEARED_KEY);
@@ -52,8 +60,14 @@ async function readNativeExits(): Promise<CrashEntry[]> {
     const exits = await getRecentExits();
     return exits
       .filter((e) => e.timestamp > clearedAt)
+      // A low-memory kill of a BACKGROUND app (importance > perceptible, 230) is
+      // Android's normal housekeeping, not a bug; only a kill while the app was
+      // in use / running its foreground service is worth surfacing.
+      .filter((e) => e.reason !== 'low_memory' || e.importance <= 230)
       .map((e) => ({
-        message: `Proses aplikasi berhenti: ${e.reason}${e.description ? ` (${e.description})` : ''}`,
+        message: `Proses aplikasi berhenti: ${e.reason} saat ${importanceLabel(e.importance)}${
+          e.rssKb > 0 ? `, memori app ~${Math.round(e.rssKb / 1024)} MB` : ''
+        }${e.description ? ` (${e.description})` : ''}`,
         stack: null,
         isFatal: true,
         source: 'native' as const,

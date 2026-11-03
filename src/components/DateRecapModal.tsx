@@ -68,7 +68,7 @@ export default function DateRecapModal({
               {photoUrls.length > 0 && (
                 <View style={styles.grid}>
                   {photoUrls.slice(0, 4).map((url) => (
-                    <Image key={url} source={{ uri: url }} style={[styles.gridPhoto, isArtDeco && deco.gridPhoto]} />
+                    <Image key={url} resizeMethod="resize" source={{ uri: url }} style={[styles.gridPhoto, isArtDeco && deco.gridPhoto]} />
                   ))}
                 </View>
               )}

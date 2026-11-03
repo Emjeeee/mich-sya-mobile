@@ -48,7 +48,7 @@ function WishlistRow({
 
   return (
     <View style={[styles.row, isArtDeco && deco.row]}>
-      {imageUrl && <Image source={{ uri: imageUrl }} style={[styles.rowImage, isArtDeco && deco.rowImage]} />}
+      {imageUrl && <Image resizeMethod="resize" source={{ uri: imageUrl }} style={[styles.rowImage, isArtDeco && deco.rowImage]} />}
       <Pressable style={styles.rowBody} onPress={onToggleDone}>
         <Text
           style={[

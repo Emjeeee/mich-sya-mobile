@@ -139,7 +139,7 @@ export default function AddWishlistModal({ visible, coupleId, onClose }: AddWish
               </Text>
             </Pressable>
 
-            {asset && <Image source={{ uri: asset.uri }} style={[styles.preview, isArtDeco && deco.preview]} />}
+            {asset && <Image resizeMethod="resize" source={{ uri: asset.uri }} style={[styles.preview, isArtDeco && deco.preview]} />}
 
             {error && <Text style={[styles.error, isArtDeco && deco.error]}>{error}</Text>}
 

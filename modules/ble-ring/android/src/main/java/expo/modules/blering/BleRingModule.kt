@@ -384,7 +384,10 @@ class BleRingModule : Module() {
               mapOf<String, Any>(
                 "reason" to label,
                 "timestamp" to info.timestamp.toDouble(),
-                "description" to (info.description ?: "")
+                "description" to (info.description ?: ""),
+                "importance" to info.importance.toDouble(),
+                "pssKb" to info.pss.toDouble(),
+                "rssKb" to info.rss.toDouble()
               )
             }
           }

@@ -104,7 +104,7 @@ interface BleRingModuleType {
    * Plain getters -- unlike setRingerMode/setStreamVolume, no DND access
    * needed for any of these.
    */
-  getRecentExits(): Promise<{ reason: 'crash' | 'crash_native' | 'anr' | 'low_memory'; timestamp: number; description: string }[]>;
+  getRecentExits(): Promise<{ reason: 'crash' | 'crash_native' | 'anr' | 'low_memory'; timestamp: number; description: string; importance: number; pssKb: number; rssKb: number }[]>;
   getVolumeState(): Promise<{
     mode: 'normal' | 'vibrate' | 'silent';
     ring: number;
